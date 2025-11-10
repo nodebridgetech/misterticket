@@ -11,8 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Upload, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { ImageUpload } from "@/components/ImageUpload";
 
 interface Category {
   id: string;
@@ -298,20 +299,11 @@ const CreateEvent = () => {
                 />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="imageUrl">URL da Imagem</Label>
-                <div className="flex gap-2">
-                  <Input
-                    id="imageUrl"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                  />
-                  <Button type="button" variant="outline" size="icon">
-                    <Upload className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+              <ImageUpload
+                currentImageUrl={imageUrl}
+                onImageUploaded={setImageUrl}
+                onImageRemoved={() => setImageUrl("")}
+              />
 
               <div className="flex items-center space-x-2">
                 <Switch

@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus } from "lucide-react";
+import { ImageUpload } from "@/components/ImageUpload";
 
 interface Category {
   id: string;
@@ -360,15 +361,11 @@ const EditEvent = () => {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="imageUrl">URL da Imagem</Label>
-                  <Input
-                    id="imageUrl"
-                    value={imageUrl}
-                    onChange={(e) => setImageUrl(e.target.value)}
-                    placeholder="https://exemplo.com/imagem.jpg"
-                  />
-                </div>
+                <ImageUpload
+                  currentImageUrl={imageUrl}
+                  onImageUploaded={setImageUrl}
+                  onImageRemoved={() => setImageUrl("")}
+                />
 
                 <div className="flex items-center space-x-2">
                   <Switch id="isPublished" checked={isPublished} onCheckedChange={setIsPublished} />

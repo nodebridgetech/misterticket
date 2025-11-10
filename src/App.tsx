@@ -11,6 +11,7 @@ import Events from "./pages/Events";
 import MyAccount from "./pages/MyAccount";
 import ProducerDashboard from "./pages/ProducerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import CreateEvent from "./pages/CreateEvent";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +30,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/minha-conta" element={<MyAccount />} />
             <Route path="/painel" element={<ProducerDashboard />} />
+            <Route path="/criar-evento" element={<CreateEvent />} />
             <Route path="/admin" element={<AdminDashboard />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />

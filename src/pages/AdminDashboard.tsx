@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, CalendarDays, DollarSign, Settings, CheckCircle, XCircle, Clock, Trash2, TrendingUp, BarChart3 } from "lucide-react";
+import { Users, CalendarDays, DollarSign, Settings, CheckCircle, XCircle, Clock, Trash2, TrendingUp, BarChart3, FolderKanban, Plus, Edit, X } from "lucide-react";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface ProducerRequest {
@@ -46,6 +46,12 @@ interface FeeConfig {
   min_withdrawal_amount: number;
 }
 
+interface Category {
+  id: string;
+  name: string;
+  description: string;
+}
+
 const AdminDashboard = () => {
   const { user, userRole, loading } = useAuth();
   const navigate = useNavigate();
@@ -53,7 +59,12 @@ const AdminDashboard = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [feeConfig, setFeeConfig] = useState<FeeConfig | null>(null);
   const [salesData, setSalesData] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [categoryName, setCategoryName] = useState("");
+  const [categoryDescription, setCategoryDescription] = useState("");
 
   useEffect(() => {
     if (!loading && (!user || userRole !== "admin")) {
@@ -144,6 +155,16 @@ const AdminDashboard = () => {
       if (sales) {
         setSalesData(sales);
       }
+
+      // Fetch categories
+      const { data: categoriesData } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      if (categoriesData) {
+        setCategories(categoriesData);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -229,6 +250,76 @@ const AdminDashboard = () => {
       console.error("Error updating fees:", error);
       toast.error("Erro ao atualizar taxas");
     }
+  };
+
+  const handleSaveCategory = async () => {
+    if (!categoryName.trim()) {
+      toast.error("Nome da categoria é obrigatório");
+      return;
+    }
+
+    try {
+      if (editingCategory) {
+        // Update existing category
+        const { error } = await supabase
+          .from("categories")
+          .update({ name: categoryName, description: categoryDescription })
+          .eq("id", editingCategory.id);
+
+        if (error) throw error;
+        toast.success("Categoria atualizada!");
+      } else {
+        // Create new category
+        const { error } = await supabase
+          .from("categories")
+          .insert({ name: categoryName, description: categoryDescription });
+
+        if (error) throw error;
+        toast.success("Categoria criada!");
+      }
+
+      setCategoryName("");
+      setCategoryDescription("");
+      setEditingCategory(null);
+      setShowCategoryForm(false);
+      fetchData();
+    } catch (error) {
+      console.error("Error saving category:", error);
+      toast.error("Erro ao salvar categoria");
+    }
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setCategoryDescription(category.description || "");
+    setShowCategoryForm(true);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Tem certeza que deseja deletar esta categoria?")) return;
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      toast.success("Categoria deletada!");
+      fetchData();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast.error("Erro ao deletar categoria");
+    }
+  };
+
+  const handleCancelCategoryForm = () => {
+    setCategoryName("");
+    setCategoryDescription("");
+    setEditingCategory(null);
+    setShowCategoryForm(false);
   };
 
   if (loading || loadingData) {
@@ -340,6 +431,7 @@ const AdminDashboard = () => {
             <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="producers">Produtores</TabsTrigger>
             <TabsTrigger value="events">Eventos</TabsTrigger>
+            <TabsTrigger value="categories">Categorias</TabsTrigger>
             <TabsTrigger value="fees">Configuração de Taxas</TabsTrigger>
           </TabsList>
 
@@ -580,6 +672,111 @@ const AdminDashboard = () => {
                       ))}
                     </TableBody>
                   </Table>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="categories">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <CardTitle>Configurações de Categoria</CardTitle>
+                    <CardDescription>
+                      Gerencie as categorias de eventos da plataforma
+                    </CardDescription>
+                  </div>
+                  <Button
+                    onClick={() => setShowCategoryForm(!showCategoryForm)}
+                    className="gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Nova Categoria
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {showCategoryForm && (
+                  <Card className="border-2 border-primary">
+                    <CardContent className="pt-6 space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="categoryName">Nome da Categoria *</Label>
+                        <Input
+                          id="categoryName"
+                          value={categoryName}
+                          onChange={(e) => setCategoryName(e.target.value)}
+                          placeholder="Ex: Shows, Festas, Teatro"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="categoryDescription">Descrição</Label>
+                        <Input
+                          id="categoryDescription"
+                          value={categoryDescription}
+                          onChange={(e) => setCategoryDescription(e.target.value)}
+                          placeholder="Descrição opcional"
+                        />
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button onClick={handleSaveCategory}>
+                          {editingCategory ? "Atualizar" : "Criar"}
+                        </Button>
+                        <Button variant="outline" onClick={handleCancelCategoryForm}>
+                          Cancelar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {categories.length === 0 ? (
+                  <div className="text-center py-12">
+                    <FolderKanban className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">
+                      Nenhuma categoria cadastrada
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {categories.map((category) => (
+                      <div
+                        key={category.id}
+                        className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="flex-1">
+                          <h3 className="font-semibold">{category.name}</h3>
+                          {category.description && (
+                            <p className="text-sm text-muted-foreground">
+                              {category.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditCategory(category)}
+                            className="gap-1"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDeleteCategory(category.id)}
+                            className="gap-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Deletar
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </CardContent>
             </Card>

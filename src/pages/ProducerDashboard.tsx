@@ -68,7 +68,7 @@ const ProducerDashboard = () => {
               Gerencie seus eventos e acompanhe suas vendas
             </p>
           </div>
-          <Button size="lg" className="gap-2">
+          <Button size="lg" className="gap-2" onClick={() => navigate("/criar-evento")}>
             <Plus className="h-5 w-5" />
             Criar Evento
           </Button>
@@ -110,7 +110,7 @@ const ProducerDashboard = () => {
                 <p className="text-muted-foreground mb-4">
                   Você ainda não criou nenhum evento
                 </p>
-                <Button>Criar meu primeiro evento</Button>
+                <Button onClick={() => navigate("/criar-evento")}>Criar meu primeiro evento</Button>
               </div>
             </CardContent>
           </Card>

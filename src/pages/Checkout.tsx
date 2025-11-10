@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { loadStripe } from "@stripe/stripe-js";
 
 const Checkout = () => {
   const { id: eventId } = useParams();
@@ -81,32 +80,34 @@ const Checkout = () => {
 
     setProcessing(true);
     try {
-      // Get Stripe publishable key from environment
-      const stripeKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-      if (!stripeKey) {
-        throw new Error("Stripe não configurado");
-      }
-
-      const stripe = await loadStripe(stripeKey);
-      if (!stripe) {
-        throw new Error("Erro ao carregar Stripe");
-      }
-
-      // Create checkout session via Stripe API
-      // This is a placeholder - you'll need to create a backend endpoint
-      // to create the Stripe checkout session
-      const totalAmount = Number(ticket.price) * quantity;
-      
       toast({
         title: "Processando",
-        description: "Redirecionando para o pagamento...",
+        description: "Criando sessão de pagamento...",
       });
 
-      // TODO: Call backend to create Stripe checkout session
-      // For now, show a message
+      // Call edge function to create checkout session
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          eventId: event.id,
+          ticketId: ticket.id,
+          quantity: quantity,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Erro ao criar sessão de checkout");
+      }
+
+      if (!data?.url) {
+        throw new Error("URL de checkout não retornada");
+      }
+
+      // Redirect to Stripe Checkout in a new tab
+      window.open(data.url, "_blank");
+
       toast({
-        title: "Em desenvolvimento",
-        description: "A integração com Stripe será finalizada em breve.",
+        title: "Redirecionado",
+        description: "Uma nova aba foi aberta com o checkout do Stripe.",
       });
 
     } catch (error: any) {

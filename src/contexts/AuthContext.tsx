@@ -9,6 +9,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: string | null;
   isProducerApproved: boolean;
+  hasPendingProducerRequest: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
@@ -23,6 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isProducerApproved, setIsProducerApproved] = useState(false);
+  const [hasPendingProducerRequest, setHasPendingProducerRequest] = useState(false);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -34,14 +36,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       .order("requested_at", { ascending: false });
 
     if (data && data.length > 0) {
-      const approvedRoles = data.filter(r => r.is_approved);
-      const producerRole = data.find(r => r.role === "producer");
-      
-      if (approvedRoles.length > 0) {
-        setUserRole(approvedRoles[0].role);
+      // Check if user is admin
+      const adminRole = data.find(r => r.role === "admin");
+      if (adminRole) {
+        setUserRole("admin");
+        setIsProducerApproved(false);
+        setHasPendingProducerRequest(false);
+        return;
       }
-      
-      setIsProducerApproved(producerRole?.is_approved || false);
+
+      // Check if user is approved producer
+      const producerRole = data.find(r => r.role === "producer" && r.is_approved);
+      if (producerRole) {
+        setUserRole("producer");
+        setIsProducerApproved(true);
+        setHasPendingProducerRequest(false);
+        return;
+      }
+
+      // Check if user has pending producer request
+      const pendingProducerRole = data.find(r => r.role === "producer" && !r.is_approved);
+      if (pendingProducerRole) {
+        setUserRole("visitor");
+        setIsProducerApproved(false);
+        setHasPendingProducerRequest(true);
+        return;
+      }
+
+      // Default to visitor
+      setUserRole("visitor");
+      setIsProducerApproved(false);
+      setHasPendingProducerRequest(false);
     }
   };
 
@@ -57,6 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setUserRole(null);
         setIsProducerApproved(false);
+        setHasPendingProducerRequest(false);
       }
     });
 
@@ -111,6 +137,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setSession(null);
     setUserRole(null);
     setIsProducerApproved(false);
+    setHasPendingProducerRequest(false);
     toast.success("Logout realizado com sucesso!");
     navigate("/");
   };
@@ -118,18 +145,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const requestProducerRole = async () => {
     if (!user) return;
 
-    const { error } = await supabase.from("user_roles").insert({
-      user_id: user.id,
-      role: "producer",
-      is_approved: false,
-    });
+    try {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({
+          user_id: user.id,
+          role: "producer",
+        });
 
-    if (error) {
-      toast.error("Erro ao solicitar role de produtor");
-      throw error;
+      if (error) throw error;
+
+      setHasPendingProducerRequest(true);
+      toast.success("Solicitação enviada! Aguarde a aprovação do administrador.");
+    } catch (error: any) {
+      if (error.code === "23505") {
+        toast.error("Você já solicitou acesso de produtor.");
+      } else {
+        toast.error("Erro ao solicitar acesso de produtor");
+      }
     }
-
-    toast.success("Solicitação enviada! Aguarde aprovação do administrador.");
   };
 
   return (
@@ -139,6 +173,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         session,
         userRole,
         isProducerApproved,
+        hasPendingProducerRequest,
         loading,
         signIn,
         signUp,

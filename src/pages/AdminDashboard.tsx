@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, CalendarDays, DollarSign, Settings, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Users, CalendarDays, DollarSign, Settings, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
 
 interface ProducerRequest {
   id: string;
@@ -165,37 +165,22 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleApproveEvent = async (eventId: string) => {
+  const handleDeleteEvent = async (eventId: string) => {
+    if (!confirm("Tem certeza que deseja deletar este evento?")) return;
+
     try {
       const { error } = await supabase
         .from("events")
-        .update({ status: "approved" })
+        .delete()
         .eq("id", eventId);
 
       if (error) throw error;
 
-      toast.success("Evento aprovado!");
+      toast.success("Evento deletado com sucesso!");
       fetchData();
     } catch (error) {
-      console.error("Error approving event:", error);
-      toast.error("Erro ao aprovar evento");
-    }
-  };
-
-  const handleRejectEvent = async (eventId: string) => {
-    try {
-      const { error } = await supabase
-        .from("events")
-        .update({ status: "rejected" })
-        .eq("id", eventId);
-
-      if (error) throw error;
-
-      toast.success("Evento rejeitado");
-      fetchData();
-    } catch (error) {
-      console.error("Error rejecting event:", error);
-      toast.error("Erro ao rejeitar evento");
+      console.error("Error deleting event:", error);
+      toast.error("Erro ao deletar evento");
     }
   };
 
@@ -242,10 +227,10 @@ const AdminDashboard = () => {
       description: "aguardando aprovação",
     },
     {
-      title: "Eventos Pendentes",
-      value: events.filter(e => e.status === "pending").length.toString(),
+      title: "Eventos Publicados",
+      value: events.filter(e => e.is_published).length.toString(),
       icon: CalendarDays,
-      description: "aguardando aprovação",
+      description: "eventos ativos",
     },
     {
       title: "Total de Eventos",
@@ -378,7 +363,7 @@ const AdminDashboard = () => {
               <CardHeader>
                 <CardTitle>Gerenciamento de Eventos</CardTitle>
                 <CardDescription>
-                  Aprove, rejeite ou gerencie eventos publicados
+                  Visualize e gerencie todos os eventos da plataforma
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -397,7 +382,7 @@ const AdminDashboard = () => {
                         <TableHead>Produtor</TableHead>
                         <TableHead>Categoria</TableHead>
                         <TableHead>Data</TableHead>
-                        <TableHead>Status</TableHead>
+                        <TableHead>Publicado</TableHead>
                         <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -415,44 +400,20 @@ const AdminDashboard = () => {
                             {new Date(event.event_date).toLocaleDateString("pt-BR")}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              variant={
-                                event.status === "approved"
-                                  ? "default"
-                                  : event.status === "rejected"
-                                  ? "destructive"
-                                  : "outline"
-                              }
-                            >
-                              {event.status === "approved"
-                                ? "Aprovado"
-                                : event.status === "rejected"
-                                ? "Rejeitado"
-                                : "Pendente"}
+                            <Badge variant={event.is_published ? "default" : "secondary"}>
+                              {event.is_published ? "Sim" : "Não"}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            {event.status === "pending" && (
-                              <div className="flex gap-2">
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleApproveEvent(event.id)}
-                                  className="gap-1"
-                                >
-                                  <CheckCircle className="h-4 w-4" />
-                                  Aprovar
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleRejectEvent(event.id)}
-                                  className="gap-1"
-                                >
-                                  <XCircle className="h-4 w-4" />
-                                  Rejeitar
-                                </Button>
-                              </div>
-                            )}
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteEvent(event.id)}
+                              className="gap-1"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Deletar
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}

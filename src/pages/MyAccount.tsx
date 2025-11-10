@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
 const MyAccount = () => {
-  const { user, signOut, requestProducerRole, isProducerApproved } = useAuth();
+  const { user, signOut, requestProducerRole, isProducerApproved, hasPendingProducerRequest } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -109,7 +109,33 @@ const MyAccount = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {!isProducerApproved ? (
+                {isProducerApproved ? (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Você já é um produtor aprovado! Acesse o painel de produtor para gerenciar seus eventos.
+                    </p>
+                    <Button onClick={() => navigate("/painel")}>
+                      Ir para o Painel
+                    </Button>
+                  </div>
+                ) : hasPendingProducerRequest ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium mb-1 text-yellow-900 dark:text-yellow-100">
+                          Solicitação em análise
+                        </p>
+                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                          Sua solicitação para se tornar produtor está aguardando aprovação do administrador.
+                        </p>
+                      </div>
+                    </div>
+                    <Button disabled variant="secondary">
+                      Solicitação Pendente
+                    </Button>
+                  </div>
+                ) : (
                   <div className="space-y-4">
                     <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
                       <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
@@ -124,15 +150,6 @@ const MyAccount = () => {
                     </div>
                     <Button onClick={handleBecomeProducer} variant="default">
                       Solicitar acesso de produtor
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Você já é um produtor aprovado! Acesse o painel de produtor para gerenciar seus eventos.
-                    </p>
-                    <Button onClick={() => navigate("/painel")}>
-                      Ir para o Painel
                     </Button>
                   </div>
                 )}

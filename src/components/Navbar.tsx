@@ -8,7 +8,7 @@ import { ThemeToggle } from "./ThemeToggle";
 
 export const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const navigate = useNavigate();
 
   return (
@@ -54,6 +54,14 @@ export const Navbar = () => {
             <ThemeToggle />
             {user ? (
               <>
+                {userRole === "admin" && (
+                  <Button 
+                    variant="ghost"
+                    onClick={() => navigate("/admin")}
+                  >
+                    Admin
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="icon"
@@ -124,6 +132,18 @@ export const Navbar = () => {
               <div className="pt-4 space-y-2">
                 {user ? (
                   <>
+                    {userRole === "admin" && (
+                      <Button 
+                        variant="ghost" 
+                        className="w-full"
+                        onClick={() => {
+                          navigate("/admin");
+                          setIsMenuOpen(false);
+                        }}
+                      >
+                        Painel Admin
+                      </Button>
+                    )}
                     <Button 
                       variant="ghost" 
                       className="w-full"

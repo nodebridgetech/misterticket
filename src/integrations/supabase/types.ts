@@ -14,6 +14,84 @@ export type Database = {
   }
   public: {
     Tables: {
+      events: {
+        Row: {
+          address: string
+          category: string
+          created_at: string
+          description: string | null
+          event_date: string
+          id: string
+          image_url: string | null
+          is_published: boolean
+          producer_id: string
+          status: string
+          title: string
+          updated_at: string
+          venue: string
+        }
+        Insert: {
+          address: string
+          category: string
+          created_at?: string
+          description?: string | null
+          event_date: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          producer_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          venue: string
+        }
+        Update: {
+          address?: string
+          category?: string
+          created_at?: string
+          description?: string | null
+          event_date?: string
+          id?: string
+          image_url?: string | null
+          is_published?: boolean
+          producer_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          venue?: string
+        }
+        Relationships: []
+      }
+      fee_config: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          min_withdrawal_amount: number
+          payment_gateway_fee_percentage: number
+          platform_fee_percentage: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_withdrawal_amount?: number
+          payment_gateway_fee_percentage?: number
+          platform_fee_percentage?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          min_withdrawal_amount?: number
+          payment_gateway_fee_percentage?: number
+          platform_fee_percentage?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

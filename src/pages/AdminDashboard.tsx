@@ -12,7 +12,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Users, CalendarDays, DollarSign, Settings, CheckCircle, XCircle, Clock, Trash2 } from "lucide-react";
+import { Users, CalendarDays, DollarSign, Settings, CheckCircle, XCircle, Clock, Trash2, TrendingUp, BarChart3 } from "lucide-react";
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface ProducerRequest {
   id: string;
@@ -51,6 +52,7 @@ const AdminDashboard = () => {
   const [producerRequests, setProducerRequests] = useState<ProducerRequest[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [feeConfig, setFeeConfig] = useState<FeeConfig | null>(null);
+  const [salesData, setSalesData] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -68,25 +70,33 @@ const AdminDashboard = () => {
   const fetchData = async () => {
     setLoadingData(true);
     try {
-      // Fetch pending producer requests
-      const { data: requests } = await supabase
+      // Fetch pending producer requests with proper join
+      const { data: requests, error: requestsError } = await supabase
         .from("user_roles")
-        .select(`
-          id,
-          user_id,
-          role,
-          requested_at,
-          is_approved,
-          profiles:user_id (
-            full_name
-          )
-        `)
+        .select("id, user_id, role, requested_at, is_approved")
         .eq("role", "producer")
         .eq("is_approved", false)
         .order("requested_at", { ascending: false });
 
+      if (requestsError) {
+        console.error("Error fetching producer requests:", requestsError);
+      }
+
       if (requests) {
-        setProducerRequests(requests as any);
+        // Fetch profiles separately
+        const userIds = requests.map(r => r.user_id);
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", userIds);
+
+        // Merge data
+        const requestsWithProfiles = requests.map(request => ({
+          ...request,
+          profiles: profiles?.find(p => p.user_id === request.user_id) || { full_name: "N/A" }
+        }));
+
+        setProducerRequests(requestsWithProfiles as any);
       }
 
       // Fetch all events
@@ -119,6 +129,20 @@ const AdminDashboard = () => {
 
       if (feeData) {
         setFeeConfig(feeData);
+      }
+
+      // Fetch sales data for charts
+      const { data: sales } = await supabase
+        .from("sales")
+        .select(`
+          *,
+          events:event_id (
+            category
+          )
+        `);
+
+      if (sales) {
+        setSalesData(sales);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -219,6 +243,37 @@ const AdminDashboard = () => {
     return null;
   }
 
+  // Calculate metrics
+  const totalSales = salesData.reduce((sum, sale) => sum + Number(sale.total_price || 0), 0);
+  const totalPlatformRevenue = salesData.reduce((sum, sale) => sum + Number(sale.platform_fee || 0), 0);
+  const totalTicketsSold = salesData.reduce((sum, sale) => sum + Number(sale.quantity || 0), 0);
+
+  // Events by category
+  const eventsByCategory = events.reduce((acc, event) => {
+    const category = event.category || "Outros";
+    acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const categoryData = Object.entries(eventsByCategory).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
+  // Sales by category
+  const salesByCategory = salesData.reduce((acc, sale: any) => {
+    const category = sale.events?.category || "Outros";
+    acc[category] = (acc[category] || 0) + Number(sale.total_price || 0);
+    return acc;
+  }, {} as Record<string, number>);
+
+  const categorySalesData = Object.entries(salesByCategory).map(([name, value]) => ({
+    name,
+    vendas: value,
+  }));
+
+  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
   const stats = [
     {
       title: "Produtores Pendentes",
@@ -233,16 +288,16 @@ const AdminDashboard = () => {
       description: "eventos ativos",
     },
     {
-      title: "Total de Eventos",
-      value: events.length.toString(),
-      icon: CalendarDays,
-      description: "registrados no sistema",
+      title: "Ingressos Vendidos",
+      value: totalTicketsSold.toString(),
+      icon: TrendingUp,
+      description: "total de vendas",
     },
     {
-      title: "Taxa da Plataforma",
-      value: `${feeConfig?.platform_fee_percentage || 0}%`,
+      title: "Receita da Plataforma",
+      value: `R$ ${totalPlatformRevenue.toFixed(2)}`,
       icon: DollarSign,
-      description: "configuração atual",
+      description: "taxas arrecadadas",
     },
   ];
 
@@ -280,12 +335,118 @@ const AdminDashboard = () => {
           })}
         </div>
 
-        <Tabs defaultValue="producers" className="space-y-6">
+        <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
+            <TabsTrigger value="overview">Visão Geral</TabsTrigger>
             <TabsTrigger value="producers">Produtores</TabsTrigger>
             <TabsTrigger value="events">Eventos</TabsTrigger>
             <TabsTrigger value="fees">Configuração de Taxas</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    Eventos por Categoria
+                  </CardTitle>
+                  <CardDescription>
+                    Distribuição de eventos cadastrados
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categoryData.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      Nenhum dado disponível
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          labelLine={false}
+                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          outerRadius={80}
+                          fill="hsl(var(--primary))"
+                          dataKey="value"
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Vendas por Categoria
+                  </CardTitle>
+                  <CardDescription>
+                    Receita gerada por tipo de evento
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {categorySalesData.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      Nenhuma venda registrada
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={categorySalesData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                        <YAxis stroke="hsl(var(--muted-foreground))" />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "var(--radius)",
+                          }}
+                          formatter={(value: number) => [`R$ ${value.toFixed(2)}`, "Vendas"]}
+                        />
+                        <Legend />
+                        <Bar dataKey="vendas" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Resumo Financeiro</CardTitle>
+                <CardDescription>
+                  Visão geral das transações e taxas da plataforma
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Total em Vendas</p>
+                    <p className="text-2xl font-bold">R$ {totalSales.toFixed(2)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Receita da Plataforma</p>
+                    <p className="text-2xl font-bold text-primary">R$ {totalPlatformRevenue.toFixed(2)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Taxa Atual</p>
+                    <p className="text-2xl font-bold">{feeConfig?.platform_fee_percentage || 0}%</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="producers">
             <Card>

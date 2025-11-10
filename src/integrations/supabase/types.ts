@@ -122,6 +122,122 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          event_id: string
+          gateway_fee: number
+          id: string
+          payment_status: string
+          platform_fee: number
+          producer_amount: number
+          qr_code: string | null
+          quantity: number
+          ticket_id: string
+          total_price: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          event_id: string
+          gateway_fee: number
+          id?: string
+          payment_status?: string
+          platform_fee: number
+          producer_amount: number
+          qr_code?: string | null
+          quantity: number
+          ticket_id: string
+          total_price: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          event_id?: string
+          gateway_fee?: number
+          id?: string
+          payment_status?: string
+          platform_fee?: number
+          producer_amount?: number
+          qr_code?: string | null
+          quantity?: number
+          ticket_id?: string
+          total_price?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tickets: {
+        Row: {
+          batch_name: string
+          created_at: string
+          event_id: string
+          id: string
+          price: number
+          quantity_sold: number
+          quantity_total: number
+          sale_end_date: string
+          sale_start_date: string
+          sector: string | null
+          updated_at: string
+        }
+        Insert: {
+          batch_name: string
+          created_at?: string
+          event_id: string
+          id?: string
+          price: number
+          quantity_sold?: number
+          quantity_total: number
+          sale_end_date: string
+          sale_start_date: string
+          sector?: string | null
+          updated_at?: string
+        }
+        Update: {
+          batch_name?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          price?: number
+          quantity_sold?: number
+          quantity_total?: number
+          sale_end_date?: string
+          sale_start_date?: string
+          sector?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tickets_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           approved_at: string | null

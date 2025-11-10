@@ -203,6 +203,7 @@ const EventDetails = () => {
                             className="w-full"
                             disabled={!isAvailable || !isSaleActive}
                             variant={isAvailable && isSaleActive ? "hero" : "secondary"}
+                            onClick={() => isAvailable && isSaleActive && navigate(`/checkout/${id}?ticket=${ticket.id}`)}
                           >
                             {!isSaleActive ? "Fora do período" : isAvailable ? "Comprar" : "Esgotado"}
                           </Button>

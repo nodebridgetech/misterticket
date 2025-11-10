@@ -14,6 +14,7 @@ import ProducerDashboard from "./pages/ProducerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import CreateEvent from "./pages/CreateEvent";
 import EditEvent from "./pages/EditEvent";
+import Checkout from "./pages/Checkout";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
               <Route path="/" element={<Index />} />
               <Route path="/eventos" element={<Events />} />
               <Route path="/event/:id" element={<EventDetails />} />
+              <Route path="/checkout/:id" element={<Checkout />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/minha-conta" element={<MyAccount />} />
               <Route path="/painel" element={<ProducerDashboard />} />

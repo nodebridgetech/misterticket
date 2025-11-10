@@ -150,11 +150,15 @@ export type Database = {
           event_id: string
           gateway_fee: number
           id: string
+          payment_method: string | null
           payment_status: string
           platform_fee: number
           producer_amount: number
           qr_code: string | null
           quantity: number
+          stripe_customer_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_session_id: string | null
           ticket_id: string
           total_price: number
           unit_price: number
@@ -166,11 +170,15 @@ export type Database = {
           event_id: string
           gateway_fee: number
           id?: string
+          payment_method?: string | null
           payment_status?: string
           platform_fee: number
           producer_amount: number
           qr_code?: string | null
           quantity: number
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           ticket_id: string
           total_price: number
           unit_price: number
@@ -182,11 +190,15 @@ export type Database = {
           event_id?: string
           gateway_fee?: number
           id?: string
+          payment_method?: string | null
           payment_status?: string
           platform_fee?: number
           producer_amount?: number
           qr_code?: string | null
           quantity?: number
+          stripe_customer_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_session_id?: string | null
           ticket_id?: string
           total_price?: number
           unit_price?: number

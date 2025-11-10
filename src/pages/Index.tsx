@@ -1,4 +1,3 @@
-import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { EventCard } from "@/components/EventCard";
 import { Button } from "@/components/ui/button";
@@ -41,8 +40,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
+    <>
 
       {/* Hero Section */}
       <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
@@ -153,7 +151,7 @@ const Index = () => {
       </section>
 
       <Footer />
-    </div>
+    </>
   );
 };
 

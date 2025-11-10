@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import EventDetails from "./pages/EventDetails";
 import Auth from "./pages/Auth";
@@ -24,19 +25,21 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/eventos" element={<Events />} />
-            <Route path="/event/:id" element={<EventDetails />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/minha-conta" element={<MyAccount />} />
-            <Route path="/painel" element={<ProducerDashboard />} />
-            <Route path="/criar-evento" element={<CreateEvent />} />
-            <Route path="/editar-evento/:id" element={<EditEvent />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/eventos" element={<Events />} />
+              <Route path="/event/:id" element={<EventDetails />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/minha-conta" element={<MyAccount />} />
+              <Route path="/painel" element={<ProducerDashboard />} />
+              <Route path="/criar-evento" element={<CreateEvent />} />
+              <Route path="/editar-evento/:id" element={<EditEvent />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppLayout>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

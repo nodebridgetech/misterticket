@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { EventCard } from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
@@ -62,10 +61,8 @@ const Events = () => {
   });
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <>
+      <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-6">Todos os Eventos</h1>
           
@@ -123,7 +120,7 @@ const Events = () => {
       </main>
 
       <Footer />
-    </div>
+    </>
   );
 };
 

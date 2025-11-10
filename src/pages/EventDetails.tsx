@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,13 +56,12 @@ const EventDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col">
-        <Navbar />
-        <div className="flex-1 flex items-center justify-center">
+      <>
+        <div className="flex-1 flex items-center justify-center min-h-[400px]">
           <p className="text-muted-foreground">Carregando...</p>
         </div>
         <Footer />
-      </div>
+      </>
     );
   }
 
@@ -72,10 +70,8 @@ const EventDetails = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-
-      <main className="flex-1">
+    <>
+      <main>
         {/* Event Header */}
         <div className="relative h-[400px] w-full overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10" />
@@ -227,7 +223,7 @@ const EventDetails = () => {
       </main>
 
       <Footer />
-    </div>
+    </>
   );
 };
 

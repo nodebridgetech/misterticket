@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { Ticket, Search, LayoutDashboard, Calendar, User } from "lucide-react";
+import { Search, LayoutDashboard, Calendar, User } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
 import { Button } from "@/components/ui/button";
@@ -26,8 +27,7 @@ export const AppSidebar = () => {
     <Sidebar className="border-r border-border">
       <SidebarHeader className="border-b border-border p-4">
         <Link to="/" className="flex items-center gap-2">
-          <Ticket className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Mister Ticket</span>
+          <img src={logo} alt="Mister Ticket" className="h-8" />
         </Link>
         
         <div className="relative w-full mt-4">

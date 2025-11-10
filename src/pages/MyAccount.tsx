@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -55,10 +54,8 @@ const MyAccount = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Navbar />
-      
-      <main className="flex-1 container mx-auto px-4 py-8">
+    <>
+      <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Minha Conta</h1>
 
         <Tabs defaultValue="profile" className="space-y-6">
@@ -196,7 +193,7 @@ const MyAccount = () => {
       </main>
 
       <Footer />
-    </div>
+    </>
   );
 };
 

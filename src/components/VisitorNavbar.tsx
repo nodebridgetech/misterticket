@@ -1,11 +1,11 @@
 import { Search, User, ShoppingCart } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
 import { Badge } from "@/components/ui/badge";
-import { Ticket } from "lucide-react";
 
 export const VisitorNavbar = () => {
   const { user, signOut } = useAuth();
@@ -17,8 +17,7 @@ export const VisitorNavbar = () => {
         <div className="flex h-16 items-center justify-between gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 shrink-0">
-            <Ticket className="h-8 w-8 text-primary" />
-            <span className="text-xl font-bold hidden sm:inline">Mister Ticket</span>
+            <img src={logo} alt="Mister Ticket" className="h-8" />
           </Link>
 
           {/* Search */}

@@ -5,14 +5,16 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, DollarSign, TrendingUp, Plus } from "lucide-react";
+import { CalendarDays, Users, DollarSign, TrendingUp, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const ProducerDashboard = () => {
   const { user, isProducerApproved, loading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     if (!loading && (!user || !isProducerApproved)) {
@@ -56,6 +58,38 @@ const ProducerDashboard = () => {
       console.error("Error fetching events:", error);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!confirm("Tem certeza que deseja excluir este evento? Esta ação não pode ser desfeita.")) {
+      return;
+    }
+
+    try {
+      // First delete all tickets
+      await supabase.from("tickets").delete().eq("event_id", eventId);
+      
+      // Then delete the event
+      const { error } = await supabase.from("events").delete().eq("id", eventId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Evento excluído",
+        description: "O evento foi excluído com sucesso",
+      });
+
+      fetchMyEvents();
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast({
+        title: "Erro ao excluir evento",
+        description: "Ocorreu um erro ao excluir o evento",
+        variant: "destructive",
+      });
     }
   };
 
@@ -172,16 +206,25 @@ const ProducerDashboard = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              navigate(`/editar-evento/${event.id}`);
-                            }}
-                          >
-                            Editar
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/editar-evento/${event.id}`);
+                              }}
+                            >
+                              Editar
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => handleDeleteEvent(event.id, e)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

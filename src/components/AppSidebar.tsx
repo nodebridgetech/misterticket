@@ -39,25 +39,29 @@ export const AppSidebar = () => {
   };
 
   return (
-    <Sidebar className="border-r border-border">
+    <Sidebar className="border-r border-border" collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center justify-between mb-4">
-          <Link to="/" className="flex items-center justify-center w-full">
-            <img src={logo} alt="Mister Ticket" className="h-12" />
-          </Link>
+        <div className="flex items-center justify-between gap-2 mb-4">
+          {open && (
+            <Link to="/" className="flex items-center justify-center w-full">
+              <img src={logo} alt="Mister Ticket" className="h-12" />
+            </Link>
+          )}
           <SidebarTrigger className="shrink-0" />
         </div>
         
-        <form onSubmit={handleSearch} className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Buscar eventos..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </form>
+        {open && (
+          <form onSubmit={handleSearch} className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="search"
+              placeholder="Buscar eventos..."
+              className="pl-10"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </form>
+        )}
       </SidebarHeader>
 
       <SidebarContent>
@@ -70,6 +74,7 @@ export const AppSidebar = () => {
                     to={dashboardPath}
                     className="flex items-center gap-2 hover:bg-accent"
                     activeClassName="bg-accent text-accent-foreground font-medium"
+                    title="Dashboard"
                   >
                     <LayoutDashboard className="h-4 w-4" />
                     {open && <span>Dashboard</span>}
@@ -83,6 +88,7 @@ export const AppSidebar = () => {
                     to="/eventos"
                     className="flex items-center gap-2 hover:bg-accent"
                     activeClassName="bg-accent text-accent-foreground font-medium"
+                    title="Todos Eventos"
                   >
                     <Calendar className="h-4 w-4" />
                     {open && <span>Todos Eventos</span>}
@@ -95,18 +101,26 @@ export const AppSidebar = () => {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4 space-y-2">
-        <div className="flex items-center justify-between">
-          {open && <span className="text-sm text-muted-foreground">Tema</span>}
-          <ThemeToggle />
-        </div>
+        {open && (
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Tema</span>
+            <ThemeToggle />
+          </div>
+        )}
+        {!open && (
+          <div className="flex justify-center">
+            <ThemeToggle />
+          </div>
+        )}
         <Button 
           variant="ghost" 
           className="w-full justify-start"
           asChild
+          title="Minha Conta"
         >
           <Link to="/minha-conta">
-            <User className="h-4 w-4 mr-2" />
-            {open && <span>Minha Conta</span>}
+            <User className="h-4 w-4" />
+            {open && <span className="ml-2">Minha Conta</span>}
           </Link>
         </Button>
       </SidebarFooter>

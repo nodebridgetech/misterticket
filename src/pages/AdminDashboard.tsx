@@ -113,22 +113,24 @@ const AdminDashboard = () => {
       // Fetch all events
       const { data: eventsData } = await supabase
         .from("events")
-        .select(`
-          id,
-          title,
-          category,
-          event_date,
-          status,
-          is_published,
-          producer_id,
-          profiles:producer_id (
-            full_name
-          )
-        `)
+        .select("id, title, category, event_date, status, is_published, producer_id")
         .order("created_at", { ascending: false });
 
       if (eventsData) {
-        setEvents(eventsData as any);
+        // Fetch profiles separately for events
+        const producerIds = eventsData.map(e => e.producer_id);
+        const { data: eventProfiles } = await supabase
+          .from("profiles")
+          .select("user_id, full_name")
+          .in("user_id", producerIds);
+
+        // Merge data
+        const eventsWithProfiles = eventsData.map(event => ({
+          ...event,
+          profiles: eventProfiles?.find(p => p.user_id === event.producer_id) || { full_name: "N/A" }
+        }));
+
+        setEvents(eventsWithProfiles as any);
       }
 
       // Fetch fee configuration

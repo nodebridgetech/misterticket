@@ -31,12 +31,9 @@ interface Event {
   title: string;
   category: string;
   event_date: string;
-  status: string;
   is_published: boolean;
   producer_id: string;
-  profiles: {
-    full_name: string;
-  };
+  producer_name?: string;
 }
 
 interface FeeConfig {
@@ -110,27 +107,27 @@ const AdminDashboard = () => {
         setProducerRequests(requestsWithProfiles as any);
       }
 
-      // Fetch all events
+      // Fetch all events with producer names
       const { data: eventsData } = await supabase
         .from("events")
-        .select("id, title, category, event_date, status, is_published, producer_id")
+        .select("id, title, category, event_date, is_published, producer_id")
         .order("created_at", { ascending: false });
 
       if (eventsData) {
-        // Fetch profiles separately for events
-        const producerIds = eventsData.map(e => e.producer_id);
-        const { data: eventProfiles } = await supabase
+        // Fetch producer names
+        const producerIds = [...new Set(eventsData.map(e => e.producer_id))];
+        const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, full_name")
           .in("user_id", producerIds);
 
-        // Merge data
-        const eventsWithProfiles = eventsData.map(event => ({
+        // Map events with producer names
+        const eventsWithProducers = eventsData.map(event => ({
           ...event,
-          profiles: eventProfiles?.find(p => p.user_id === event.producer_id) || { full_name: "N/A" }
+          producer_name: profiles?.find(p => p.user_id === event.producer_id)?.full_name || "N/A"
         }));
 
-        setEvents(eventsWithProfiles as any);
+        setEvents(eventsWithProducers);
       }
 
       // Fetch fee configuration
@@ -648,7 +645,7 @@ const AdminDashboard = () => {
                             {event.title}
                           </TableCell>
                           <TableCell>
-                            {event.profiles?.full_name || "N/A"}
+                            {event.producer_name || "N/A"}
                           </TableCell>
                           <TableCell>{event.category}</TableCell>
                           <TableCell>
@@ -656,7 +653,7 @@ const AdminDashboard = () => {
                           </TableCell>
                           <TableCell>
                             <Badge variant={event.is_published ? "default" : "secondary"}>
-                              {event.is_published ? "Sim" : "Não"}
+              {event.is_published ? "Sim" : "Não"}
                             </Badge>
                           </TableCell>
                           <TableCell>

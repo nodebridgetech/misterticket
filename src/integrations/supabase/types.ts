@@ -49,7 +49,6 @@ export type Database = {
           image_url: string | null
           is_published: boolean
           producer_id: string
-          status: string
           title: string
           updated_at: string
           venue: string
@@ -64,7 +63,6 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           producer_id: string
-          status?: string
           title: string
           updated_at?: string
           venue: string
@@ -79,7 +77,6 @@ export type Database = {
           image_url?: string | null
           is_published?: boolean
           producer_id?: string
-          status?: string
           title?: string
           updated_at?: string
           venue?: string

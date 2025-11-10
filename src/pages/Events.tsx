@@ -1,51 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { EventCard } from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const Events = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
-  // Mock data - will be replaced with real data from database
-  const mockEvents = [
-    {
-      id: "1",
-      title: "Festival de Música Eletrônica",
-      date: "2024-12-15",
-      location: "São Paulo, SP",
-      price: "R$ 80,00",
-      image: "/src/assets/event-1.jpg",
-      category: "Música"
-    },
-    {
-      id: "2",
-      title: "Stand-up Comedy Night",
-      date: "2024-12-20",
-      location: "Rio de Janeiro, RJ",
-      price: "R$ 50,00",
-      image: "/src/assets/event-2.jpg",
-      category: "Comédia"
-    },
-    {
-      id: "3",
-      title: "Conferência Tech 2024",
-      date: "2024-12-25",
-      location: "Belo Horizonte, MG",
-      price: "R$ 150,00",
-      image: "/src/assets/event-3.jpg",
-      category: "Tecnologia"
-    },
-  ];
+  const [events, setEvents] = useState<any[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const categories = ["all", "Música", "Comédia", "Tecnologia", "Esportes", "Arte"];
+  useEffect(() => {
+    fetchEvents();
+    fetchCategories();
+  }, []);
 
-  const filteredEvents = mockEvents.filter(event => {
+  const fetchEvents = async () => {
+    try {
+      const { data } = await supabase
+        .from("events")
+        .select("*")
+        .eq("is_published", true)
+        .order("event_date", { ascending: true });
+
+      if (data) {
+        setEvents(data);
+      }
+    } catch (error) {
+      console.error("Error fetching events:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const { data } = await supabase
+        .from("categories")
+        .select("name")
+        .order("name");
+
+      if (data) {
+        setCategories(["all", ...data.map(c => c.name)]);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.location.toLowerCase().includes(searchTerm.toLowerCase());
+                         event.venue?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.address?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || event.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -75,7 +86,7 @@ const Events = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas categorias</SelectItem>
-                {categories.slice(1).map(cat => (
+                {categories.filter(c => c !== "all").map(cat => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
               </SelectContent>
@@ -83,10 +94,23 @@ const Events = () => {
           </div>
         </div>
 
-        {filteredEvents.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Carregando eventos...</p>
+          </div>
+        ) : filteredEvents.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEvents.map((event) => (
-              <EventCard key={event.id} {...event} />
+              <EventCard 
+                key={event.id} 
+                id={event.id}
+                title={event.title}
+                date={new Date(event.event_date).toLocaleDateString('pt-BR')}
+                location={`${event.venue} - ${event.address}`}
+                price="Consultar"
+                image={event.image_url || "/placeholder.svg"}
+                category={event.category}
+              />
             ))}
           </div>
         ) : (

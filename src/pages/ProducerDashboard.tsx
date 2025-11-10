@@ -153,25 +153,35 @@ const ProducerDashboard = () => {
                     <TableRow>
                       <TableHead>Título</TableHead>
                       <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
                       <TableHead>Publicado</TableHead>
+                      <TableHead>Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {myEvents.map((event) => (
-                      <TableRow key={event.id}>
+                      <TableRow 
+                        key={event.id} 
+                        className="cursor-pointer hover:bg-muted/50"
+                        onClick={() => navigate(`/evento/${event.id}`)}
+                      >
                         <TableCell className="font-medium">{event.title}</TableCell>
                         <TableCell>{new Date(event.event_date).toLocaleDateString('pt-BR')}</TableCell>
-                        <TableCell>
-                          <Badge variant={event.status === 'approved' ? 'default' : 'secondary'}>
-                            {event.status === 'approved' ? 'Aprovado' : 
-                             event.status === 'rejected' ? 'Rejeitado' : 'Pendente'}
-                          </Badge>
-                        </TableCell>
                         <TableCell>
                           <Badge variant={event.is_published ? 'default' : 'outline'}>
                             {event.is_published ? 'Sim' : 'Não'}
                           </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/editar-evento/${event.id}`);
+                            }}
+                          >
+                            Editar
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

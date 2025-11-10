@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Footer } from "@/components/Footer";
 import { EventCard } from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,8 @@ import { Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 const Events = () => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   const [events, setEvents] = useState<any[]>([]);
@@ -18,6 +20,13 @@ const Events = () => {
     fetchEvents();
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    const search = searchParams.get("search");
+    if (search) {
+      setSearchTerm(search);
+    }
+  }, [searchParams]);
 
   const fetchEvents = async () => {
     try {

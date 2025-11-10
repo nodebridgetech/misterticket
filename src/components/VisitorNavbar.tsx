@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, User, ShoppingCart } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,18 @@ import { ThemeToggle } from "./ThemeToggle";
 import { Badge } from "@/components/ui/badge";
 
 export const VisitorNavbar = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      navigate(`/eventos?search=${encodeURIComponent(searchTerm.trim())}`);
+    } else {
+      navigate("/eventos");
+    }
+  };
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -22,27 +33,22 @@ export const VisitorNavbar = () => {
 
           {/* Search */}
           <div className="flex-1 max-w-md">
-            <div className="relative w-full">
+            <form onSubmit={handleSearch} className="relative w-full">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 type="search"
                 placeholder="Buscar eventos..."
                 className="pl-10"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
-            </div>
+            </form>
           </div>
 
           {/* Navigation Links */}
           <nav className="hidden md:flex items-center gap-6">
             <Link to="/eventos" className="text-foreground hover:text-primary transition-colors">
               Eventos
-            </Link>
-            <Link 
-              to="#contato" 
-              className="text-muted-foreground cursor-not-allowed"
-              onClick={(e) => e.preventDefault()}
-            >
-              Contato
             </Link>
           </nav>
 

@@ -196,7 +196,7 @@ const ProducerDashboard = () => {
                       <TableRow 
                         key={event.id} 
                         className="cursor-pointer hover:bg-muted/50"
-                        onClick={() => navigate(`/evento/${event.id}`)}
+                        onClick={() => navigate(`/event/${event.id}`)}
                       >
                         <TableCell className="font-medium">{event.title}</TableCell>
                         <TableCell>{new Date(event.event_date).toLocaleDateString('pt-BR')}</TableCell>

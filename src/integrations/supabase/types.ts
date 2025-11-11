@@ -50,6 +50,7 @@ export type Database = {
           event_date: string
           id: string
           image_url: string | null
+          is_active: boolean
           is_featured: boolean
           is_published: boolean
           producer_id: string
@@ -65,6 +66,7 @@ export type Database = {
           event_date: string
           id?: string
           image_url?: string | null
+          is_active?: boolean
           is_featured?: boolean
           is_published?: boolean
           producer_id: string
@@ -80,6 +82,7 @@ export type Database = {
           event_date?: string
           id?: string
           image_url?: string | null
+          is_active?: boolean
           is_featured?: boolean
           is_published?: boolean
           producer_id?: string

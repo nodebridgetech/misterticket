@@ -175,6 +175,14 @@ const EditEvent = () => {
     setTicketBatches(ticketBatches.filter((b) => b.id !== batchId));
   };
 
+  const handleUpdateBatch = (batchId: string, field: keyof TicketBatch, value: any) => {
+    setTicketBatches(ticketBatches.map(batch => 
+      batch.id === batchId 
+        ? { ...batch, [field]: value }
+        : batch
+    ));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -379,30 +387,92 @@ const EditEvent = () => {
               <CardContent className="space-y-6">
                 {ticketBatches.length > 0 && (
                   <div className="space-y-4">
-                    <h3 className="font-semibold">Lotes Cadastrados</h3>
+                    <h3 className="font-semibold mb-4">Lotes Cadastrados</h3>
                     {ticketBatches.map((batch) => (
                       <Card key={batch.id} className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="space-y-1">
-                            <p className="font-semibold">{batch.batch_name}</p>
-                            {batch.sector && <p className="text-sm text-muted-foreground">Setor: {batch.sector}</p>}
-                            <p className="text-sm">
-                              Preço: R$ {batch.price.toFixed(2)} | Quantidade: {batch.quantity_total - batch.quantity_sold}/{batch.quantity_total}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              Vendas: {new Date(batch.sale_start_date).toLocaleString("pt-BR")} até{" "}
-                              {new Date(batch.sale_end_date).toLocaleString("pt-BR")}
-                            </p>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center mb-2">
+                            <h4 className="font-semibold">
+                              {batch.isNew ? "Novo Lote" : batch.batch_name}
+                              {batch.quantity_sold > 0 && (
+                                <span className="text-sm text-muted-foreground ml-2">
+                                  ({batch.quantity_sold} vendidos)
+                                </span>
+                              )}
+                            </h4>
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRemoveBatch(batch.id)}
+                              disabled={batch.quantity_sold > 0}
+                              title={batch.quantity_sold > 0 ? "Não é possível excluir lotes com vendas" : ""}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRemoveBatch(batch.id)}
-                            disabled={batch.quantity_sold > 0}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label>Nome do Lote</Label>
+                              <Input
+                                value={batch.batch_name}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'batch_name', e.target.value)}
+                                placeholder="Ex: 1º Lote"
+                              />
+                            </div>
+                            <div>
+                              <Label>Setor</Label>
+                              <Input
+                                value={batch.sector}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'sector', e.target.value)}
+                                placeholder="Ex: Pista"
+                              />
+                            </div>
+                            <div>
+                              <Label>Preço (R$)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0.50"
+                                value={batch.price}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'price', parseFloat(e.target.value) || 0)}
+                                placeholder="0.00"
+                              />
+                            </div>
+                            <div>
+                              <Label>Quantidade Total</Label>
+                              <Input
+                                type="number"
+                                value={batch.quantity_total}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'quantity_total', parseInt(e.target.value) || 0)}
+                                placeholder="100"
+                                disabled={batch.quantity_sold > 0}
+                                title={batch.quantity_sold > 0 ? "Não é possível alterar quantidade com vendas realizadas" : ""}
+                              />
+                              {batch.quantity_sold > 0 && (
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Disponível: {batch.quantity_total - batch.quantity_sold}
+                                </p>
+                              )}
+                            </div>
+                            <div>
+                              <Label>Início das Vendas</Label>
+                              <Input
+                                type="datetime-local"
+                                value={batch.sale_start_date}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'sale_start_date', e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <Label>Fim das Vendas</Label>
+                              <Input
+                                type="datetime-local"
+                                value={batch.sale_end_date}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'sale_end_date', e.target.value)}
+                              />
+                            </div>
+                          </div>
                         </div>
                       </Card>
                     ))}
@@ -433,10 +503,12 @@ const EditEvent = () => {
                       <Input
                         type="number"
                         step="0.01"
+                        min="0.50"
                         value={newBatchPrice}
                         onChange={(e) => setNewBatchPrice(e.target.value)}
-                        placeholder="0.00"
+                        placeholder="0.50"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">Mínimo: R$ 0,50</p>
                     </div>
                     <div>
                       <Label>Quantidade</Label>

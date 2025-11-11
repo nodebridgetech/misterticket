@@ -35,9 +35,11 @@ export const AppSidebar = () => {
     { path: "/admin/taxas", label: "Taxas", icon: DollarSign, end: false },
   ];
 
-  // Menu items for producers (currently just dashboard)
+  // Menu items for producers
   const producerMenuItems = [
+    { path: "/", label: "Página Inicial", icon: LayoutDashboard, end: true },
     { path: "/painel", label: "Dashboard", icon: LayoutDashboard, end: true },
+    { path: "/meus-eventos", label: "Meus Eventos", icon: Calendar, end: false },
   ];
 
   const menuItems = userRole === "admin" ? adminMenuItems : producerMenuItems;

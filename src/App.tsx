@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Events from "./pages/Events";
 import MyAccount from "./pages/MyAccount";
 import ProducerDashboard from "./pages/ProducerDashboard";
+import MyEvents from "./pages/MyEvents";
 import AdminDashboard from "./pages/AdminDashboard";
 import ProducersManagement from "./pages/ProducersManagement";
 import EventsManagement from "./pages/EventsManagement";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/minha-conta" element={<MyAccount />} />
             <Route path="/painel" element={<ProducerDashboard />} />
+            <Route path="/meus-eventos" element={<MyEvents />} />
             <Route path="/criar-evento" element={<CreateEvent />} />
             <Route path="/editar-evento/:id" element={<EditEvent />} />
             <Route path="/admin" element={<AdminDashboard />} />

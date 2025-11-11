@@ -76,7 +76,7 @@ export const AppSidebar = () => {
                     activeClassName="bg-accent text-accent-foreground font-medium"
                     title="Dashboard"
                   >
-                    <LayoutDashboard className="h-4 w-4" />
+                    <LayoutDashboard className="h-4 w-4 shrink-0" />
                     {open && <span>Dashboard</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -90,7 +90,7 @@ export const AppSidebar = () => {
                     activeClassName="bg-accent text-accent-foreground font-medium"
                     title="Todos Eventos"
                   >
-                    <Calendar className="h-4 w-4" />
+                    <Calendar className="h-4 w-4 shrink-0" />
                     {open && <span>Todos Eventos</span>}
                   </NavLink>
                 </SidebarMenuButton>
@@ -114,13 +114,13 @@ export const AppSidebar = () => {
         )}
         <Button 
           variant="ghost" 
-          className="w-full justify-start"
+          className={open ? "w-full justify-start" : "w-full justify-center p-2"}
           asChild
           title="Minha Conta"
         >
-          <Link to="/minha-conta">
-            <User className="h-4 w-4" />
-            {open && <span className="ml-2">Minha Conta</span>}
+          <Link to="/minha-conta" className="flex items-center gap-2">
+            <User className="h-4 w-4 shrink-0" />
+            {open && <span>Minha Conta</span>}
           </Link>
         </Button>
       </SidebarFooter>

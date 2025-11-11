@@ -102,14 +102,8 @@ const Checkout = () => {
         throw new Error("URL de checkout não retornada");
       }
 
-      // Redirect to Stripe Checkout in a new tab
-      window.open(data.url, "_blank");
-
-      toast({
-        title: "Redirecionado",
-        description: "Uma nova aba foi aberta com o checkout do Stripe.",
-      });
-
+      // Redirect to Stripe Checkout in the same window
+      window.location.href = data.url;
     } catch (error: any) {
       console.error("Checkout error:", error);
       toast({

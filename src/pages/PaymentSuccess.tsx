@@ -22,31 +22,39 @@ const PaymentSuccess = () => {
   const [authLoading, setAuthLoading] = useState(true);
 
 
-  // Wait for auth to load
+  // Wait for auth to load with longer timeout
   useEffect(() => {
     const timer = setTimeout(() => {
       setAuthLoading(false);
-    }, 2000); // Wait 2 seconds for session to load
+    }, 5000); // Wait 5 seconds for session to load
 
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
+    // If user is already loaded, we can proceed immediately
+    if (user && sessionId && !authLoading) {
+      verifyPayment();
+      return;
+    }
+
     // Only redirect to auth if we're done loading and still no user
     if (!authLoading && !user) {
+      console.log("No user found after auth loading, redirecting to login");
       toast({
         title: "Sessão expirada",
         description: "Por favor, faça login novamente para ver seus ingressos.",
         variant: "destructive",
       });
+      // Store the session_id in localStorage to verify after login
+      if (sessionId) {
+        localStorage.setItem("pending_payment_session", sessionId);
+      }
       navigate("/auth");
       return;
     }
 
-    // Only verify payment if we have both user and sessionId
-    if (!authLoading && user && sessionId) {
-      verifyPayment();
-    } else if (!authLoading && !sessionId) {
+    if (!authLoading && !sessionId) {
       setError("ID da sessão não encontrado");
       setVerifying(false);
     }

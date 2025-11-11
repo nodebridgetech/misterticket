@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Users, DollarSign, TrendingUp, Plus, Trash2, BarChart3 } from "lucide-react";
+import { CalendarDays, Users, DollarSign, TrendingUp, Plus, Trash2, BarChart3, Copy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -190,7 +190,47 @@ const ProducerDashboard = () => {
     }
   };
 
-  const conversionRate = myEvents.filter(e => e.is_published).length > 0 
+  const handleDuplicateEvent = async (eventId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      // Fetch event details
+      const { data: event, error: eventError } = await supabase
+        .from("events")
+        .select("*")
+        .eq("id", eventId)
+        .single();
+
+      if (eventError) throw eventError;
+
+      // Fetch ticket batches
+      const { data: tickets, error: ticketsError } = await supabase
+        .from("tickets")
+        .select("*")
+        .eq("event_id", eventId);
+
+      if (ticketsError) throw ticketsError;
+
+      // Navigate to create page with event data
+      navigate("/criar-evento", { 
+        state: { 
+          duplicateFrom: {
+            ...event,
+            tickets: tickets || []
+          }
+        } 
+      });
+    } catch (error) {
+      console.error("Error duplicating event:", error);
+      toast({
+        title: "Erro ao duplicar evento",
+        description: "Ocorreu um erro ao duplicar o evento",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const conversionRate = myEvents.filter(e => e.is_published).length > 0
     ? ((salesData.total_sales / myEvents.filter(e => e.is_published).length) * 100).toFixed(1)
     : "0";
 
@@ -470,6 +510,13 @@ const ProducerDashboard = () => {
                                 }}
                               >
                                 Editar
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={(e) => handleDuplicateEvent(event.id, e)}
+                              >
+                                <Copy className="h-4 w-4" />
                               </Button>
                               <Button 
                                 variant="ghost" 

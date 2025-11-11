@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Footer } from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,8 @@ interface TicketBatch {
 const CreateEvent = () => {
   const { user, isProducerApproved, loading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const duplicateFrom = location.state?.duplicateFrom;
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -68,6 +70,41 @@ const CreateEvent = () => {
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (duplicateFrom && categories.length > 0) {
+      // Pre-fill form with duplicated event data
+      setTitle(`${duplicateFrom.title} (Cópia)`);
+      setDescription(duplicateFrom.description || "");
+      
+      // Find category ID by name
+      const category = categories.find(c => c.name === duplicateFrom.category);
+      if (category) {
+        setCategoryId(category.id);
+      }
+      
+      setVenue(duplicateFrom.venue);
+      setAddress(duplicateFrom.address);
+      setImageUrl(duplicateFrom.image_url || "");
+      setIsPublished(false); // Always start as draft for duplicates
+      
+      // Pre-fill ticket batches
+      if (duplicateFrom.tickets && duplicateFrom.tickets.length > 0) {
+        const batches = duplicateFrom.tickets.map((ticket: any) => ({
+          id: crypto.randomUUID(),
+          batch_name: ticket.batch_name,
+          sector: ticket.sector || "",
+          price: Number(ticket.price),
+          quantity_total: ticket.quantity_total,
+          sale_start_date: ticket.sale_start_date,
+          sale_end_date: ticket.sale_end_date,
+        }));
+        setTicketBatches(batches);
+      }
+
+      toast.success("Evento duplicado! Ajuste os dados e salve.");
+    }
+  }, [duplicateFrom, categories]);
 
   const fetchCategories = async () => {
     try {

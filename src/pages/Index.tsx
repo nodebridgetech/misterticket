@@ -241,7 +241,7 @@ const Index = () => {
               {categories.map((category) => (
                 <CarouselItem key={category.id} className="pl-2 md:pl-4 basis-1/2 sm:basis-1/3 md:basis-1/4 lg:basis-1/6">
                   <Link
-                    to={`/events?category=${encodeURIComponent(category.name)}`}
+                    to={`/eventos?category=${encodeURIComponent(category.name)}`}
                     className="group block"
                   >
                     <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-accent hover:shadow-md transition-all">
@@ -278,7 +278,7 @@ const Index = () => {
                 <p className="text-muted-foreground">Próximos 7 dias</p>
               </div>
               <Button variant="ghost" asChild>
-                <Link to="/events">
+                <Link to="/eventos">
                   Ver todos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -303,7 +303,7 @@ const Index = () => {
                 <p className="text-muted-foreground">Nos próximos 30 dias</p>
               </div>
               <Button variant="ghost" asChild>
-                <Link to="/events">
+                <Link to="/eventos">
                   Ver todos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -328,7 +328,7 @@ const Index = () => {
                 <p className="text-muted-foreground">Novos eventos na plataforma</p>
               </div>
               <Button variant="ghost" asChild>
-                <Link to="/events">
+                <Link to="/eventos">
                   Ver todos
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>

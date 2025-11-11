@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 const Events = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
-  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
 
   const [events, setEvents] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -23,8 +23,12 @@ const Events = () => {
 
   useEffect(() => {
     const search = searchParams.get("search");
+    const category = searchParams.get("category");
     if (search) {
       setSearchTerm(search);
+    }
+    if (category) {
+      setSelectedCategory(category);
     }
   }, [searchParams]);
 

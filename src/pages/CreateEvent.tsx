@@ -147,7 +147,6 @@ const CreateEvent = () => {
           address,
           image_url: imageUrl || null,
           is_published: isPublished,
-          status: "approved",
           producer_id: user?.id,
         })
         .select()

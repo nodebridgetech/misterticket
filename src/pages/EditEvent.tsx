@@ -259,7 +259,7 @@ const EditEvent = () => {
         description: "O evento foi atualizado com sucesso",
       });
 
-      navigate("/painel-produtor");
+      navigate("/painel");
     } catch (error) {
       console.error("Error updating event:", error);
       toast({
@@ -548,7 +548,7 @@ const EditEvent = () => {
               <Button type="submit" size="lg">
                 Salvar Alterações
               </Button>
-              <Button type="button" variant="outline" size="lg" onClick={() => navigate("/painel-produtor")}>
+              <Button type="button" variant="outline" size="lg" onClick={() => navigate("/painel")}>
                 Cancelar
               </Button>
             </div>

@@ -54,6 +54,32 @@ const EventDetails = () => {
     }
   };
 
+  const handleShare = async () => {
+    const eventUrl = window.location.href;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: event?.title || 'Evento',
+          text: `Confira este evento: ${event?.title}`,
+          url: eventUrl,
+        });
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          copyToClipboard(eventUrl);
+        }
+      }
+    } else {
+      copyToClipboard(eventUrl);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    // You could add a toast notification here if you have the toast hook
+    alert('Link copiado para a área de transferência!');
+  };
+
   if (loading) {
     return (
       <>
@@ -92,7 +118,7 @@ const EventDetails = () => {
                     <Badge>{event.category}</Badge>
                     <h1 className="text-3xl md:text-4xl font-bold">{event.title}</h1>
                   </div>
-                  <Button variant="outline" size="icon">
+                  <Button variant="outline" size="icon" onClick={handleShare}>
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </div>

@@ -67,15 +67,21 @@ const AdminDashboard = () => {
           .select("user_id, full_name, email")
           .in("user_id", userIds);
 
-        requestsWithProfiles = requests.map(request => ({
-          ...request,
-          profiles: profilesData?.find(p => p.user_id === request.user_id) || null
-        }));
+        requestsWithProfiles = requests.map(request => {
+          const profile = profilesData?.find(p => p.user_id === request.user_id);
+          return {
+            ...request,
+            profiles: profile ? {
+              full_name: profile.full_name,
+              email: profile.email
+            } : null
+          };
+        });
       }
 
       setSalesData(sales || []);
       setEvents(eventsData || []);
-      setProducerRequests(requestsWithProfiles || []);
+      setProducerRequests(requestsWithProfiles);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {

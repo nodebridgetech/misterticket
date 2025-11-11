@@ -113,42 +113,50 @@ serve(async (req) => {
     const unitPrice = ticket ? Number(ticket.price) : 0;
     const totalPrice = unitPrice * quantity + platformFee + gatewayFee;
 
-    // Generate QR code as image URL using public QR code API
-    const qrCodeData = JSON.stringify({
-      saleId: sessionId,
-      eventId,
-      ticketId,
-      quantity,
-      userId,
-      timestamp: Date.now()
-    });
-    const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}`;
-
-    // Create sale record
-    const { data: sale, error: saleError } = await supabaseClient
-      .from("sales")
-      .insert({
+    // Create individual sales records for each ticket
+    const salesToInsert = [];
+    const qrCodes = [];
+    
+    for (let i = 0; i < quantity; i++) {
+      // Generate unique QR code for each ticket
+      const qrCodeData = JSON.stringify({
+        sessionId,
+        eventId,
+        ticketId,
+        ticketNumber: i + 1,
+        userId,
+        timestamp: Date.now()
+      });
+      const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}`;
+      qrCodes.push(qrCode);
+      
+      salesToInsert.push({
         buyer_id: userId,
         event_id: eventId,
         ticket_id: ticketId,
-        quantity: quantity,
+        quantity: 1, // Each record represents 1 ticket
         unit_price: unitPrice,
-        total_price: totalPrice,
-        platform_fee: platformFee,
-        gateway_fee: gatewayFee,
-        producer_amount: producerAmount,
+        total_price: unitPrice + (platformFee / quantity) + (gatewayFee / quantity),
+        platform_fee: platformFee / quantity,
+        gateway_fee: gatewayFee / quantity,
+        producer_amount: producerAmount / quantity,
         payment_status: "paid",
         stripe_payment_intent_id: session.payment_intent as string,
         stripe_customer_id: session.customer as string,
         stripe_session_id: sessionId,
         qr_code: qrCode,
-      })
-      .select()
-      .single();
+      });
+    }
+
+    // Insert all sales records
+    const { data: sales, error: saleError } = await supabaseClient
+      .from("sales")
+      .insert(salesToInsert)
+      .select();
 
     if (saleError) {
-      logStep("Error creating sale", { error: saleError });
-      throw new Error(`Failed to create sale: ${saleError.message}`);
+      logStep("Error creating sales", { error: saleError });
+      throw new Error(`Failed to create sales: ${saleError.message}`);
     }
 
     // Update ticket quantity sold (increment, not replace)
@@ -163,13 +171,13 @@ serve(async (req) => {
       logStep("Ticket quantity updated", { ticketId, quantityAdded: quantity });
     }
 
-    logStep("Sale created successfully", { saleId: sale.id });
+    logStep("Sales created successfully", { count: sales.length, saleIds: sales.map(s => s.id) });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        saleId: sale.id,
-        qrCode: qrCode
+        sales: sales.map(s => ({ saleId: s.id, qrCode: s.qr_code })),
+        qrCodes: qrCodes
       }), 
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

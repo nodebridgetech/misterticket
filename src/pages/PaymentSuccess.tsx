@@ -17,8 +17,7 @@ const PaymentSuccess = () => {
   const [verifying, setVerifying] = useState(true);
   const [verified, setVerified] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saleId, setSaleId] = useState<string | null>(null);
-  const [qrCode, setQrCode] = useState<string | null>(null);
+  const [sales, setSales] = useState<Array<{ saleId: string; qrCode: string }>>([]);
   const [authLoading, setAuthLoading] = useState(true);
 
 
@@ -72,12 +71,11 @@ const PaymentSuccess = () => {
 
       if (data?.success) {
         setVerified(true);
-        setSaleId(data.saleId);
-        setQrCode(data.qrCode);
+        setSales(data.sales || []);
         
         toast({
           title: "Pagamento confirmado!",
-          description: "Seu ingresso foi enviado para o e-mail cadastrado.",
+          description: `${data.sales?.length || 1} ingresso(s) enviado(s) para o e-mail cadastrado.`,
         });
       } else {
         throw new Error("Pagamento não confirmado");
@@ -146,22 +144,35 @@ const PaymentSuccess = () => {
           <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-6" />
           <h1 className="text-3xl font-bold mb-4">Pagamento Confirmado!</h1>
           <p className="text-lg text-muted-foreground mb-8">
-            Seu ingresso foi processado com sucesso e enviado para o e-mail cadastrado.
+            {sales.length > 1 
+              ? `Seus ${sales.length} ingressos foram processados com sucesso e enviados para o e-mail cadastrado.`
+              : "Seu ingresso foi processado com sucesso e enviado para o e-mail cadastrado."
+            }
           </p>
 
-          <div className="bg-muted p-6 rounded-lg mb-8">
-            <div className="space-y-3">
-              <div>
-                <p className="text-sm text-muted-foreground">ID da Compra</p>
-                <p className="font-mono text-sm">{saleId}</p>
-              </div>
-              {qrCode && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Código QR</p>
-                  <p className="font-mono text-sm">{qrCode}</p>
+          <div className="space-y-4 mb-8">
+            {sales.map((sale, index) => (
+              <div key={sale.saleId} className="bg-muted p-6 rounded-lg">
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-muted-foreground">
+                      {sales.length > 1 ? `Ingresso ${index + 1} de ${sales.length}` : "ID da Compra"}
+                    </p>
+                    <p className="font-mono text-sm">{sale.saleId}</p>
+                  </div>
+                  {sale.qrCode && (
+                    <div className="flex flex-col items-center gap-2">
+                      <p className="text-sm text-muted-foreground">Código QR</p>
+                      <img 
+                        src={sale.qrCode} 
+                        alt={`QR Code - Ingresso ${index + 1}`}
+                        className="w-48 h-48 border border-border rounded-lg"
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </div>
 
           <div className="space-y-3 text-left mb-8">

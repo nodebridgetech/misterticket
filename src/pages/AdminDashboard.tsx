@@ -54,19 +54,28 @@ const AdminDashboard = () => {
 
       const { data: requests } = await supabase
         .from("user_roles")
-        .select(`
-          *,
-          profiles!user_id (
-            full_name,
-            email
-          )
-        `)
+        .select("*")
         .eq("role", "producer")
         .eq("is_approved", false);
 
+      // Fetch profiles separately for pending requests
+      let requestsWithProfiles = [];
+      if (requests && requests.length > 0) {
+        const userIds = requests.map(r => r.user_id);
+        const { data: profilesData } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email")
+          .in("user_id", userIds);
+
+        requestsWithProfiles = requests.map(request => ({
+          ...request,
+          profiles: profilesData?.find(p => p.user_id === request.user_id) || null
+        }));
+      }
+
       setSalesData(sales || []);
       setEvents(eventsData || []);
-      setProducerRequests(requests || []);
+      setProducerRequests(requestsWithProfiles || []);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {

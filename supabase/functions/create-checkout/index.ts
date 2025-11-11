@@ -130,6 +130,12 @@ serve(async (req) => {
       totalAmount 
     });
 
+    // Stripe requires minimum of R$ 0.50 for BRL
+    const STRIPE_MIN_AMOUNT_BRL = 0.50;
+    if (totalAmount < STRIPE_MIN_AMOUNT_BRL) {
+      throw new Error(`O valor total deve ser no mínimo R$ ${STRIPE_MIN_AMOUNT_BRL.toFixed(2)}. Valor atual: R$ ${totalAmount.toFixed(2)}`);
+    }
+
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,

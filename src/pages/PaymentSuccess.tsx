@@ -19,21 +19,38 @@ const PaymentSuccess = () => {
   const [error, setError] = useState<string | null>(null);
   const [saleId, setSaleId] = useState<string | null>(null);
   const [qrCode, setQrCode] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+
+  // Wait for auth to load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAuthLoading(false);
+    }, 2000); // Wait 2 seconds for session to load
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
-    if (!user) {
+    // Only redirect to auth if we're done loading and still no user
+    if (!authLoading && !user) {
+      toast({
+        title: "Sessão expirada",
+        description: "Por favor, faça login novamente para ver seus ingressos.",
+        variant: "destructive",
+      });
       navigate("/auth");
       return;
     }
 
-    if (!sessionId) {
+    // Only verify payment if we have both user and sessionId
+    if (!authLoading && user && sessionId) {
+      verifyPayment();
+    } else if (!authLoading && !sessionId) {
       setError("ID da sessão não encontrado");
       setVerifying(false);
-      return;
     }
-
-    verifyPayment();
-  }, [sessionId, user]);
+  }, [sessionId, user, authLoading]);
 
   const verifyPayment = async () => {
     try {
@@ -71,15 +88,20 @@ const PaymentSuccess = () => {
     }
   };
 
-  if (verifying) {
+  if (authLoading || verifying) {
     return (
       <div className="container mx-auto px-4 py-16">
         <div className="max-w-2xl mx-auto text-center">
           <Card className="p-12">
             <Loader2 className="h-16 w-16 animate-spin text-primary mx-auto mb-6" />
-            <h1 className="text-2xl font-bold mb-2">Verificando pagamento...</h1>
+            <h1 className="text-2xl font-bold mb-2">
+              {authLoading ? "Carregando..." : "Verificando pagamento..."}
+            </h1>
             <p className="text-muted-foreground">
-              Por favor, aguarde enquanto confirmamos seu pagamento.
+              {authLoading 
+                ? "Aguarde enquanto carregamos suas informações."
+                : "Por favor, aguarde enquanto confirmamos seu pagamento."
+              }
             </p>
           </Card>
         </div>

@@ -66,12 +66,13 @@ const Index = () => {
     const next7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     const next30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    // Featured events (primeiros 5 eventos)
+    // Featured events - prioritize events marked as featured, then by date
     const { data: featured } = await supabase
       .from("events")
       .select("*")
       .eq("is_published", true)
       .gte("event_date", now)
+      .order("is_featured", { ascending: false })
       .order("event_date", { ascending: true })
       .limit(5);
 

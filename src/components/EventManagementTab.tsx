@@ -3,7 +3,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Eye } from "lucide-react";
+import { Trash2, Eye, Star } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -29,6 +31,7 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  const [updatingFeatured, setUpdatingFeatured] = useState<string | null>(null);
 
   const handleDelete = async (eventId: string) => {
     setDeleting(eventId);
@@ -59,6 +62,36 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
     }
   };
 
+  const handleToggleFeatured = async (eventId: string, currentValue: boolean) => {
+    setUpdatingFeatured(eventId);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ is_featured: !currentValue })
+        .eq("id", eventId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentValue ? "Evento removido dos destaques" : "Evento marcado como destaque",
+        description: currentValue 
+          ? "O evento não aparecerá mais prioritariamente no banner." 
+          : "O evento será priorizado no banner da página inicial.",
+      });
+
+      onRefresh();
+    } catch (error) {
+      console.error("Error updating featured status:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status de destaque.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingFeatured(null);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -81,6 +114,7 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
                   <TableHead>Categoria</TableHead>
                   <TableHead>Data do Evento</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Destaque</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -100,6 +134,18 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
                       ) : (
                         <Badge variant="secondary">Rascunho</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={event.is_featured}
+                          onCheckedChange={() => handleToggleFeatured(event.id, event.is_featured)}
+                          disabled={updatingFeatured === event.id}
+                        />
+                        {event.is_featured && (
+                          <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button

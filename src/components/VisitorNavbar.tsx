@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { Search, User, ShoppingCart } from "lucide-react";
+import { Search, User } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
-import { Badge } from "@/components/ui/badge";
 
 export const VisitorNavbar = () => {
   const { user } = useAuth();
@@ -56,55 +55,21 @@ export const VisitorNavbar = () => {
           <div className="flex items-center gap-2 shrink-0">
             <ThemeToggle />
             
-            {user ? (
-              <>
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate("/minha-conta")}
-                  className="hidden sm:flex"
-                >
-                  <User className="h-5 w-5" />
-                </Button>
-                <Button 
-                  variant="default"
-                  size="icon"
-                  className="relative"
-                  onClick={() => {/* Carrinho - implementar depois */}}
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                  >
-                    0
-                  </Badge>
-                </Button>
-              </>
+          {user ? (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => navigate("/minha-conta")}
+              >
+                <User className="h-5 w-5" />
+              </Button>
             ) : (
-              <>
-                <Button 
-                  variant="ghost" 
-                  onClick={() => navigate("/auth")}
-                  className="hidden sm:flex"
-                >
-                  Entrar
-                </Button>
-                <Button 
-                  variant="default"
-                  size="icon"
-                  className="relative"
-                  onClick={() => {/* Carrinho - implementar depois */}}
-                >
-                  <ShoppingCart className="h-5 w-5" />
-                  <Badge 
-                    variant="destructive" 
-                    className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
-                  >
-                    0
-                  </Badge>
-                </Button>
-              </>
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate("/auth")}
+              >
+                Entrar
+              </Button>
             )}
           </div>
         </div>

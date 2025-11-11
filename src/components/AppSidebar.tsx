@@ -27,16 +27,17 @@ export const AppSidebar = () => {
 
   // Menu items for admin
   const adminMenuItems = [
-    { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
-    { path: "/admin/produtores", label: "Produtores", icon: Users },
-    { path: "/admin/eventos", label: "Eventos", icon: Calendar },
-    { path: "/admin/categorias", label: "Categorias", icon: Tag },
-    { path: "/admin/taxas", label: "Taxas", icon: DollarSign },
+    { path: "/", label: "Página Inicial", icon: LayoutDashboard, end: true },
+    { path: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
+    { path: "/admin/produtores", label: "Produtores", icon: Users, end: false },
+    { path: "/admin/eventos", label: "Eventos", icon: Calendar, end: false },
+    { path: "/admin/categorias", label: "Categorias", icon: Tag, end: false },
+    { path: "/admin/taxas", label: "Taxas", icon: DollarSign, end: false },
   ];
 
   // Menu items for producers (currently just dashboard)
   const producerMenuItems = [
-    { path: "/painel", label: "Dashboard", icon: LayoutDashboard },
+    { path: "/painel", label: "Dashboard", icon: LayoutDashboard, end: true },
   ];
 
   const menuItems = userRole === "admin" ? adminMenuItems : producerMenuItems;
@@ -65,6 +66,7 @@ export const AppSidebar = () => {
                     <SidebarMenuButton asChild>
                       <NavLink 
                         to={item.path}
+                        end={item.end}
                         className="flex items-center gap-2 hover:bg-accent"
                         activeClassName="bg-accent text-accent-foreground font-medium"
                         title={item.label}

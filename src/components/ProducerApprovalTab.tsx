@@ -46,23 +46,33 @@ export const ProducerApprovalTab = () => {
   const fetchProducerRequests = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from("user_roles")
-        .select(`
-          *,
-          profiles (
-            full_name,
-            email,
-            document,
-            phone
-          )
-        `)
+        .select("*")
         .eq("role", "producer")
         .eq("is_approved", false)
         .order("requested_at", { ascending: false });
 
-      if (error) throw error;
-      setProducerRequests(data || []);
+      if (rolesError) throw rolesError;
+
+      if (roles && roles.length > 0) {
+        const userIds = roles.map(r => r.user_id);
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, email, document, phone")
+          .in("user_id", userIds);
+
+        if (profilesError) throw profilesError;
+
+        const requestsWithProfiles = roles.map(role => ({
+          ...role,
+          profiles: profilesData?.find(p => p.user_id === role.user_id)
+        }));
+
+        setProducerRequests(requestsWithProfiles);
+      } else {
+        setProducerRequests([]);
+      }
     } catch (error) {
       console.error("Error fetching producer requests:", error);
       toast({

@@ -4,7 +4,14 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CategoryManager } from "@/components/CategoryManager";
-import { Users, CalendarDays, DollarSign, TrendingUp, BarChart3 } from "lucide-react";
+import { ProducerApprovalTab } from "@/components/ProducerApprovalTab";
+import { EventManagementTab } from "@/components/EventManagementTab";
+import { Users, CalendarDays, DollarSign, TrendingUp, BarChart3, Check, X, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -161,6 +168,15 @@ const AdminDashboard = () => {
       <Tabs defaultValue="overview" className="space-y-6">
         <TabsList>
           <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="producers">
+            Produtores
+            {producerRequests.length > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {producerRequests.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="events">Eventos</TabsTrigger>
           <TabsTrigger value="categories">Categorias</TabsTrigger>
         </TabsList>
 
@@ -234,6 +250,20 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="producers">
+          <ProducerApprovalTab 
+            producerRequests={producerRequests}
+            onRefresh={fetchData}
+          />
+        </TabsContent>
+
+        <TabsContent value="events">
+          <EventManagementTab 
+            events={events}
+            onRefresh={fetchData}
+          />
         </TabsContent>
 
         <TabsContent value="categories">

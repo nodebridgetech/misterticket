@@ -7,15 +7,42 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Ticket, AlertCircle } from "lucide-react";
+import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Badge } from "@/components/ui/badge";
+
+interface Sale {
+  id: string;
+  quantity: number;
+  total_price: number;
+  payment_status: string;
+  qr_code: string | null;
+  created_at: string;
+  event_id: string;
+  ticket_id: string;
+  events: {
+    title: string;
+    event_date: string;
+    venue: string;
+    address: string;
+    image_url: string | null;
+  };
+  tickets: {
+    batch_name: string;
+    sector: string | null;
+  };
+}
 
 const MyAccount = () => {
   const { user, signOut, requestProducerRole, isProducerApproved, hasPendingProducerRequest } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [loadingSales, setLoadingSales] = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -34,7 +61,45 @@ const MyAccount = () => {
       setLoading(false);
     };
 
+    const fetchSales = async () => {
+      setLoadingSales(true);
+      const { data, error } = await supabase
+        .from("sales")
+        .select(`
+          id,
+          quantity,
+          total_price,
+          payment_status,
+          qr_code,
+          created_at,
+          event_id,
+          ticket_id,
+          events (
+            title,
+            event_date,
+            venue,
+            address,
+            image_url
+          ),
+          tickets (
+            batch_name,
+            sector
+          )
+        `)
+        .eq("buyer_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Erro ao buscar ingressos:", error);
+        toast.error("Erro ao carregar seus ingressos");
+      } else {
+        setSales(data as Sale[]);
+      }
+      setLoadingSales(false);
+    };
+
     fetchProfile();
+    fetchSales();
   }, [user, navigate]);
 
   const handleBecomeProducer = async () => {
@@ -166,28 +231,114 @@ const MyAccount = () => {
           </TabsContent>
 
           <TabsContent value="tickets">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meus Ingressos</CardTitle>
-                <CardDescription>
-                  Visualize todos os seus ingressos comprados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Ticket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                  <p className="text-muted-foreground">
-                    Você ainda não possui ingressos
-                  </p>
-                  <Button 
-                    className="mt-4" 
-                    onClick={() => navigate("/eventos")}
-                  >
-                    Explorar Eventos
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <div className="space-y-4">
+              {loadingSales ? (
+                <Card>
+                  <CardContent className="py-12">
+                    <p className="text-center text-muted-foreground">Carregando...</p>
+                  </CardContent>
+                </Card>
+              ) : sales.length === 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Meus Ingressos</CardTitle>
+                    <CardDescription>
+                      Visualize todos os seus ingressos comprados
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-12">
+                      <Ticket className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        Você ainda não possui ingressos
+                      </p>
+                      <Button 
+                        className="mt-4" 
+                        onClick={() => navigate("/eventos")}
+                      >
+                        Explorar Eventos
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                sales.map((sale) => (
+                  <Card key={sale.id}>
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h3 className="text-xl font-semibold mb-2">{sale.events.title}</h3>
+                              <div className="space-y-1 text-sm text-muted-foreground">
+                                <div className="flex items-center gap-2">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>
+                                    {format(new Date(sale.events.event_date), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <MapPin className="h-4 w-4" />
+                                  <span>{sale.events.venue} - {sale.events.address}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <Badge variant={sale.payment_status === "paid" ? "default" : "secondary"}>
+                              {sale.payment_status === "paid" ? "Pago" : "Pendente"}
+                            </Badge>
+                          </div>
+
+                          <div className="border-t pt-4 space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Lote:</span>
+                              <span className="font-medium">{sale.tickets.batch_name}</span>
+                            </div>
+                            {sale.tickets.sector && (
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Setor:</span>
+                                <span className="font-medium">{sale.tickets.sector}</span>
+                              </div>
+                            )}
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Quantidade:</span>
+                              <span className="font-medium">{sale.quantity} ingresso(s)</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Total:</span>
+                              <span className="font-semibold">
+                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.total_price)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Data da compra:</span>
+                              <span className="font-medium">
+                                {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {sale.qr_code && sale.payment_status === "paid" && (
+                          <div className="flex flex-col items-center justify-center gap-3 md:border-l md:pl-6">
+                            <div className="bg-white p-4 rounded-lg">
+                              <img 
+                                src={sale.qr_code} 
+                                alt="QR Code do ingresso" 
+                                className="w-48 h-48"
+                              />
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <QrCode className="h-4 w-4" />
+                              <span>Apresente na entrada</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
           </TabsContent>
         </Tabs>
       </main>

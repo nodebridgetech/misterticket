@@ -13,6 +13,7 @@ const MyEvents = () => {
   const { user, isProducerApproved, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  
   const [myEvents, setMyEvents] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 

@@ -1,0 +1,318 @@
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Pencil, Trash2, Plus } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { ImageUpload } from "@/components/ImageUpload";
+
+interface Category {
+  id: string;
+  name: string;
+  description: string | null;
+  image_url: string | null;
+  created_at: string;
+}
+
+export const CategoryManager = () => {
+  const { toast } = useToast();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    image_url: "",
+  });
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+      setCategories(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Erro ao carregar categorias",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenDialog = (category?: Category) => {
+    if (category) {
+      setEditingCategory(category);
+      setFormData({
+        name: category.name,
+        description: category.description || "",
+        image_url: category.image_url || "",
+      });
+    } else {
+      setEditingCategory(null);
+      setFormData({ name: "", description: "", image_url: "" });
+    }
+    setIsDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingCategory(null);
+    setFormData({ name: "", description: "", image_url: "" });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formData.name.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Por favor, preencha o nome da categoria",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      if (editingCategory) {
+        const { error } = await supabase
+          .from("categories")
+          .update({
+            name: formData.name,
+            description: formData.description || null,
+            image_url: formData.image_url || null,
+          })
+          .eq("id", editingCategory.id);
+
+        if (error) throw error;
+
+        toast({
+          title: "Categoria atualizada",
+          description: "A categoria foi atualizada com sucesso",
+        });
+      } else {
+        const { error } = await supabase.from("categories").insert({
+          name: formData.name,
+          description: formData.description || null,
+          image_url: formData.image_url || null,
+        });
+
+        if (error) throw error;
+
+        toast({
+          title: "Categoria criada",
+          description: "A categoria foi criada com sucesso",
+        });
+      }
+
+      fetchCategories();
+      handleCloseDialog();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao salvar categoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir esta categoria?")) return;
+
+    try {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Categoria excluída",
+        description: "A categoria foi excluída com sucesso",
+      });
+
+      fetchCategories();
+    } catch (error: any) {
+      toast({
+        title: "Erro ao excluir categoria",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleImageUpload = (url: string) => {
+    setFormData({ ...formData, image_url: url });
+  };
+
+  const handleImageRemove = () => {
+    setFormData({ ...formData, image_url: "" });
+  };
+
+  if (loading) {
+    return <div>Carregando categorias...</div>;
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Gerenciar Categorias</h2>
+        <Button onClick={() => handleOpenDialog()}>
+          <Plus className="mr-2 h-4 w-4" />
+          Nova Categoria
+        </Button>
+      </div>
+
+      <div className="border rounded-lg">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Ícone</TableHead>
+              <TableHead>Nome</TableHead>
+              <TableHead>Descrição</TableHead>
+              <TableHead className="text-right">Ações</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {categories.map((category) => (
+              <TableRow key={category.id}>
+                <TableCell>
+                  {category.image_url ? (
+                    <img
+                      src={category.image_url}
+                      alt={category.name}
+                      className="w-10 h-10 object-contain rounded"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                      <span className="text-lg">{category.name[0]}</span>
+                    </div>
+                  )}
+                </TableCell>
+                <TableCell className="font-medium">{category.name}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {category.description || "-"}
+                </TableCell>
+                <TableCell className="text-right space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleOpenDialog(category)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => handleDelete(category.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+            {categories.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  Nenhuma categoria cadastrada
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {editingCategory ? "Editar Categoria" : "Nova Categoria"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingCategory
+                ? "Atualize as informações da categoria"
+                : "Preencha os dados da nova categoria"}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome *</Label>
+                <Input
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) =>
+                    setFormData({ ...formData, name: e.target.value })
+                  }
+                  placeholder="Ex: Música, Esportes, Teatro"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Descrição</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                  placeholder="Descrição opcional da categoria"
+                  rows={3}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ícone/Imagem</Label>
+                <ImageUpload
+                  currentImageUrl={formData.image_url}
+                  onImageUploaded={handleImageUpload}
+                  onImageRemoved={handleImageRemove}
+                />
+                <p className="text-sm text-muted-foreground">
+                  Recomendado: ícone quadrado (ex: 64x64px)
+                </p>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={handleCloseDialog}>
+                Cancelar
+              </Button>
+              <Button type="submit">
+                {editingCategory ? "Atualizar" : "Criar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};

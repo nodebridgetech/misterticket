@@ -13,8 +13,8 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  CarouselApi,
 } from "@/components/ui/carousel";
-import Autoplay from "embla-carousel-autoplay";
 
 interface Event {
   id: string;
@@ -40,10 +40,22 @@ const Index = () => {
   const [next30DaysEvents, setNext30DaysEvents] = useState<Event[]>([]);
   const [recentEvents, setRecentEvents] = useState<Event[]>([]);
   const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [carouselApi, setCarouselApi] = useState<CarouselApi>();
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Auto-play carousel
+  useEffect(() => {
+    if (!carouselApi) return;
+
+    const interval = setInterval(() => {
+      carouselApi.scrollNext();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [carouselApi]);
 
   const fetchData = async () => {
     const now = new Date().toISOString();
@@ -138,12 +150,8 @@ const Index = () => {
       <section className="relative bg-secondary/20">
         <div className="container mx-auto px-4 py-8">
           <Carousel
+            setApi={setCarouselApi}
             opts={{ loop: true }}
-            plugins={[
-              Autoplay({
-                delay: 5000,
-              }),
-            ]}
             className="w-full"
           >
             <CarouselContent>

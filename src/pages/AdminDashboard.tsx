@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CategoryManager } from "@/components/CategoryManager";
 import { ProducerApprovalTab } from "@/components/ProducerApprovalTab";
 import { EventManagementTab } from "@/components/EventManagementTab";
+import { FeeConfigTab } from "@/components/FeeConfigTab";
 import { Users, CalendarDays, DollarSign, TrendingUp, BarChart3, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -184,6 +185,7 @@ const AdminDashboard = () => {
           </TabsTrigger>
           <TabsTrigger value="events">Eventos</TabsTrigger>
           <TabsTrigger value="categories">Categorias</TabsTrigger>
+          <TabsTrigger value="fees">Taxas</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -274,6 +276,10 @@ const AdminDashboard = () => {
 
         <TabsContent value="categories">
           <CategoryManager />
+        </TabsContent>
+
+        <TabsContent value="fees">
+          <FeeConfigTab />
         </TabsContent>
       </Tabs>
     </main>

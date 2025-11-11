@@ -8,11 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
+import { EventPreview } from "@/components/EventPreview";
 
 interface Category {
   id: string;
@@ -468,6 +470,31 @@ const CreateEvent = () => {
             >
               Cancelar
             </Button>
+            
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button type="button" variant="secondary" className="gap-2">
+                  <Eye className="h-4 w-4" />
+                  Visualizar Preview
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-6xl">
+                <DialogHeader>
+                  <DialogTitle>Preview do Evento</DialogTitle>
+                </DialogHeader>
+                <EventPreview
+                  title={title}
+                  description={description}
+                  category={categories.find(c => c.id === categoryId)?.name || ""}
+                  eventDate={eventDate}
+                  venue={venue}
+                  address={address}
+                  imageUrl={imageUrl}
+                  ticketBatches={ticketBatches}
+                />
+              </DialogContent>
+            </Dialog>
+            
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Criando..." : "Criar Evento"}
             </Button>

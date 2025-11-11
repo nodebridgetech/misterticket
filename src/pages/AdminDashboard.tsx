@@ -52,23 +52,28 @@ const AdminDashboard = () => {
         .from("events")
         .select("*");
 
-      const { data: requests } = await supabase
+      const { data: requests, error: requestsError } = await supabase
         .from("user_roles")
         .select("*")
         .eq("role", "producer")
         .eq("is_approved", false);
 
+      if (requestsError) {
+        console.error("Error fetching requests:", requestsError);
+      }
+
       // Fetch profiles separately for pending requests
       let requestsWithProfiles = [];
       if (requests && requests.length > 0) {
         const userIds = requests.map(r => r.user_id);
-        const { data: profilesData } = await supabase
+        const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
           .select("user_id, full_name, email")
           .in("user_id", userIds);
 
         console.log("Requests:", requests);
         console.log("Profiles Data:", profilesData);
+        console.log("Profiles Error:", profilesError);
 
         requestsWithProfiles = requests.map(request => {
           const profile = profilesData?.find(p => p.user_id === request.user_id);

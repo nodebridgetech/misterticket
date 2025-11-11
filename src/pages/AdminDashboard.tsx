@@ -4,7 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { Users, DollarSign, CalendarDays, BarChart3, TrendingUp, Ticket } from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid, LineChart, Line, Legend } from "recharts";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format, subDays, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, eachMonthOfInterval } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const AdminDashboard = () => {
   const { user, userRole, loading } = useAuth();
@@ -14,6 +17,7 @@ const AdminDashboard = () => {
   const [producerRequests, setProducerRequests] = useState<any[]>([]);
   const [activeProducers, setActiveProducers] = useState<number>(0);
   const [loadingData, setLoadingData] = useState(true);
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<number>(0);
 
   useEffect(() => {
     if (!loading && (!user || userRole !== "admin")) {
@@ -134,6 +138,58 @@ const AdminDashboard = () => {
     vendas: value,
   }));
 
+  // Last 30 days line chart data
+  const last30Days = eachDayOfInterval({
+    start: subDays(new Date(), 29),
+    end: new Date()
+  });
+
+  const salesLast30Days = last30Days.map(day => {
+    const dayStart = new Date(day.setHours(0, 0, 0, 0));
+    const dayEnd = new Date(day.setHours(23, 59, 59, 999));
+    
+    const daySales = salesData.filter(sale => {
+      const saleDate = new Date(sale.created_at);
+      return saleDate >= dayStart && saleDate <= dayEnd;
+    });
+
+    const totalRevenue = daySales.reduce((sum, sale) => sum + Number(sale.total_price || 0), 0);
+    const ticketsSold = daySales.reduce((sum, sale) => sum + Number(sale.quantity || 0), 0);
+
+    return {
+      date: format(day, 'dd/MM', { locale: ptBR }),
+      receita: totalRevenue,
+      ingressos: ticketsSold
+    };
+  });
+
+  // Last 6 months bar chart data with filter
+  const last6Months = eachMonthOfInterval({
+    start: subMonths(startOfMonth(new Date()), 5 + selectedMonthFilter),
+    end: subMonths(endOfMonth(new Date()), selectedMonthFilter)
+  });
+
+  const salesLast6Months = last6Months.map(month => {
+    const monthStart = startOfMonth(month);
+    const monthEnd = endOfMonth(month);
+    
+    const monthSales = salesData.filter(sale => {
+      const saleDate = new Date(sale.created_at);
+      return saleDate >= monthStart && saleDate <= monthEnd;
+    });
+
+    const totalRevenue = monthSales.reduce((sum, sale) => sum + Number(sale.total_price || 0), 0);
+    const platformRevenue = monthSales.reduce((sum, sale) => sum + Number(sale.platform_fee || 0), 0);
+    const ticketsSold = monthSales.reduce((sum, sale) => sum + Number(sale.quantity || 0), 0);
+
+    return {
+      month: format(month, 'MMM/yy', { locale: ptBR }),
+      receita: totalRevenue,
+      taxas: platformRevenue,
+      ingressos: ticketsSold
+    };
+  });
+
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
   const stats = [
@@ -198,6 +254,127 @@ const AdminDashboard = () => {
             </Card>
           );
         })}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Evolução de Vendas - Últimos 30 Dias
+            </CardTitle>
+            <CardDescription>
+              Receita e ingressos vendidos diariamente
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {salesLast30Days.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhum dado disponível
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={salesLast30Days}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="receita" 
+                    stroke="hsl(var(--chart-1))" 
+                    strokeWidth={2}
+                    name="Receita (R$)"
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="ingressos" 
+                    stroke="hsl(var(--chart-2))" 
+                    strokeWidth={2}
+                    name="Ingressos"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5" />
+                  Comparativo Mensal
+                </CardTitle>
+                <CardDescription>
+                  Vendas dos últimos 6 meses
+                </CardDescription>
+              </div>
+              <Select
+                value={selectedMonthFilter.toString()}
+                onValueChange={(value) => setSelectedMonthFilter(Number(value))}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Últimos 6 meses</SelectItem>
+                  <SelectItem value="6">6 meses anteriores</SelectItem>
+                  <SelectItem value="12">Há 1 ano</SelectItem>
+                  <SelectItem value="18">Há 1,5 anos</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {salesLast6Months.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhum dado disponível
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={salesLast6Months}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis 
+                    dataKey="month" 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <YAxis 
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="receita" fill="hsl(var(--chart-1))" name="Receita Total (R$)" />
+                  <Bar dataKey="taxas" fill="hsl(var(--chart-3))" name="Taxas Plataforma (R$)" />
+                  <Bar dataKey="ingressos" fill="hsl(var(--chart-2))" name="Ingressos Vendidos" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

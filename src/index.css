@@ -38,6 +38,13 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Chart Colors */
+    --chart-1: 33 100% 59%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 84% 60%;
+
     /* Mister Ticket Brand Colors */
     --brand-orange: 33 100% 59%;
     --brand-black: 0 0% 0%;
@@ -83,6 +90,13 @@ All colors MUST be HSL.
     --border: 0 0% 20%;
     --input: 0 0% 20%;
     --ring: 33 100% 59%;
+
+    /* Chart Colors */
+    --chart-1: 33 100% 59%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 84% 60%;
   }
 }
 

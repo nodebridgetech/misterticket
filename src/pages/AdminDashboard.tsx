@@ -2,19 +2,9 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CategoryManager } from "@/components/CategoryManager";
-import { ProducerApprovalTab } from "@/components/ProducerApprovalTab";
-import { EventManagementTab } from "@/components/EventManagementTab";
-import { FeeConfigTab } from "@/components/FeeConfigTab";
-import { Users, CalendarDays, DollarSign, TrendingUp, BarChart3, Check, X, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
-import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import { Users, DollarSign, CalendarDays, BarChart3, TrendingUp, Ticket } from "lucide-react";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const AdminDashboard = () => {
   const { user, userRole, loading } = useAuth();
@@ -210,116 +200,75 @@ const AdminDashboard = () => {
         })}
       </div>
 
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
-          <TabsTrigger value="producers">
-            Produtores
-            {producerRequests.length > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {producerRequests.length}
-              </Badge>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Eventos por Categoria
+            </CardTitle>
+            <CardDescription>
+              Distribuição de eventos cadastrados
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {categoryData.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhum dado disponível
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={categoryData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="hsl(var(--primary))"
+                    dataKey="value"
+                  >
+                    {categoryData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
             )}
-          </TabsTrigger>
-          <TabsTrigger value="events">Eventos</TabsTrigger>
-          <TabsTrigger value="categories">Categorias</TabsTrigger>
-          <TabsTrigger value="fees">Taxas</TabsTrigger>
-        </TabsList>
+          </CardContent>
+        </Card>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Eventos por Categoria
-                </CardTitle>
-                <CardDescription>
-                  Distribuição de eventos cadastrados
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {categoryData.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Nenhum dado disponível
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={categoryData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                        outerRadius={80}
-                        fill="hsl(var(--primary))"
-                        dataKey="value"
-                      >
-                        {categoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Vendas por Categoria
-                </CardTitle>
-                <CardDescription>
-                  Receita gerada por tipo de evento
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {categorySalesData.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    Nenhuma venda registrada
-                  </div>
-                ) : (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={categorySalesData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
-                      <YAxis stroke="hsl(var(--muted-foreground))" />
-                      <Tooltip />
-                      <Bar dataKey="vendas" fill="hsl(var(--primary))" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="producers">
-          <ProducerApprovalTab 
-            producerRequests={producerRequests}
-            onRefresh={fetchData}
-          />
-        </TabsContent>
-
-        <TabsContent value="events">
-          <EventManagementTab 
-            events={events}
-            onRefresh={fetchData}
-          />
-        </TabsContent>
-
-        <TabsContent value="categories">
-          <CategoryManager />
-        </TabsContent>
-
-        <TabsContent value="fees">
-          <FeeConfigTab />
-        </TabsContent>
-      </Tabs>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Vendas por Categoria
+            </CardTitle>
+            <CardDescription>
+              Receita gerada por tipo de evento
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {categorySalesData.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Nenhuma venda registrada
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={categorySalesData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" />
+                  <YAxis stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip />
+                  <Bar dataKey="vendas" fill="hsl(var(--primary))" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 };

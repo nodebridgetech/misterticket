@@ -38,17 +38,14 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 
-interface EventManagementTabProps {
-  events: any[];
-  onRefresh: () => void;
-}
-
-export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProps) => {
+export const EventManagementTab = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [deleting, setDeleting] = useState<string | null>(null);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [updatingFeatured, setUpdatingFeatured] = useState<string | null>(null);
+  const [events, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Pagination, filter and sort states
   const [currentPage, setCurrentPage] = useState(1);
@@ -61,6 +58,30 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
 
   // Get unique categories
   const [categories, setCategories] = useState<string[]>([]);
+
+  // Fetch events
+  const fetchEvents = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("events")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      toast({
+        title: "Erro ao carregar eventos",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      setEvents(data || []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   useEffect(() => {
     const uniqueCategories = Array.from(new Set(events.map(e => e.category)));
@@ -127,7 +148,7 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
         description: "O evento foi removido com sucesso.",
       });
 
-      onRefresh();
+      fetchEvents();
     } catch (error) {
       console.error("Error deleting event:", error);
       toast({
@@ -158,7 +179,7 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
           : "O evento será priorizado no banner da página inicial.",
       });
 
-      onRefresh();
+      fetchEvents();
     } catch (error) {
       console.error("Error updating featured status:", error);
       toast({

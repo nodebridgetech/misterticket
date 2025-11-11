@@ -26,14 +26,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-interface ProducerApprovalTabProps {
-  producerRequests: any[];
-  onRefresh: () => void;
-}
-
-export const ProducerApprovalTab = ({ producerRequests, onRefresh }: ProducerApprovalTabProps) => {
+export const ProducerApprovalTab = () => {
   const { toast } = useToast();
   const [processing, setProcessing] = useState<string | null>(null);
+  const [producerRequests, setProducerRequests] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
   // Active producers state
   const [activeProducers, setActiveProducers] = useState<any[]>([]);
@@ -45,8 +42,42 @@ export const ProducerApprovalTab = ({ producerRequests, onRefresh }: ProducerApp
   const [sortBy, setSortBy] = useState<string>("name-asc");
   const itemsPerPage = 10;
 
+  // Fetch producer requests
+  const fetchProducerRequests = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select(`
+          *,
+          profiles (
+            full_name,
+            email,
+            document,
+            phone
+          )
+        `)
+        .eq("role", "producer")
+        .eq("is_approved", false)
+        .order("requested_at", { ascending: false });
+
+      if (error) throw error;
+      setProducerRequests(data || []);
+    } catch (error) {
+      console.error("Error fetching producer requests:", error);
+      toast({
+        title: "Erro ao carregar solicitações",
+        description: "Não foi possível carregar as solicitações de produtores.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch active producers
   useEffect(() => {
+    fetchProducerRequests();
     fetchActiveProducers();
   }, []);
 
@@ -115,7 +146,7 @@ export const ProducerApprovalTab = ({ producerRequests, onRefresh }: ProducerApp
           : "A solicitação foi rejeitada.",
       });
 
-      onRefresh();
+      fetchProducerRequests();
       fetchActiveProducers(); // Refresh active producers list
     } catch (error) {
       console.error("Error processing request:", error);

@@ -72,7 +72,7 @@ const Index = () => {
       .select("*")
       .eq("is_published", true)
       .gte("event_date", now)
-      .order("is_featured", { ascending: false })
+      .order("is_featured", { ascending: false, nullsFirst: false })
       .order("event_date", { ascending: true })
       .limit(5);
 

@@ -67,16 +67,19 @@ const AdminDashboard = () => {
           .select("user_id, full_name, email")
           .in("user_id", userIds);
 
+        console.log("Requests:", requests);
+        console.log("Profiles Data:", profilesData);
+
         requestsWithProfiles = requests.map(request => {
           const profile = profilesData?.find(p => p.user_id === request.user_id);
+          console.log("Mapping request:", request.user_id, "Found profile:", profile);
           return {
             ...request,
-            profiles: profile ? {
-              full_name: profile.full_name,
-              email: profile.email
-            } : null
+            profiles: profile || null
           };
         });
+
+        console.log("Final requests with profiles:", requestsWithProfiles);
       }
 
       setSalesData(sales || []);

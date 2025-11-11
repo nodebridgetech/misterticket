@@ -113,8 +113,16 @@ serve(async (req) => {
     const unitPrice = ticket ? Number(ticket.price) : 0;
     const totalPrice = unitPrice * quantity + platformFee + gatewayFee;
 
-    // Generate QR code data (simple format)
-    const qrCode = `TICKET-${sessionId}-${Date.now()}`;
+    // Generate QR code as image URL using public QR code API
+    const qrCodeData = JSON.stringify({
+      saleId: sessionId,
+      eventId,
+      ticketId,
+      quantity,
+      userId,
+      timestamp: Date.now()
+    });
+    const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}`;
 
     // Create sale record
     const { data: sale, error: saleError } = await supabaseClient
@@ -143,16 +151,16 @@ serve(async (req) => {
       throw new Error(`Failed to create sale: ${saleError.message}`);
     }
 
-    // Update ticket quantity sold
-    const { error: updateError } = await supabaseClient
-      .from("tickets")
-      .update({ 
-        quantity_sold: quantity 
-      })
-      .eq("id", ticketId);
+    // Update ticket quantity sold (increment, not replace)
+    const { error: updateError } = await supabaseClient.rpc('increment_ticket_sold', {
+      ticket_id: ticketId,
+      quantity_increment: quantity
+    });
 
     if (updateError) {
       logStep("Error updating ticket quantity", { error: updateError });
+    } else {
+      logStep("Ticket quantity updated", { ticketId, quantityAdded: quantity });
     }
 
     logStep("Sale created successfully", { saleId: sale.id });

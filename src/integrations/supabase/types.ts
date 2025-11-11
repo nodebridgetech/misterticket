@@ -313,6 +313,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_ticket_sold: {
+        Args: { quantity_increment: number; ticket_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "visitor" | "producer" | "admin"

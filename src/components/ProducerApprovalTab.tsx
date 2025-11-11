@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, UserCheck, Mail, Calendar } from "lucide-react";
+import { Check, X, UserCheck, Mail, Calendar, UserX, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -25,6 +25,23 @@ import {
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MoreVertical } from "lucide-react";
 
 export const ProducerApprovalTab = () => {
   const { toast } = useToast();
@@ -41,6 +58,16 @@ export const ProducerApprovalTab = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<string>("name-asc");
   const itemsPerPage = 10;
+
+  // Confirmation dialogs state
+  const [deactivateDialog, setDeactivateDialog] = useState<{ open: boolean; producerId: string | null }>({
+    open: false,
+    producerId: null,
+  });
+  const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; producerId: string | null }>({
+    open: false,
+    producerId: null,
+  });
 
   // Fetch producer requests
   const fetchProducerRequests = async () => {
@@ -167,6 +194,69 @@ export const ProducerApprovalTab = () => {
       });
     } finally {
       setProcessing(null);
+    }
+  };
+
+  const handleDeactivateProducer = async (producerId: string) => {
+    setProcessing(producerId);
+    try {
+      // Update user_role to set is_approved to false
+      const { error } = await supabase
+        .from("user_roles")
+        .update({ is_approved: false })
+        .eq("user_id", producerId)
+        .eq("role", "producer");
+
+      if (error) throw error;
+
+      toast({
+        title: "Produtor inativado",
+        description: "O produtor foi inativado e voltou a ser visitante.",
+      });
+
+      fetchActiveProducers();
+      fetchProducerRequests(); // May show in pending if they want to reapply
+    } catch (error) {
+      console.error("Error deactivating producer:", error);
+      toast({
+        title: "Erro ao inativar",
+        description: "Não foi possível inativar o produtor.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(null);
+      setDeactivateDialog({ open: false, producerId: null });
+    }
+  };
+
+  const handleDeleteProducer = async (producerId: string) => {
+    setProcessing(producerId);
+    try {
+      // Delete the producer role from user_roles
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", producerId)
+        .eq("role", "producer");
+
+      if (error) throw error;
+
+      toast({
+        title: "Produtor excluído",
+        description: "O papel de produtor foi removido do usuário.",
+      });
+
+      fetchActiveProducers();
+    } catch (error) {
+      console.error("Error deleting producer:", error);
+      toast({
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o produtor.",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessing(null);
+      setDeleteDialog({ open: false, producerId: null });
     }
   };
 
@@ -339,6 +429,7 @@ export const ProducerApprovalTab = () => {
                     <TableHead>Eventos Criados</TableHead>
                     <TableHead>Data de Aprovação</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -370,6 +461,35 @@ export const ProducerApprovalTab = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="default">Ativo</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              disabled={processing === producer.user_id}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => setDeactivateDialog({ open: true, producerId: producer.user_id })}
+                              className="text-orange-600"
+                            >
+                              <UserX className="h-4 w-4 mr-2" />
+                              Inativar Produtor
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => setDeleteDialog({ open: true, producerId: producer.user_id })}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Excluir Produtor
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -427,6 +547,50 @@ export const ProducerApprovalTab = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Deactivate Confirmation Dialog */}
+      <AlertDialog open={deactivateDialog.open} onOpenChange={(open) => setDeactivateDialog({ open, producerId: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Inativar Produtor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja inativar este produtor? Ele perderá o acesso ao painel de produtor e voltará a ser visitante. 
+              Todos os eventos e vendas serão mantidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deactivateDialog.producerId && handleDeactivateProducer(deactivateDialog.producerId)}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Inativar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialog.open} onOpenChange={(open) => setDeleteDialog({ open, producerId: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir Produtor</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir este produtor? Esta ação removerá o papel de produtor do usuário permanentemente. 
+              Os eventos e vendas associados serão mantidos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteDialog.producerId && handleDeleteProducer(deleteDialog.producerId)}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Excluir
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

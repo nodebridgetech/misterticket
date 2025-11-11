@@ -1,152 +1,303 @@
 import { Footer } from "@/components/Footer";
 import { EventCard } from "@/components/EventCard";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Calendar, Shield, Zap } from "lucide-react";
-import { Link } from "react-router-dom";
-import heroImage from "@/assets/hero-concert.jpg";
-import event1 from "@/assets/event-1.jpg";
-import event2 from "@/assets/event-2.jpg";
-import event3 from "@/assets/event-3.jpg";
+import { ArrowRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+import Autoplay from "embla-carousel-autoplay";
+
+interface Event {
+  id: string;
+  title: string;
+  image_url: string | null;
+  event_date: string;
+  venue: string;
+  address: string;
+  category: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  image_url: string | null;
+}
 
 const Index = () => {
-  const featuredEvents = [
-    {
-      id: "1",
-      title: "Festival de Música Eletrônica 2025",
-      image: event1,
-      date: "15 de Fevereiro, 2025",
-      location: "São Paulo, SP",
-      price: "A partir de R$ 120,00",
-      category: "Música",
-    },
-    {
-      id: "2",
-      title: "Stand-Up Comedy Night",
-      image: event2,
-      date: "22 de Fevereiro, 2025",
-      location: "Rio de Janeiro, RJ",
-      price: "A partir de R$ 80,00",
-      category: "Comédia",
-    },
-    {
-      id: "3",
-      title: "Rock Festival 2025",
-      image: event3,
-      date: "10 de Março, 2025",
-      location: "Belo Horizonte, MG",
-      price: "A partir de R$ 150,00",
-      category: "Música",
-    },
-  ];
+  const navigate = useNavigate();
+  const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
+  const [next30DaysEvents, setNext30DaysEvents] = useState<Event[]>([]);
+  const [recentEvents, setRecentEvents] = useState<Event[]>([]);
+  const [allEvents, setAllEvents] = useState<Event[]>([]);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    const now = new Date().toISOString();
+    const next7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const next30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
+    // Featured events (primeiros 5 eventos)
+    const { data: featured } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_published", true)
+      .gte("event_date", now)
+      .order("event_date", { ascending: true })
+      .limit(5);
+
+    // Categories
+    const { data: cats } = await supabase
+      .from("categories")
+      .select("*")
+      .order("name");
+
+    // Eventos próximos (7 dias)
+    const { data: upcoming } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_published", true)
+      .gte("event_date", now)
+      .lte("event_date", next7Days)
+      .order("event_date", { ascending: true })
+      .limit(6);
+
+    // Eventos próximos 30 dias
+    const { data: next30 } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_published", true)
+      .gte("event_date", next7Days)
+      .lte("event_date", next30Days)
+      .order("event_date", { ascending: true })
+      .limit(6);
+
+    // Eventos publicados recentemente
+    const { data: recent } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_published", true)
+      .gte("event_date", now)
+      .order("created_at", { ascending: false })
+      .limit(6);
+
+    // Todos os eventos
+    const { data: all } = await supabase
+      .from("events")
+      .select("*")
+      .eq("is_published", true)
+      .gte("event_date", now)
+      .order("event_date", { ascending: true });
+
+    setFeaturedEvents(featured || []);
+    setCategories(cats || []);
+    setUpcomingEvents(upcoming || []);
+    setNext30DaysEvents(next30 || []);
+    setRecentEvents(recent || []);
+    setAllEvents(all || []);
+  };
+
+  const getMinPrice = async (eventId: string) => {
+    const { data } = await supabase
+      .from("tickets")
+      .select("price")
+      .eq("event_id", eventId)
+      .order("price", { ascending: true })
+      .limit(1)
+      .single();
+
+    return data?.price ? `A partir de R$ ${data.price.toFixed(2)}` : "Consultar";
+  };
+
+  const formatEventCard = (event: Event) => ({
+    id: event.id,
+    title: event.title,
+    image: event.image_url || "/placeholder.svg",
+    date: format(new Date(event.event_date), "dd 'de' MMMM, yyyy", { locale: ptBR }),
+    location: `${event.venue}, ${event.address}`,
+    price: "A partir de R$ 0,00",
+    category: event.category,
+  });
 
   return (
     <>
-
-      {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-hero opacity-60 z-10" />
-        <img
-          src={heroImage}
-          alt="Hero"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="container mx-auto px-4 relative z-20 text-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 drop-shadow-lg">
-            Seu evento começa aqui
-          </h1>
-          <p className="text-xl md:text-2xl mb-8 drop-shadow-md max-w-2xl mx-auto">
-            A plataforma completa para criar, gerenciar e vender ingressos para seus eventos
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button variant="hero" size="lg" asChild>
-              <Link to="/events">
-                Explorar Eventos
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Link>
-            </Button>
-            <Button variant="outline" size="lg" className="bg-background/10 backdrop-blur text-white border-white hover:bg-white hover:text-foreground" asChild>
-              <Link to="/create-event">Criar Evento</Link>
-            </Button>
-          </div>
+      {/* Banner Carousel Section */}
+      <section className="relative bg-secondary/20">
+        <div className="container mx-auto px-4 py-8">
+          <Carousel
+            opts={{ loop: true }}
+            plugins={[
+              Autoplay({
+                delay: 5000,
+              }),
+            ]}
+            className="w-full"
+          >
+            <CarouselContent>
+              {featuredEvents.map((event) => (
+                <CarouselItem key={event.id}>
+                  <Link to={`/event/${event.id}`}>
+                    <div className="relative h-[400px] md:h-[500px] rounded-lg overflow-hidden">
+                      <img
+                        src={event.image_url || "/placeholder.svg"}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
+                        <h2 className="text-3xl md:text-5xl font-bold mb-2">{event.title}</h2>
+                        <p className="text-lg md:text-xl mb-1">
+                          {format(new Date(event.event_date), "dd 'de' MMMM, yyyy", { locale: ptBR })}
+                        </p>
+                        <p className="text-md md:text-lg">{event.venue} - {event.address}</p>
+                      </div>
+                    </div>
+                  </Link>
+                </CarouselItem>
+              ))}
+            </CarouselContent>
+            <CarouselPrevious className="left-4" />
+            <CarouselNext className="right-4" />
+          </Carousel>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-20 bg-secondary/30">
+      {/* Categories Section */}
+      <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Por que escolher o Mister Ticket?</h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Tudo que você precisa para criar experiências inesquecíveis
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Zap className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold">Rápido e Fácil</h3>
-              <p className="text-muted-foreground">
-                Crie e publique seu evento em minutos. Interface intuitiva e processo simplificado.
-              </p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold">Seguro e Confiável</h3>
-              <p className="text-muted-foreground">
-                Pagamentos seguros e validação de ingressos com QR Code único e intransferível.
-              </p>
-            </div>
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                <Calendar className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-xl font-semibold">Gestão Completa</h3>
-              <p className="text-muted-foreground">
-                Dashboard com métricas, vendas e controle total sobre seus eventos e ingressos.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Events */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex justify-between items-center mb-12">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold mb-2">Eventos em Destaque</h2>
-              <p className="text-muted-foreground">Descubra os melhores eventos perto de você</p>
-            </div>
-            <Button variant="ghost" asChild>
-              <Link to="/events">
-                Ver todos
-                <ArrowRight className="ml-2 h-4 w-4" />
+          <h2 className="text-3xl font-bold mb-8 text-center">Categorias</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {categories.map((category) => (
+              <Link
+                key={category.id}
+                to={`/events?category=${encodeURIComponent(category.name)}`}
+                className="group"
+              >
+                <div className="flex flex-col items-center gap-3 p-4 rounded-lg border border-border bg-card hover:bg-accent hover:shadow-md transition-all">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    {category.image_url ? (
+                      <img
+                        src={category.image_url}
+                        alt={category.name}
+                        className="w-10 h-10 object-contain"
+                      />
+                    ) : (
+                      <span className="text-2xl">{category.name[0]}</span>
+                    )}
+                  </div>
+                  <span className="text-sm font-medium text-center">{category.name}</span>
+                </div>
               </Link>
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredEvents.map((event) => (
-              <EventCard key={event.id} {...event} />
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-primary text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Pronto para criar seu evento?
-          </h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Junte-se a milhares de produtores que confiam no Mister Ticket para gerenciar seus eventos
-          </p>
-          <Button size="lg" variant="outline" className="bg-white text-foreground hover:bg-white/90" asChild>
-            <Link to="/create-event">Começar Agora</Link>
-          </Button>
+      {/* Upcoming Events (7 days) */}
+      {upcomingEvents.length > 0 && (
+        <section className="py-16 bg-secondary/20">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Acontecendo em breve</h2>
+                <p className="text-muted-foreground">Próximos 7 dias</p>
+              </div>
+              <Button variant="ghost" asChild>
+                <Link to="/events">
+                  Ver todos
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {upcomingEvents.map((event) => (
+                <EventCard key={event.id} {...formatEventCard(event)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Next 30 Days Events */}
+      {next30DaysEvents.length > 0 && (
+        <section className="py-16 bg-background">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Próximos eventos</h2>
+                <p className="text-muted-foreground">Nos próximos 30 dias</p>
+              </div>
+              <Button variant="ghost" asChild>
+                <Link to="/events">
+                  Ver todos
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {next30DaysEvents.map((event) => (
+                <EventCard key={event.id} {...formatEventCard(event)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Recently Published Events */}
+      {recentEvents.length > 0 && (
+        <section className="py-16 bg-secondary/20">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-2">Publicados recentemente</h2>
+                <p className="text-muted-foreground">Novos eventos na plataforma</p>
+              </div>
+              <Button variant="ghost" asChild>
+                <Link to="/events">
+                  Ver todos
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {recentEvents.map((event) => (
+                <EventCard key={event.id} {...formatEventCard(event)} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* All Events */}
+      <section className="py-16 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold mb-2">Todos os eventos</h2>
+            <p className="text-muted-foreground">Explore todos os eventos disponíveis</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {allEvents.map((event) => (
+              <EventCard key={event.id} {...formatEventCard(event)} />
+            ))}
+          </div>
+          {allEvents.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Nenhum evento disponível no momento</p>
+            </div>
+          )}
         </div>
       </section>
 

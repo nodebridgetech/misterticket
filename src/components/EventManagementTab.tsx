@@ -105,7 +105,7 @@ export const EventManagementTab = ({ events, onRefresh }: EventManagementTabProp
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => navigate(`/events/${event.id}`)}
+                        onClick={() => navigate(`/event/${event.id}`)}
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         Ver

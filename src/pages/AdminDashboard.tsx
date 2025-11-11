@@ -53,7 +53,12 @@ const AdminDashboard = () => {
 
       const { data: requests } = await supabase
         .from("user_roles")
-        .select("*")
+        .select(`
+          *,
+          profiles:user_id (
+            full_name
+          )
+        `)
         .eq("role", "producer")
         .eq("is_approved", false);
 

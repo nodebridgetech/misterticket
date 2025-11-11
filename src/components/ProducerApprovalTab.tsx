@@ -68,6 +68,7 @@ export const ProducerApprovalTab = ({ producerRequests, onRefresh }: ProducerApp
             <TableHeader>
               <TableRow>
                 <TableHead>Nome do Produtor</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Data da Solicitação</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
@@ -78,6 +79,9 @@ export const ProducerApprovalTab = ({ producerRequests, onRefresh }: ProducerApp
                 <TableRow key={request.id}>
                   <TableCell className="font-medium">
                     {request.profiles?.full_name || "Nome não disponível"}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {request.profiles?.email || "Email não disponível"}
                   </TableCell>
                   <TableCell>
                     {format(new Date(request.requested_at), "dd/MM/yyyy HH:mm")}

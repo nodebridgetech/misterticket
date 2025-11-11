@@ -56,7 +56,8 @@ const AdminDashboard = () => {
         .select(`
           *,
           profiles:user_id (
-            full_name
+            full_name,
+            email
           )
         `)
         .eq("role", "producer")

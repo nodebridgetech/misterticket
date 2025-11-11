@@ -120,6 +120,7 @@ export type Database = {
         Row: {
           created_at: string
           document: string | null
+          email: string | null
           full_name: string
           id: string
           phone: string | null
@@ -129,6 +130,7 @@ export type Database = {
         Insert: {
           created_at?: string
           document?: string | null
+          email?: string | null
           full_name: string
           id?: string
           phone?: string | null
@@ -138,6 +140,7 @@ export type Database = {
         Update: {
           created_at?: string
           document?: string | null
+          email?: string | null
           full_name?: string
           id?: string
           phone?: string | null

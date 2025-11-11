@@ -22,6 +22,7 @@ const AdminDashboard = () => {
   const [salesData, setSalesData] = useState<any[]>([]);
   const [events, setEvents] = useState<any[]>([]);
   const [producerRequests, setProducerRequests] = useState<any[]>([]);
+  const [activeProducers, setActiveProducers] = useState<number>(0);
   const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
@@ -87,9 +88,17 @@ const AdminDashboard = () => {
         console.log("Final requests with profiles:", requestsWithProfiles);
       }
 
+      // Fetch active producers count
+      const { count: activeProducersCount } = await supabase
+        .from("user_roles")
+        .select("*", { count: 'exact', head: true })
+        .eq("role", "producer")
+        .eq("is_approved", true);
+
       setSalesData(sales || []);
       setEvents(eventsData || []);
       setProducerRequests(requestsWithProfiles);
+      setActiveProducers(activeProducersCount || 0);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -145,6 +154,12 @@ const AdminDashboard = () => {
       description: "aguardando aprovação",
     },
     {
+      title: "Produtores Ativos",
+      value: activeProducers.toString(),
+      icon: Users,
+      description: "aprovados e ativos",
+    },
+    {
       title: "Eventos Publicados",
       value: events.filter(e => e.is_published).length.toString(),
       icon: CalendarDays,
@@ -173,7 +188,7 @@ const AdminDashboard = () => {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (

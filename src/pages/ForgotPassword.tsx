@@ -23,11 +23,30 @@ const ForgotPassword = () => {
   const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
-        redirectTo: `${window.location.origin}/redefinir-senha`,
+      // Generate reset token using Supabase
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        data.email,
+        {
+          redirectTo: `${window.location.origin}/redefinir-senha`,
+        }
+      );
+
+      if (resetError) throw resetError;
+
+      // Send custom email via Resend
+      const resetLink = `${window.location.origin}/redefinir-senha`;
+      
+      const { error: emailError } = await supabase.functions.invoke('send-password-reset', {
+        body: {
+          email: data.email,
+          resetLink: resetLink,
+        },
       });
 
-      if (error) throw error;
+      if (emailError) {
+        console.error("Error sending custom email:", emailError);
+        // Don't throw error here - the reset link was still generated
+      }
 
       setEmailSent(true);
       toast({

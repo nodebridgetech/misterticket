@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoginForm {
   email: string;
@@ -57,6 +58,20 @@ const Auth = () => {
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.fullName);
+      
+      // Send welcome email after successful signup
+      try {
+        await supabase.functions.invoke('send-welcome-email', {
+          body: {
+            email: data.email,
+            name: data.fullName,
+          },
+        });
+      } catch (emailError) {
+        console.error("Error sending welcome email:", emailError);
+        // Don't throw error - signup was successful
+      }
+      
       signUpForm.reset();
     } catch (error) {
       console.error(error);

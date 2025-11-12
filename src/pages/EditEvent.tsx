@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Copy } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { DatePicker } from "@/components/DatePicker";
 
@@ -167,6 +167,34 @@ const EditEvent = () => {
     setNewBatchQuantity("");
     setNewBatchStartDate(undefined);
     setNewBatchEndDate(undefined);
+
+    toast({
+      title: "Lote adicionado!",
+      description: "O novo lote foi adicionado com sucesso",
+    });
+  };
+
+  const handleDuplicateBatch = (batchId: string) => {
+    const batchToDuplicate = ticketBatches.find(b => b.id === batchId);
+    if (!batchToDuplicate) return;
+
+    // Preenche o formulário com os dados do lote a ser duplicado
+    setNewBatchName(`${batchToDuplicate.batch_name} (Cópia)`);
+    setNewBatchSector(batchToDuplicate.sector);
+    setNewBatchPrice(batchToDuplicate.price.toString());
+    setNewBatchQuantity(batchToDuplicate.quantity_total.toString());
+    setNewBatchStartDate(new Date(batchToDuplicate.sale_start_date));
+    setNewBatchEndDate(new Date(batchToDuplicate.sale_end_date));
+
+    // Scroll suave até o formulário de novo lote
+    setTimeout(() => {
+      document.getElementById('new-batch-form')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
+
+    toast({
+      title: "Lote duplicado!",
+      description: "Ajuste os dados e clique em Adicionar Lote",
+    });
   };
 
   const handleRemoveBatch = (batchId: string) => {
@@ -399,16 +427,27 @@ const EditEvent = () => {
                                 </span>
                               )}
                             </h4>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleRemoveBatch(batch.id)}
-                              disabled={batch.quantity_sold > 0}
-                              title={batch.quantity_sold > 0 ? "Não é possível excluir lotes com vendas" : ""}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDuplicateBatch(batch.id)}
+                                title="Duplicar lote"
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleRemoveBatch(batch.id)}
+                                disabled={batch.quantity_sold > 0}
+                                title={batch.quantity_sold > 0 ? "Não é possível excluir lotes com vendas" : "Remover lote"}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                           
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -478,7 +517,7 @@ const EditEvent = () => {
                   </div>
                 )}
 
-                <div className="border-t pt-6">
+                <div className="border-t pt-6" id="new-batch-form">
                   <h3 className="font-semibold mb-4">Adicionar Novo Lote</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>

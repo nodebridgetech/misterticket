@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Eye } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye, Copy } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
@@ -156,6 +156,22 @@ const CreateEvent = () => {
     });
     setShowBatchForm(false);
     toast.success("Lote adicionado!");
+  };
+
+  const handleDuplicateBatch = (batchId: string) => {
+    const batchToDuplicate = ticketBatches.find(b => b.id === batchId);
+    if (!batchToDuplicate) return;
+
+    setCurrentBatch({
+      batch_name: `${batchToDuplicate.batch_name} (Cópia)`,
+      sector: batchToDuplicate.sector,
+      price: batchToDuplicate.price,
+      quantity_total: batchToDuplicate.quantity_total,
+      sale_start_date: new Date(batchToDuplicate.sale_start_date),
+      sale_end_date: new Date(batchToDuplicate.sale_end_date),
+    });
+    setShowBatchForm(true);
+    toast.success("Lote duplicado! Ajuste os dados e adicione.");
   };
 
   const handleRemoveBatch = (id: string) => {
@@ -489,14 +505,26 @@ const CreateEvent = () => {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleRemoveBatch(batch.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleDuplicateBatch(batch.id)}
+                          title="Duplicar lote"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveBatch(batch.id)}
+                          title="Remover lote"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>

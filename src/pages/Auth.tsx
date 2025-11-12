@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 
 interface LoginForm {
@@ -104,6 +104,14 @@ const Auth = () => {
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Entrando..." : "Entrar"}
                 </Button>
+                <div className="text-center mt-2">
+                  <Link
+                    to="/esqueci-senha"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Esqueci minha senha
+                  </Link>
+                </div>
               </form>
             </TabsContent>
 

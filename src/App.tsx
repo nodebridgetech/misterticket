@@ -7,6 +7,8 @@ import { AppLayout } from "@/components/AppLayout";
 import Index from "./pages/Index";
 import EventDetails from "./pages/EventDetails";
 import Auth from "./pages/Auth";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Events from "./pages/Events";
 import MyAccount from "./pages/MyAccount";
 import ProducerDashboard from "./pages/ProducerDashboard";
@@ -37,7 +39,9 @@ const App = () => (
             <Route path="/event/:id" element={<EventDetails />} />
             <Route path="/checkout/:id" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
-            <Route path="/auth" element={<Auth />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/esqueci-senha" element={<ForgotPassword />} />
+          <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/minha-conta" element={<MyAccount />} />
             <Route path="/painel" element={<ProducerDashboard />} />
             <Route path="/meus-eventos" element={<MyEvents />} />

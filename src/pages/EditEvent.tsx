@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
+import { DatePicker } from "@/components/DatePicker";
 
 interface Category {
   id: string;
@@ -42,7 +43,7 @@ const EditEvent = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [eventDate, setEventDate] = useState("");
+  const [eventDate, setEventDate] = useState<Date | undefined>();
   const [venue, setVenue] = useState("");
   const [address, setAddress] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -55,8 +56,8 @@ const EditEvent = () => {
   const [newBatchSector, setNewBatchSector] = useState("");
   const [newBatchPrice, setNewBatchPrice] = useState("");
   const [newBatchQuantity, setNewBatchQuantity] = useState("");
-  const [newBatchStartDate, setNewBatchStartDate] = useState("");
-  const [newBatchEndDate, setNewBatchEndDate] = useState("");
+  const [newBatchStartDate, setNewBatchStartDate] = useState<Date | undefined>();
+  const [newBatchEndDate, setNewBatchEndDate] = useState<Date | undefined>();
 
   useEffect(() => {
     if (!loading && (!user || !isProducerApproved)) {
@@ -99,7 +100,7 @@ const EditEvent = () => {
       setTitle(eventData.title);
       setDescription(eventData.description || "");
       setCategory(eventData.category);
-      setEventDate(new Date(eventData.event_date).toISOString().slice(0, 16));
+      setEventDate(new Date(eventData.event_date));
       setVenue(eventData.venue);
       setAddress(eventData.address);
       setImageUrl(eventData.image_url || "");
@@ -154,8 +155,8 @@ const EditEvent = () => {
       price: parseFloat(newBatchPrice),
       quantity_total: parseInt(newBatchQuantity),
       quantity_sold: 0,
-      sale_start_date: newBatchStartDate,
-      sale_end_date: newBatchEndDate,
+      sale_start_date: newBatchStartDate?.toISOString() || "",
+      sale_end_date: newBatchEndDate?.toISOString() || "",
       isNew: true,
     };
 
@@ -164,8 +165,8 @@ const EditEvent = () => {
     setNewBatchSector("");
     setNewBatchPrice("");
     setNewBatchQuantity("");
-    setNewBatchStartDate("");
-    setNewBatchEndDate("");
+    setNewBatchStartDate(undefined);
+    setNewBatchEndDate(undefined);
   };
 
   const handleRemoveBatch = (batchId: string) => {
@@ -202,7 +203,7 @@ const EditEvent = () => {
           title,
           description,
           category,
-          event_date: new Date(eventDate).toISOString(),
+          event_date: eventDate?.toISOString() || new Date().toISOString(),
           venue,
           address,
           image_url: imageUrl || null,
@@ -324,12 +325,10 @@ const EditEvent = () => {
 
                 <div>
                   <Label htmlFor="eventDate">Data e Hora *</Label>
-                  <Input
-                    id="eventDate"
-                    type="datetime-local"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    required
+                  <DatePicker
+                    date={eventDate}
+                    onDateChange={setEventDate}
+                    placeholder="Selecione a data e hora do evento"
                   />
                 </div>
 
@@ -458,18 +457,18 @@ const EditEvent = () => {
                             </div>
                             <div>
                               <Label>Início das Vendas</Label>
-                              <Input
-                                type="datetime-local"
-                                value={batch.sale_start_date}
-                                onChange={(e) => handleUpdateBatch(batch.id, 'sale_start_date', e.target.value)}
+                              <DatePicker
+                                date={new Date(batch.sale_start_date)}
+                                onDateChange={(date) => handleUpdateBatch(batch.id, 'sale_start_date', date?.toISOString() || batch.sale_start_date)}
+                                placeholder="Selecione o início das vendas"
                               />
                             </div>
                             <div>
                               <Label>Fim das Vendas</Label>
-                              <Input
-                                type="datetime-local"
-                                value={batch.sale_end_date}
-                                onChange={(e) => handleUpdateBatch(batch.id, 'sale_end_date', e.target.value)}
+                              <DatePicker
+                                date={new Date(batch.sale_end_date)}
+                                onDateChange={(date) => handleUpdateBatch(batch.id, 'sale_end_date', date?.toISOString() || batch.sale_end_date)}
+                                placeholder="Selecione o fim das vendas"
                               />
                             </div>
                           </div>
@@ -522,18 +521,18 @@ const EditEvent = () => {
                     </div>
                     <div>
                       <Label>Início das Vendas</Label>
-                      <Input
-                        type="datetime-local"
-                        value={newBatchStartDate}
-                        onChange={(e) => setNewBatchStartDate(e.target.value)}
+                      <DatePicker
+                        date={newBatchStartDate}
+                        onDateChange={setNewBatchStartDate}
+                        placeholder="Selecione o início das vendas"
                       />
                     </div>
                     <div>
                       <Label>Fim das Vendas</Label>
-                      <Input
-                        type="datetime-local"
-                        value={newBatchEndDate}
-                        onChange={(e) => setNewBatchEndDate(e.target.value)}
+                      <DatePicker
+                        date={newBatchEndDate}
+                        onDateChange={setNewBatchEndDate}
+                        placeholder="Selecione o fim das vendas"
                       />
                     </div>
                   </div>

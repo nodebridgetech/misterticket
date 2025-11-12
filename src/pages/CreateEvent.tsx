@@ -15,6 +15,7 @@ import { ArrowLeft, Plus, Trash2, Eye } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
+import { DatePicker } from "@/components/DatePicker";
 
 interface Category {
   id: string;
@@ -43,7 +44,7 @@ const CreateEvent = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [eventDate, setEventDate] = useState("");
+  const [eventDate, setEventDate] = useState<Date | undefined>();
   const [venue, setVenue] = useState("");
   const [address, setAddress] = useState("");
   const [imageUrl, setImageUrl] = useState("");
@@ -52,13 +53,20 @@ const CreateEvent = () => {
   // Ticket batches state
   const [ticketBatches, setTicketBatches] = useState<TicketBatch[]>([]);
   const [showBatchForm, setShowBatchForm] = useState(false);
-  const [currentBatch, setCurrentBatch] = useState<Partial<TicketBatch>>({
+  const [currentBatch, setCurrentBatch] = useState<{
+    batch_name?: string;
+    sector?: string;
+    price?: number;
+    quantity_total?: number;
+    sale_start_date?: Date;
+    sale_end_date?: Date;
+  }>({
     batch_name: "",
     sector: "",
     price: 0,
     quantity_total: 0,
-    sale_start_date: "",
-    sale_end_date: "",
+    sale_start_date: undefined,
+    sale_end_date: undefined,
   });
 
   useEffect(() => {
@@ -133,8 +141,8 @@ const CreateEvent = () => {
       sector: currentBatch.sector || "",
       price: Number(currentBatch.price),
       quantity_total: Number(currentBatch.quantity_total),
-      sale_start_date: currentBatch.sale_start_date!,
-      sale_end_date: currentBatch.sale_end_date!,
+      sale_start_date: currentBatch.sale_start_date?.toISOString() || "",
+      sale_end_date: currentBatch.sale_end_date?.toISOString() || "",
     };
 
     setTicketBatches([...ticketBatches, newBatch]);
@@ -143,8 +151,8 @@ const CreateEvent = () => {
       sector: "",
       price: 0,
       quantity_total: 0,
-      sale_start_date: "",
-      sale_end_date: "",
+      sale_start_date: undefined,
+      sale_end_date: undefined,
     });
     setShowBatchForm(false);
     toast.success("Lote adicionado!");
@@ -181,7 +189,7 @@ const CreateEvent = () => {
           title,
           description,
           category: category?.name || "",
-          event_date: eventDate,
+          event_date: eventDate?.toISOString() || new Date().toISOString(),
           venue,
           address,
           image_url: imageUrl || null,
@@ -291,12 +299,10 @@ const CreateEvent = () => {
 
                 <div className="space-y-2">
                   <Label htmlFor="eventDate">Data e Hora *</Label>
-                  <Input
-                    id="eventDate"
-                    type="datetime-local"
-                    value={eventDate}
-                    onChange={(e) => setEventDate(e.target.value)}
-                    required
+                  <DatePicker
+                    date={eventDate}
+                    onDateChange={setEventDate}
+                    placeholder="Selecione a data e hora do evento"
                   />
                 </div>
 
@@ -418,19 +424,19 @@ const CreateEvent = () => {
 
                       <div className="space-y-2">
                         <Label>Início das Vendas *</Label>
-                        <Input
-                          type="datetime-local"
-                          value={currentBatch.sale_start_date}
-                          onChange={(e) => setCurrentBatch({ ...currentBatch, sale_start_date: e.target.value })}
+                        <DatePicker
+                          date={currentBatch.sale_start_date}
+                          onDateChange={(date) => setCurrentBatch({ ...currentBatch, sale_start_date: date })}
+                          placeholder="Selecione o início das vendas"
                         />
                       </div>
 
                       <div className="space-y-2">
                         <Label>Fim das Vendas *</Label>
-                        <Input
-                          type="datetime-local"
-                          value={currentBatch.sale_end_date}
-                          onChange={(e) => setCurrentBatch({ ...currentBatch, sale_end_date: e.target.value })}
+                        <DatePicker
+                          date={currentBatch.sale_end_date}
+                          onDateChange={(date) => setCurrentBatch({ ...currentBatch, sale_end_date: date })}
+                          placeholder="Selecione o fim das vendas"
                         />
                       </div>
                     </div>

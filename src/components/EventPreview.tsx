@@ -17,7 +17,7 @@ interface EventPreviewProps {
   title: string;
   description: string;
   category: string;
-  eventDate: string;
+  eventDate: string | Date | undefined;
   venue: string;
   address: string;
   imageUrl: string;

@@ -13,6 +13,7 @@ const Events = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "all");
 
   const [events, setEvents] = useState<any[]>([]);
+  const [eventsWithPrices, setEventsWithPrices] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,6 +43,24 @@ const Events = () => {
 
       if (data) {
         setEvents(data);
+        // Fetch prices for all events
+        const withPrices = await Promise.all(
+          data.map(async (event) => {
+            const { data: tickets } = await supabase
+              .from("tickets")
+              .select("price")
+              .eq("event_id", event.id)
+              .order("price", { ascending: true })
+              .limit(1);
+
+            const minPrice = tickets && tickets.length > 0 ? tickets[0].price : null;
+            return {
+              ...event,
+              price: minPrice ? `A partir de R$ ${Number(minPrice).toFixed(2).replace('.', ',')}` : "Consultar",
+            };
+          })
+        );
+        setEventsWithPrices(withPrices);
       }
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -65,7 +84,7 @@ const Events = () => {
     }
   };
 
-  const filteredEvents = events.filter(event => {
+  const filteredEvents = eventsWithPrices.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.venue?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          event.address?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -117,7 +136,7 @@ const Events = () => {
                 title={event.title}
                 date={new Date(event.event_date).toLocaleDateString('pt-BR')}
                 location={`${event.venue} - ${event.address}`}
-                price="Consultar"
+                price={event.price}
                 image={event.image_url || "/placeholder.svg"}
                 category={event.category}
               />

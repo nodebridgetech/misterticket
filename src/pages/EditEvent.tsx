@@ -435,8 +435,8 @@ const EditEvent = () => {
                                 type="number"
                                 step="0.01"
                                 min="0.50"
-                                value={batch.price}
-                                onChange={(e) => handleUpdateBatch(batch.id, 'price', parseFloat(e.target.value) || 0)}
+                                value={batch.price || ""}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'price', e.target.value === "" ? 0 : parseFloat(e.target.value))}
                                 placeholder="0.00"
                               />
                             </div>
@@ -444,8 +444,8 @@ const EditEvent = () => {
                               <Label>Quantidade Total</Label>
                               <Input
                                 type="number"
-                                value={batch.quantity_total}
-                                onChange={(e) => handleUpdateBatch(batch.id, 'quantity_total', parseInt(e.target.value) || 0)}
+                                value={batch.quantity_total || ""}
+                                onChange={(e) => handleUpdateBatch(batch.id, 'quantity_total', e.target.value === "" ? 0 : parseInt(e.target.value))}
                                 placeholder="100"
                                 disabled={batch.quantity_sold > 0}
                                 title={batch.quantity_sold > 0 ? "Não é possível alterar quantidade com vendas realizadas" : ""}
@@ -514,6 +514,7 @@ const EditEvent = () => {
                       <Label>Quantidade</Label>
                       <Input
                         type="number"
+                        min="1"
                         value={newBatchQuantity}
                         onChange={(e) => setNewBatchQuantity(e.target.value)}
                         placeholder="100"

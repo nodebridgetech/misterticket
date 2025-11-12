@@ -399,8 +399,8 @@ const CreateEvent = () => {
                           type="number"
                           step="0.01"
                           min="0"
-                          value={currentBatch.price}
-                          onChange={(e) => setCurrentBatch({ ...currentBatch, price: Number(e.target.value) })}
+                          value={currentBatch.price || ""}
+                          onChange={(e) => setCurrentBatch({ ...currentBatch, price: e.target.value === "" ? 0 : Number(e.target.value) })}
                           placeholder="0.00"
                         />
                       </div>
@@ -410,8 +410,8 @@ const CreateEvent = () => {
                         <Input
                           type="number"
                           min="1"
-                          value={currentBatch.quantity_total}
-                          onChange={(e) => setCurrentBatch({ ...currentBatch, quantity_total: Number(e.target.value) })}
+                          value={currentBatch.quantity_total || ""}
+                          onChange={(e) => setCurrentBatch({ ...currentBatch, quantity_total: e.target.value === "" ? 0 : Number(e.target.value) })}
                           placeholder="100"
                         />
                       </div>

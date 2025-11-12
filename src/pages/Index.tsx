@@ -27,6 +27,10 @@ interface Event {
   category: string;
 }
 
+interface EventWithPrice extends Event {
+  price: string;
+}
+
 interface Category {
   id: string;
   name: string;
@@ -38,10 +42,10 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
-  const [next30DaysEvents, setNext30DaysEvents] = useState<Event[]>([]);
-  const [recentEvents, setRecentEvents] = useState<Event[]>([]);
-  const [allEvents, setAllEvents] = useState<Event[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<EventWithPrice[]>([]);
+  const [next30DaysEvents, setNext30DaysEvents] = useState<EventWithPrice[]>([]);
+  const [recentEvents, setRecentEvents] = useState<EventWithPrice[]>([]);
+  const [allEvents, setAllEvents] = useState<EventWithPrice[]>([]);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [categoryCarouselApi, setCategoryCarouselApi] = useState<CarouselApi>();
 
@@ -59,6 +63,28 @@ const Index = () => {
 
     return () => clearInterval(interval);
   }, [carouselApi]);
+
+  const getEventPrice = async (eventId: string): Promise<string> => {
+    const { data: tickets } = await supabase
+      .from("tickets")
+      .select("price")
+      .eq("event_id", eventId)
+      .order("price", { ascending: true })
+      .limit(1);
+
+    const minPrice = tickets && tickets.length > 0 ? tickets[0].price : null;
+    return minPrice ? `A partir de R$ ${Number(minPrice).toFixed(2).replace('.', ',')}` : "Consultar";
+  };
+
+  const enrichEventsWithPrice = async (events: Event[]): Promise<EventWithPrice[]> => {
+    const eventsWithPrice = await Promise.all(
+      events.map(async (event) => ({
+        ...event,
+        price: await getEventPrice(event.id),
+      }))
+    );
+    return eventsWithPrice;
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -121,32 +147,23 @@ const Index = () => {
 
     setFeaturedEvents(featured || []);
     setCategories(cats || []);
-    setUpcomingEvents(upcoming || []);
-    setNext30DaysEvents(next30 || []);
-    setRecentEvents(recent || []);
-    setAllEvents(all || []);
+    
+    // Enrich events with prices
+    if (upcoming) setUpcomingEvents(await enrichEventsWithPrice(upcoming));
+    if (next30) setNext30DaysEvents(await enrichEventsWithPrice(next30));
+    if (recent) setRecentEvents(await enrichEventsWithPrice(recent));
+    if (all) setAllEvents(await enrichEventsWithPrice(all));
+    
     setLoading(false);
   };
 
-  const getMinPrice = async (eventId: string) => {
-    const { data } = await supabase
-      .from("tickets")
-      .select("price")
-      .eq("event_id", eventId)
-      .order("price", { ascending: true })
-      .limit(1)
-      .single();
-
-    return data?.price ? `A partir de R$ ${data.price.toFixed(2)}` : "Consultar";
-  };
-
-  const formatEventCard = (event: Event) => ({
+  const formatEventCard = (event: EventWithPrice) => ({
     id: event.id,
     title: event.title,
     image: event.image_url || "/placeholder.svg",
     date: format(new Date(event.event_date), "dd 'de' MMMM, yyyy", { locale: ptBR }),
     location: `${event.venue}, ${event.address}`,
-    price: "A partir de R$ 0,00",
+    price: event.price,
     category: event.category,
   });
 

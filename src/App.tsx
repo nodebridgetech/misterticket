@@ -22,6 +22,7 @@ import CreateEvent from "./pages/CreateEvent";
 import EditEvent from "./pages/EditEvent";
 import Checkout from "./pages/Checkout";
 import PaymentSuccess from "./pages/PaymentSuccess";
+import ValidateTickets from "./pages/ValidateTickets";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -52,6 +53,7 @@ const App = () => (
             <Route path="/admin/eventos" element={<EventsManagement />} />
             <Route path="/admin/categorias" element={<CategoriesManagement />} />
             <Route path="/admin/taxas" element={<FeesManagement />} />
+            <Route path="/validar-ingressos" element={<ValidateTickets />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

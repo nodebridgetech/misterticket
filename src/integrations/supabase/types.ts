@@ -178,6 +178,8 @@ export type Database = {
           total_price: number
           unit_price: number
           updated_at: string
+          validated_at: string | null
+          validated_by: string | null
         }
         Insert: {
           buyer_id: string
@@ -198,6 +200,8 @@ export type Database = {
           total_price: number
           unit_price: number
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Update: {
           buyer_id?: string
@@ -218,6 +222,8 @@ export type Database = {
           total_price?: number
           unit_price?: number
           updated_at?: string
+          validated_at?: string | null
+          validated_by?: string | null
         }
         Relationships: [
           {

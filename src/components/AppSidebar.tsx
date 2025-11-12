@@ -54,7 +54,7 @@ export const AppSidebar = () => {
               <img src={logo} alt="Mister Ticket" className="h-12" />
             </Link>
           )}
-          <SidebarTrigger className="shrink-0" />
+          <SidebarTrigger className="hidden lg:flex shrink-0" />
         </div>
       </SidebarHeader>
 

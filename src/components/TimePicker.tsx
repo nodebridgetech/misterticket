@@ -50,14 +50,14 @@ export function TimePicker({ date, onTimeChange, placeholder = "Selecione o hor√
         <div className="flex gap-2 p-4">
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-center">Hora</label>
-            <div className="h-[200px] overflow-y-auto border rounded-md">
+            <div className="h-[180px] overflow-y-auto border rounded-md">
               {hours.map((hour) => (
                 <button
                   key={hour}
                   type="button"
                   onClick={() => setSelectedHour(hour)}
                   className={cn(
-                    "w-full px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors",
+                    "w-full px-4 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors",
                     selectedHour === hour && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
@@ -68,14 +68,14 @@ export function TimePicker({ date, onTimeChange, placeholder = "Selecione o hor√
           </div>
           <div className="flex flex-col gap-2">
             <label className="text-sm font-medium text-center">Minuto</label>
-            <div className="h-[200px] overflow-y-auto border rounded-md">
+            <div className="h-[180px] overflow-y-auto border rounded-md">
               {minutes.map((minute) => (
                 <button
                   key={minute}
                   type="button"
                   onClick={() => setSelectedMinute(minute)}
                   className={cn(
-                    "w-full px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors",
+                    "w-full px-4 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors",
                     selectedMinute === minute && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >

@@ -166,15 +166,25 @@ export const ProducerApprovalTab = () => {
   const handleApproval = async (requestId: string, approve: boolean) => {
     setProcessing(requestId);
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("Usuário não autenticado");
+      }
+
       const { error } = await supabase
         .from("user_roles")
         .update({
           is_approved: approve,
           approved_at: approve ? new Date().toISOString() : null,
+          approved_by: approve ? user.id : null,
         })
         .eq("id", requestId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
 
       toast({
         title: approve ? "Produtor aprovado!" : "Solicitação rejeitada",
@@ -183,13 +193,13 @@ export const ProducerApprovalTab = () => {
           : "A solicitação foi rejeitada.",
       });
 
-      fetchProducerRequests();
-      fetchActiveProducers(); // Refresh active producers list
+      await fetchProducerRequests();
+      await fetchActiveProducers();
     } catch (error) {
       console.error("Error processing request:", error);
       toast({
         title: "Erro",
-        description: "Não foi possível processar a solicitação.",
+        description: error instanceof Error ? error.message : "Não foi possível processar a solicitação.",
         variant: "destructive",
       });
     } finally {

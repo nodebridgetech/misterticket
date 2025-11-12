@@ -14,7 +14,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Copy } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { DatePicker } from "@/components/DatePicker";
-import { TimePicker } from "@/components/TimePicker";
 import { Badge } from "@/components/ui/badge";
 import { EventPreview } from "@/components/EventPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -359,24 +358,13 @@ const EditEvent = () => {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="eventDate">Data do Evento *</Label>
-                    <DatePicker
-                      date={eventDate}
-                      onDateChange={setEventDate}
-                      placeholder="Selecione a data do evento"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="eventTime">Horário do Evento *</Label>
-                    <TimePicker
-                      date={eventDate}
-                      onTimeChange={setEventDate}
-                      placeholder="Selecione o horário do evento"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="eventDate">Data e Horário do Evento *</Label>
+                  <DatePicker
+                    date={eventDate}
+                    onDateChange={setEventDate}
+                    placeholder="Selecione a data e horário do evento"
+                  />
                 </div>
 
                 <div>

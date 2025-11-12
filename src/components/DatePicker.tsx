@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { TimePicker } from "@/components/TimePicker";
 
 interface DatePickerProps {
   date?: Date;
@@ -52,18 +53,10 @@ export function DatePicker({
         {date && (
           <div className="p-3 border-t">
             <label className="text-sm font-medium mb-2 block">Horário</label>
-            <input
-              type="time"
-              value={date ? format(date, "HH:mm") : ""}
-              onChange={(e) => {
-                if (date && e.target.value) {
-                  const [hours, minutes] = e.target.value.split(":");
-                  const newDate = new Date(date);
-                  newDate.setHours(parseInt(hours), parseInt(minutes));
-                  onDateChange(newDate);
-                }
-              }}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            <TimePicker
+              date={date}
+              onTimeChange={onDateChange}
+              placeholder="Selecione o horário"
             />
           </div>
         )}

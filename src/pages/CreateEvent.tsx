@@ -16,7 +16,6 @@ import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
 import { DatePicker } from "@/components/DatePicker";
-import { TimePicker } from "@/components/TimePicker";
 import { Badge } from "@/components/ui/badge";
 
 interface Category {
@@ -318,20 +317,11 @@ const CreateEvent = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="eventDate">Data do Evento *</Label>
+                  <Label htmlFor="eventDate">Data e Horário do Evento *</Label>
                   <DatePicker
                     date={eventDate}
                     onDateChange={setEventDate}
-                    placeholder="Selecione a data do evento"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="eventTime">Horário do Evento *</Label>
-                  <TimePicker
-                    date={eventDate}
-                    onTimeChange={setEventDate}
-                    placeholder="Selecione o horário do evento"
+                    placeholder="Selecione a data e horário do evento"
                   />
                 </div>
 

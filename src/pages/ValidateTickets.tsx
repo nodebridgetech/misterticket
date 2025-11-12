@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { BarcodeScanner } from "@capacitor-community/barcode-scanner";
+import { Capacitor } from "@capacitor/core";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, AlertTriangle, Scan } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle, Scan, Camera } from "lucide-react";
 import { toast } from "sonner";
 
 interface ValidationResult {
@@ -28,6 +30,7 @@ export default function ValidateTickets() {
   const [scanning, setScanning] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [scanner, setScanner] = useState<Html5QrcodeScanner | null>(null);
+  const isNative = Capacitor.isNativePlatform();
 
   useEffect(() => {
     if (userRole !== "producer" && userRole !== "admin") {
@@ -41,29 +44,72 @@ export default function ValidateTickets() {
       if (scanner) {
         scanner.clear();
       }
+      // Cleanup native scanner
+      if (isNative && scanning) {
+        BarcodeScanner.stopScan();
+        document.body.classList.remove("scanner-active");
+      }
     };
-  }, [scanner]);
+  }, [scanner, scanning, isNative]);
 
-  const startScanning = () => {
+  const startScanning = async () => {
     setScanning(true);
     setValidationResult(null);
 
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0
-      },
-      false
-    );
+    if (isNative) {
+      // Use native scanner for mobile
+      await startNativeScanning();
+    } else {
+      // Use web scanner for browser
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0
+        },
+        false
+      );
 
-    html5QrcodeScanner.render(onScanSuccess, onScanError);
-    setScanner(html5QrcodeScanner);
+      html5QrcodeScanner.render(onScanSuccess, onScanError);
+      setScanner(html5QrcodeScanner);
+    }
   };
 
-  const stopScanning = () => {
-    if (scanner) {
+  const startNativeScanning = async () => {
+    try {
+      // Check permission
+      const status = await BarcodeScanner.checkPermission({ force: true });
+      
+      if (!status.granted) {
+        toast.error("Permissão de câmera negada");
+        setScanning(false);
+        return;
+      }
+
+      // Make background transparent
+      document.body.classList.add("scanner-active");
+      
+      // Start scanning
+      const result = await BarcodeScanner.startScan();
+      
+      if (result.hasContent) {
+        await validateQRCode(result.content || "");
+      }
+    } catch (error) {
+      console.error("Native scan error:", error);
+      toast.error("Erro ao acessar câmera");
+      setScanning(false);
+    } finally {
+      document.body.classList.remove("scanner-active");
+    }
+  };
+
+  const stopScanning = async () => {
+    if (isNative) {
+      await BarcodeScanner.stopScan();
+      document.body.classList.remove("scanner-active");
+    } else if (scanner) {
       scanner.clear();
       setScanner(null);
     }
@@ -184,9 +230,11 @@ export default function ValidateTickets() {
     }
   };
 
-  const handleNewScan = () => {
+  const handleNewScan = async () => {
     setValidationResult(null);
-    if (scanner) {
+    if (isNative) {
+      await startNativeScanning();
+    } else if (scanner) {
       scanner.resume();
     }
   };
@@ -206,12 +254,21 @@ export default function ValidateTickets() {
         <CardContent className="space-y-6">
           {!scanning ? (
             <Button onClick={startScanning} className="w-full" size="lg">
-              <Scan className="mr-2 h-5 w-5" />
-              Iniciar Scanner
+              {isNative ? <Camera className="mr-2 h-5 w-5" /> : <Scan className="mr-2 h-5 w-5" />}
+              {isNative ? "Abrir Câmera" : "Iniciar Scanner"}
             </Button>
           ) : (
             <div className="space-y-4">
-              <div id="qr-reader" className="w-full" />
+              {isNative ? (
+                <Alert>
+                  <Camera className="h-4 w-4" />
+                  <AlertDescription>
+                    Câmera ativa. Aponte para o QR Code do ingresso.
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <div id="qr-reader" className="w-full" />
+              )}
               <Button onClick={stopScanning} variant="outline" className="w-full">
                 Parar Scanner
               </Button>

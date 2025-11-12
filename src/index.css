@@ -108,4 +108,14 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Capacitor Barcode Scanner - Make background transparent when scanning */
+  body.scanner-active {
+    background-color: transparent !important;
+    --background: transparent;
+  }
+
+  body.scanner-active * {
+    background-color: transparent !important;
+  }
 }

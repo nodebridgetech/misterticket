@@ -222,18 +222,19 @@ const MyEvents = () => {
 
   return (
     <>
-      <div className="container mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <Button size="lg" className="gap-2" onClick={() => navigate("/criar-evento")}>
+      <div className="container mx-auto p-4 md:p-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 md:mb-6 gap-4">
+          <h1 className="text-2xl md:text-3xl font-bold">Meus Eventos</h1>
+          <Button size="lg" className="gap-2 w-full sm:w-auto" onClick={() => navigate("/criar-evento")}>
             <Plus className="h-5 w-5" />
             Criar Evento
           </Button>
         </div>
 
         <Card>
-          <CardContent className="pt-6 space-y-4">
+          <CardContent className="pt-4 md:pt-6 space-y-4 px-3 md:px-6">
             {/* Filters and Search */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
               <div className="lg:col-span-2">
                 <Input
                   placeholder="Buscar por título ou local..."
@@ -267,12 +268,12 @@ const MyEvents = () => {
               </Select>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Label>Ordenar por:</Label>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4 w-full md:w-auto">
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Label className="text-sm whitespace-nowrap">Ordenar:</Label>
                   <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-full sm:w-[180px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -285,7 +286,7 @@ const MyEvents = () => {
                 </div>
 
                 <Select value={activeFilter} onValueChange={setActiveFilter}>
-                  <SelectTrigger className="w-[150px]">
+                  <SelectTrigger className="w-full sm:w-[150px]">
                     <SelectValue placeholder="Status ativo" />
                   </SelectTrigger>
                   <SelectContent>
@@ -297,7 +298,7 @@ const MyEvents = () => {
               </div>
               
               <div className="text-sm text-muted-foreground">
-                {filteredEvents.length} evento(s) encontrado(s)
+                {filteredEvents.length} evento(s)
               </div>
             </div>
 
@@ -320,6 +321,76 @@ const MyEvents = () => {
               </div>
             ) : (
               <>
+                {/* Mobile Cards View */}
+                <div className="block md:hidden space-y-4">
+                  {currentEvents.map((event) => (
+                    <Card key={event.id} className="overflow-hidden">
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-base mb-1">{event.title}</h3>
+                            <Badge variant="outline" className="mb-2">{event.category}</Badge>
+                          </div>
+                          <div className="flex gap-1 ml-2">
+                            {event.is_published ? (
+                              <Badge variant="default" className="text-xs">Publicado</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Rascunho</Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground mb-3">
+                          {format(new Date(event.event_date), "dd/MM/yyyy HH:mm")}
+                        </p>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <Button
+                            size="sm"
+                            variant={event.is_active ? "default" : "outline"}
+                            onClick={() => handleToggleActive(event.id, event.is_active)}
+                            disabled={togglingActive === event.id}
+                            className="flex-1"
+                          >
+                            <Power className="h-4 w-4 mr-1" />
+                            {event.is_active ? "Ativo" : "Inativo"}
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-3 gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/editar-evento/${event.id}`)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDuplicateEvent(event.id, e);
+                            }}
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setEventToDelete(event.id)}
+                            disabled={deleting === event.id}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+
+                {/* Desktop Table View */}
+                <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -390,6 +461,7 @@ const MyEvents = () => {
                     ))}
                   </TableBody>
                 </Table>
+                </div>
 
                 {/* Pagination */}
                 {totalPages > 1 && (

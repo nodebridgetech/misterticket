@@ -95,7 +95,7 @@ const handler = async (req: Request): Promise<Response> => {
     `;
 
     const emailResponse = await resend.emails.send({
-      from: "Mister Ticket <no-reply@misterticket.com.br>",
+      from: "Mister Ticket <no-reply@mailing.misterticket.com.br>",
       to: [email],
       subject: "Redefinir sua senha - Mister Ticket",
       html: html,

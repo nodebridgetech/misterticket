@@ -48,6 +48,7 @@ const EditEvent = () => {
   const [address, setAddress] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+  const [autoAdvanceBatches, setAutoAdvanceBatches] = useState(true);
   const [ticketBatches, setTicketBatches] = useState<TicketBatch[]>([]);
   const [deletedBatchIds, setDeletedBatchIds] = useState<string[]>([]);
 
@@ -105,6 +106,7 @@ const EditEvent = () => {
       setAddress(eventData.address);
       setImageUrl(eventData.image_url || "");
       setIsPublished(eventData.is_published);
+      setAutoAdvanceBatches(eventData.auto_advance_batches ?? true);
 
       const { data: ticketsData } = await supabase
         .from("tickets")
@@ -236,6 +238,7 @@ const EditEvent = () => {
           address,
           image_url: imageUrl || null,
           is_published: isPublished,
+          auto_advance_batches: autoAdvanceBatches,
         })
         .eq("id", id);
 
@@ -399,9 +402,25 @@ const EditEvent = () => {
                   onImageRemoved={() => setImageUrl("")}
                 />
 
-                <div className="flex items-center space-x-2">
-                  <Switch id="isPublished" checked={isPublished} onCheckedChange={setIsPublished} />
-                  <Label htmlFor="isPublished">Publicar evento</Label>
+                <div className="space-y-4 border-t pt-4">
+                  <div className="flex items-center space-x-2">
+                    <Switch id="isPublished" checked={isPublished} onCheckedChange={setIsPublished} />
+                    <Label htmlFor="isPublished">Publicar evento</Label>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Switch 
+                      id="autoAdvanceBatches" 
+                      checked={autoAdvanceBatches} 
+                      onCheckedChange={setAutoAdvanceBatches} 
+                    />
+                    <div className="space-y-1">
+                      <Label htmlFor="autoAdvanceBatches">Avanço automático de lotes</Label>
+                      <p className="text-xs text-muted-foreground">
+                        Ao esgotar um lote, o próximo lote do mesmo setor ficará disponível automaticamente
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -415,7 +434,9 @@ const EditEvent = () => {
                 {ticketBatches.length > 0 && (
                   <div className="space-y-4">
                     <h3 className="font-semibold mb-4">Lotes Cadastrados</h3>
-                    {ticketBatches.map((batch) => (
+                    {[...ticketBatches].sort((a, b) => 
+                      new Date(a.sale_start_date).getTime() - new Date(b.sale_start_date).getTime()
+                    ).map((batch) => (
                       <Card key={batch.id} className="p-4">
                         <div className="space-y-4">
                           <div className="flex justify-between items-center mb-2">

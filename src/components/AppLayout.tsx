@@ -20,7 +20,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <div className="flex min-h-screen w-full">
           <AppSidebar />
           <SidebarInset className="flex-1">
-            <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4">
+            <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4 lg:hidden">
               <SidebarTrigger />
               <h1 className="text-lg font-semibold">Menu</h1>
             </header>

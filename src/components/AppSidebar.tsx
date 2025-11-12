@@ -48,10 +48,13 @@ export const AppSidebar = () => {
   return (
     <Sidebar className="border-r border-border" collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center justify-center gap-2">
-          <Link to="/" className="flex items-center justify-center">
-            <img src={logo} alt="Mister Ticket" className="h-8 lg:h-12" />
-          </Link>
+        <div className="flex items-center justify-between gap-2">
+          {open && (
+            <Link to="/" className="flex items-center justify-center w-full">
+              <img src={logo} alt="Mister Ticket" className="h-12" />
+            </Link>
+          )}
+          <SidebarTrigger className="hidden lg:flex shrink-0" />
         </div>
       </SidebarHeader>
 
@@ -72,7 +75,7 @@ export const AppSidebar = () => {
                         title={item.label}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
-                        <span>{item.label}</span>
+                        {open && <span>{item.label}</span>}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -84,19 +87,26 @@ export const AppSidebar = () => {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4 space-y-2">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">Tema</span>
-          <ThemeToggle />
-        </div>
+        {open && (
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-muted-foreground">Tema</span>
+            <ThemeToggle />
+          </div>
+        )}
+        {!open && (
+          <div className="flex justify-center">
+            <ThemeToggle />
+          </div>
+        )}
         <Button 
           variant="ghost" 
-          className="w-full justify-start"
+          className={open ? "w-full justify-start" : "w-full justify-center p-2"}
           asChild
           title="Minha Conta"
         >
           <Link to="/minha-conta" className="flex items-center gap-2">
             <User className="h-4 w-4 shrink-0" />
-            <span>Minha Conta</span>
+            {open && <span>Minha Conta</span>}
           </Link>
         </Button>
       </SidebarFooter>

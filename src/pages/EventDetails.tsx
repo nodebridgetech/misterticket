@@ -108,22 +108,22 @@ const EventDetails = () => {
           />
         </div>
 
-        <div className="container mx-auto px-4 -mt-20 relative z-20">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="container mx-auto px-4 pb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 -mt-10 md:-mt-20 relative z-20">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              <Card className="p-6 space-y-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="space-y-2">
+              <Card className="p-4 md:p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+                  <div className="space-y-2 flex-1">
                     <Badge>{event.category}</Badge>
-                    <h1 className="text-3xl md:text-4xl font-bold">{event.title}</h1>
+                    <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold">{event.title}</h1>
                   </div>
                   <Button variant="outline" size="icon" onClick={handleShare}>
                     <Share2 className="h-4 w-4" />
                   </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                       <Calendar className="h-5 w-5 text-primary" />
@@ -170,15 +170,15 @@ const EventDetails = () => {
                 </div>
               </Card>
 
-              <Card className="p-6 space-y-4">
-                <h2 className="text-2xl font-bold">Sobre o Evento</h2>
-                <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line">
+              <Card className="p-4 md:p-6 space-y-4">
+                <h2 className="text-xl md:text-2xl font-bold">Sobre o Evento</h2>
+                <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-line text-sm md:text-base">
                   {event.description}
                 </div>
               </Card>
 
-              <Card className="p-6 space-y-4">
-                <h2 className="text-2xl font-bold">Localização</h2>
+              <Card className="p-4 md:p-6 space-y-4">
+                <h2 className="text-xl md:text-2xl font-bold">Localização</h2>
                 <p className="text-muted-foreground">{event.venue}</p>
                 <p className="text-sm text-muted-foreground">{event.address}</p>
               </Card>
@@ -186,8 +186,8 @@ const EventDetails = () => {
 
             {/* Sidebar - Ticket Purchase */}
             <div className="lg:col-span-1">
-              <Card className="p-6 space-y-6 sticky top-20">
-                <h2 className="text-2xl font-bold">Ingressos</h2>
+              <Card className="p-4 md:p-6 space-y-6 lg:sticky lg:top-20">
+                <h2 className="text-xl md:text-2xl font-bold">Ingressos</h2>
                 {tickets.length === 0 ? (
                   <p className="text-muted-foreground">Nenhum lote de ingressos disponível no momento.</p>
                 ) : (
@@ -211,9 +211,9 @@ const EventDetails = () => {
                         >
                           <div className="flex justify-between items-start mb-2">
                             <div>
-                              <h3 className="font-semibold">{ticket.batch_name}</h3>
-                              {ticket.sector && <p className="text-sm text-muted-foreground">{ticket.sector}</p>}
-                              <p className="text-2xl font-bold text-primary">
+                              <h3 className="font-semibold text-sm md:text-base">{ticket.batch_name}</h3>
+                              {ticket.sector && <p className="text-xs md:text-sm text-muted-foreground">{ticket.sector}</p>}
+                              <p className="text-xl md:text-2xl font-bold text-primary">
                                 R$ {Number(ticket.price).toFixed(2).replace('.', ',')}
                               </p>
                             </div>

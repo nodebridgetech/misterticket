@@ -225,12 +225,12 @@ const Index = () => {
                         className="w-full h-full object-cover"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                      <div className="absolute bottom-0 left-0 right-0 p-8 text-white">
-                        <h2 className="text-3xl md:text-5xl font-bold mb-2">{event.title}</h2>
-                        <p className="text-lg md:text-xl mb-1">
+                      <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 text-white">
+                        <h2 className="text-2xl md:text-3xl lg:text-5xl font-bold mb-2">{event.title}</h2>
+                        <p className="text-base md:text-lg lg:text-xl mb-1">
                           {format(new Date(event.event_date), "dd 'de' MMMM, yyyy", { locale: ptBR })}
                         </p>
-                        <p className="text-md md:text-lg">{event.venue} - {event.address}</p>
+                        <p className="text-sm md:text-base lg:text-lg">{event.venue} - {event.address}</p>
                       </div>
                     </div>
                   </Link>
@@ -290,12 +290,12 @@ const Index = () => {
       {upcomingEvents.length > 0 && (
         <section className="py-16 bg-secondary/20">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Acontecendo em breve</h2>
-                <p className="text-muted-foreground">Próximos 7 dias</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">Acontecendo em breve</h2>
+                <p className="text-sm md:text-base text-muted-foreground">Próximos 7 dias</p>
               </div>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="self-start sm:self-auto">
                 <Link to="/eventos">
                   Ver todos
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -315,12 +315,12 @@ const Index = () => {
       {next30DaysEvents.length > 0 && (
         <section className="py-16 bg-background">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Próximos eventos</h2>
-                <p className="text-muted-foreground">Nos próximos 30 dias</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">Próximos eventos</h2>
+                <p className="text-sm md:text-base text-muted-foreground">Nos próximos 30 dias</p>
               </div>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="self-start sm:self-auto">
                 <Link to="/eventos">
                   Ver todos
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -340,12 +340,12 @@ const Index = () => {
       {recentEvents.length > 0 && (
         <section className="py-16 bg-secondary/20">
           <div className="container mx-auto px-4">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <div>
-                <h2 className="text-3xl font-bold mb-2">Publicados recentemente</h2>
-                <p className="text-muted-foreground">Novos eventos na plataforma</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">Publicados recentemente</h2>
+                <p className="text-sm md:text-base text-muted-foreground">Novos eventos na plataforma</p>
               </div>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" asChild className="self-start sm:self-auto">
                 <Link to="/eventos">
                   Ver todos
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -365,8 +365,8 @@ const Index = () => {
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold mb-2">Todos os eventos</h2>
-            <p className="text-muted-foreground">Explore todos os eventos disponíveis</p>
+            <h2 className="text-2xl md:text-3xl font-bold mb-2">Todos os eventos</h2>
+            <p className="text-sm md:text-base text-muted-foreground">Explore todos os eventos disponíveis</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {allEvents.map((event) => (

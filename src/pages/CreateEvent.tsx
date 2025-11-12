@@ -16,6 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
 import { DatePicker } from "@/components/DatePicker";
+import { TimePicker } from "@/components/TimePicker";
+import { Badge } from "@/components/ui/badge";
 
 interface Category {
   id: string;
@@ -316,11 +318,20 @@ const CreateEvent = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="eventDate">Data e Hora *</Label>
+                  <Label htmlFor="eventDate">Data do Evento *</Label>
                   <DatePicker
                     date={eventDate}
                     onDateChange={setEventDate}
-                    placeholder="Selecione a data e hora do evento"
+                    placeholder="Selecione a data do evento"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="eventTime">Horário do Evento *</Label>
+                  <TimePicker
+                    date={eventDate}
+                    onTimeChange={setEventDate}
+                    placeholder="Selecione o horário do evento"
                   />
                 </div>
 
@@ -499,16 +510,28 @@ const CreateEvent = () => {
                 <div className="space-y-2">
                   {[...ticketBatches].sort((a, b) => 
                     new Date(a.sale_start_date).getTime() - new Date(b.sale_start_date).getTime()
-                  ).map((batch) => (
-                    <div
-                      key={batch.id}
-                      className="flex items-center justify-between p-4 border rounded-lg"
-                    >
-                      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="font-semibold">{batch.batch_name}</p>
-                          {batch.sector && <p className="text-sm text-muted-foreground">{batch.sector}</p>}
-                        </div>
+                  ).map((batch, index, sortedBatches) => {
+                    // Check if this is the next batch to be auto-activated
+                    const isNextBatch = autoAdvanceBatches && batch.sector && index > 0 && 
+                      sortedBatches[index - 1].sector === batch.sector;
+                    
+                    return (
+                      <div
+                        key={batch.id}
+                        className="flex items-center justify-between p-4 border rounded-lg"
+                      >
+                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold">{batch.batch_name}</p>
+                              {isNextBatch && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Próximo lote
+                                </Badge>
+                              )}
+                            </div>
+                            {batch.sector && <p className="text-sm text-muted-foreground">{batch.sector}</p>}
+                          </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Preço</p>
                           <p className="font-semibold">R$ {batch.price.toFixed(2)}</p>
@@ -546,7 +569,8 @@ const CreateEvent = () => {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               )}
             </CardContent>

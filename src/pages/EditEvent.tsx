@@ -14,6 +14,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Copy } from "lucide-react";
 import { ImageUpload } from "@/components/ImageUpload";
 import { DatePicker } from "@/components/DatePicker";
+import { TimePicker } from "@/components/TimePicker";
+import { Badge } from "@/components/ui/badge";
+import { EventPreview } from "@/components/EventPreview";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Eye } from "lucide-react";
 
 interface Category {
   id: string;
@@ -354,13 +359,24 @@ const EditEvent = () => {
                   </Select>
                 </div>
 
-                <div>
-                  <Label htmlFor="eventDate">Data e Hora *</Label>
-                  <DatePicker
-                    date={eventDate}
-                    onDateChange={setEventDate}
-                    placeholder="Selecione a data e hora do evento"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="eventDate">Data do Evento *</Label>
+                    <DatePicker
+                      date={eventDate}
+                      onDateChange={setEventDate}
+                      placeholder="Selecione a data do evento"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="eventTime">Horário do Evento *</Label>
+                    <TimePicker
+                      date={eventDate}
+                      onTimeChange={setEventDate}
+                      placeholder="Selecione o horário do evento"
+                    />
+                  </div>
                 </div>
 
                 <div>
@@ -436,18 +452,30 @@ const EditEvent = () => {
                     <h3 className="font-semibold mb-4">Lotes Cadastrados</h3>
                     {[...ticketBatches].sort((a, b) => 
                       new Date(a.sale_start_date).getTime() - new Date(b.sale_start_date).getTime()
-                    ).map((batch) => (
-                      <Card key={batch.id} className="p-4">
-                        <div className="space-y-4">
-                          <div className="flex justify-between items-center mb-2">
-                            <h4 className="font-semibold">
-                              {batch.isNew ? "Novo Lote" : batch.batch_name}
-                              {batch.quantity_sold > 0 && (
-                                <span className="text-sm text-muted-foreground ml-2">
-                                  ({batch.quantity_sold} vendidos)
-                                </span>
-                              )}
-                            </h4>
+                    ).map((batch, index, sortedBatches) => {
+                      // Check if this is the next batch to be auto-activated
+                      const isNextBatch = autoAdvanceBatches && batch.sector && index > 0 && 
+                        sortedBatches[index - 1].sector === batch.sector;
+                      
+                      return (
+                        <Card key={batch.id} className="p-4">
+                          <div className="space-y-4">
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">
+                                  {batch.isNew ? "Novo Lote" : batch.batch_name}
+                                  {batch.quantity_sold > 0 && (
+                                    <span className="text-sm text-muted-foreground ml-2">
+                                      ({batch.quantity_sold} vendidos)
+                                    </span>
+                                  )}
+                                </h4>
+                                {isNextBatch && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    Próximo lote
+                                  </Badge>
+                                )}
+                              </div>
                             <div className="flex gap-2">
                               <Button
                                 type="button"
@@ -534,7 +562,8 @@ const EditEvent = () => {
                           </div>
                         </div>
                       </Card>
-                    ))}
+                    );
+                    })}
                   </div>
                 )}
 

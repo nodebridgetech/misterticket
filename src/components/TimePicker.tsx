@@ -46,18 +46,18 @@ export function TimePicker({ date, onTimeChange, placeholder = "Selecione o hor√
           {date ? formatTime(date.getHours(), date.getMinutes()) : <span>{placeholder}</span>}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <div className="flex gap-2 p-4">
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-center">Hora</label>
-            <div className="h-[180px] overflow-y-auto border rounded-md">
+      <PopoverContent className="w-auto p-0 max-w-[280px]" align="start">
+        <div className="flex gap-1 p-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-center">Hora</label>
+            <div className="h-[150px] w-[60px] overflow-y-auto border rounded-md">
               {hours.map((hour) => (
                 <button
                   key={hour}
                   type="button"
                   onClick={() => setSelectedHour(hour)}
                   className={cn(
-                    "w-full px-4 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors",
+                    "w-full px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground transition-colors",
                     selectedHour === hour && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
@@ -66,16 +66,16 @@ export function TimePicker({ date, onTimeChange, placeholder = "Selecione o hor√
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-center">Minuto</label>
-            <div className="h-[180px] overflow-y-auto border rounded-md">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-center">Minuto</label>
+            <div className="h-[150px] w-[60px] overflow-y-auto border rounded-md">
               {minutes.map((minute) => (
                 <button
                   key={minute}
                   type="button"
                   onClick={() => setSelectedMinute(minute)}
                   className={cn(
-                    "w-full px-4 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground transition-colors",
+                    "w-full px-2 py-1 text-xs hover:bg-accent hover:text-accent-foreground transition-colors",
                     selectedMinute === minute && "bg-primary text-primary-foreground font-semibold"
                   )}
                 >
@@ -85,8 +85,8 @@ export function TimePicker({ date, onTimeChange, placeholder = "Selecione o hor√
             </div>
           </div>
         </div>
-        <div className="border-t p-3">
-          <Button onClick={handleApply} className="w-full">
+        <div className="border-t p-2">
+          <Button onClick={handleApply} className="w-full h-8 text-sm">
             Aplicar
           </Button>
         </div>

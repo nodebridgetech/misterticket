@@ -39,9 +39,12 @@ const handler = async (req: Request): Promise<Response> => {
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                   <!-- Header -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #9b87f5 0%, #7E69AB 100%); padding: 40px 30px; text-align: center;">
-                      <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 32px; font-weight: bold;">🎉 Bem-vindo ao Mister Ticket!</h1>
-                      <p style="color: #E5DEFF; margin: 0; font-size: 16px;">Sua porta de entrada para os melhores eventos</p>
+                    <td style="background: linear-gradient(135deg, #F5A623 0%, #E89C1F 100%); padding: 40px 30px; text-align: center;">
+                      <div style="margin-bottom: 20px;">
+                        <img src="https://txkwnrrhaahhhpmjjbyl.supabase.co/storage/v1/object/public/event-images/mister-ticket-logo.png" alt="Mister Ticket" style="max-width: 300px; height: auto;">
+                      </div>
+                      <h1 style="color: #ffffff; margin: 0 0 10px 0; font-size: 28px; font-weight: bold;">🎉 Bem-vindo!</h1>
+                      <p style="color: #FFF8E7; margin: 0; font-size: 16px;">Sua porta de entrada para os melhores eventos</p>
                     </td>
                   </tr>
                   
@@ -68,7 +71,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                         <tr>
                           <td align="center">
-                            <a href="https://misterticket.com.br/eventos" style="display: inline-block; background: linear-gradient(135deg, #9b87f5 0%, #7E69AB 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                            <a href="https://misterticket.com.br/eventos" style="display: inline-block; background: linear-gradient(135deg, #F5A623 0%, #E89C1F 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">
                               Explorar Eventos
                             </a>
                           </td>
@@ -81,14 +84,14 @@ const handler = async (req: Request): Promise<Response> => {
                       
                       <p style="color: #403E43; margin: 20px 0 0 0; font-size: 16px; line-height: 1.6;">
                         Abraços,<br>
-                        <strong style="color: #9b87f5;">Equipe Mister Ticket</strong>
+                        <strong style="color: #F5A623;">Equipe Mister Ticket</strong>
                       </p>
                     </td>
                   </tr>
                   
                   <!-- Footer -->
                   <tr>
-                    <td style="background-color: #F6F6F7; padding: 30px; text-align: center; border-top: 1px solid #E5DEFF;">
+                    <td style="background-color: #F6F6F7; padding: 30px; text-align: center; border-top: 1px solid #FFE4B3;">
                       <p style="color: #8E9196; margin: 0 0 10px 0; font-size: 14px;">
                         Precisa de ajuda? Entre em contato conosco!
                       </p>

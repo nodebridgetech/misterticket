@@ -39,8 +39,11 @@ const handler = async (req: Request): Promise<Response> => {
                 <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
                   <!-- Header -->
                   <tr>
-                    <td style="background: linear-gradient(135deg, #9b87f5 0%, #7E69AB 100%); padding: 40px 30px; text-align: center;">
-                      <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">Mister Ticket</h1>
+                    <td style="background: linear-gradient(135deg, #F5A623 0%, #E89C1F 100%); padding: 40px 30px; text-align: center;">
+                      <div style="margin-bottom: 15px;">
+                        <img src="https://txkwnrrhaahhhpmjjbyl.supabase.co/storage/v1/object/public/event-images/mister-ticket-logo.png" alt="Mister Ticket" style="max-width: 280px; height: auto;">
+                      </div>
+                      <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: bold;">Redefinir Senha</h1>
                     </td>
                   </tr>
                   
@@ -56,7 +59,7 @@ const handler = async (req: Request): Promise<Response> => {
                       <table width="100%" cellpadding="0" cellspacing="0" style="margin: 30px 0;">
                         <tr>
                           <td align="center">
-                            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #9b87f5 0%, #7E69AB 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">
+                            <a href="${resetLink}" style="display: inline-block; background: linear-gradient(135deg, #F5A623 0%, #E89C1F 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-size: 16px; font-weight: 600;">
                               Redefinir Senha
                             </a>
                           </td>
@@ -66,11 +69,11 @@ const handler = async (req: Request): Promise<Response> => {
                       <p style="color: #8E9196; margin: 20px 0 0 0; font-size: 14px; line-height: 1.6;">
                         Ou copie e cole este link no seu navegador:
                       </p>
-                      <p style="color: #9b87f5; margin: 10px 0 0 0; font-size: 14px; word-break: break-all;">
+                      <p style="color: #F5A623; margin: 10px 0 0 0; font-size: 14px; word-break: break-all;">
                         ${resetLink}
                       </p>
                       
-                      <hr style="border: none; border-top: 1px solid #E5DEFF; margin: 30px 0;">
+                      <hr style="border: none; border-top: 1px solid #FFE4B3; margin: 30px 0;">
                       
                       <p style="color: #8E9196; margin: 0; font-size: 14px; line-height: 1.6;">
                         Se você não solicitou a redefinição de senha, pode ignorar este email com segurança. Sua senha não será alterada.

@@ -449,47 +449,47 @@ export const ProducerApprovalTab = () => {
             </div>
           ) : (
             <>
-              {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
+              <div className="md:hidden space-y-3">
                 {currentProducers.map((producer) => (
-                  <Card key={producer.id}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          <UserCheck className="h-4 w-4 text-primary" />
-                          <CardTitle className="text-base">
-                            {producer.profile?.full_name || "Nome não disponível"}
-                          </CardTitle>
+                  <Card key={producer.id} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <UserCheck className="h-4 w-4 text-primary flex-shrink-0" />
+                            <h3 className="font-medium text-sm truncate">
+                              {producer.profile?.full_name || "Nome não disponível"}
+                            </h3>
+                          </div>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            {producer.profile?.email || "Email não disponível"}
+                          </p>
                         </div>
-                        <Badge variant="default">Ativo</Badge>
+                        <Badge variant="default" className="flex-shrink-0">Ativo</Badge>
                       </div>
-                      <CardDescription className="flex items-center gap-2">
-                        <Mail className="h-3 w-3" />
-                        {producer.profile?.email || "Email não disponível"}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Eventos:</span>
-                        <Badge variant="secondary">{producer.eventCount} eventos</Badge>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Aprovação:</span>
+                      
+                      <div className="flex flex-wrap gap-2 text-xs">
                         <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          <span>
+                          <span className="text-muted-foreground">Eventos:</span>
+                          <Badge variant="secondary" className="text-xs">{producer.eventCount}</Badge>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">
                             {producer.approved_at 
                               ? format(new Date(producer.approved_at), "dd/MM/yyyy")
-                              : "Data não disponível"
+                              : "N/A"
                             }
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2 pt-2">
+
+                      <div className="flex gap-2">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 text-xs"
                           onClick={() => setDeactivateDialog({ open: true, producerId: producer.user_id })}
                           disabled={processing === producer.user_id}
                         >
@@ -499,7 +499,7 @@ export const ProducerApprovalTab = () => {
                         <Button
                           variant="destructive"
                           size="sm"
-                          className="flex-1"
+                          className="flex-1 text-xs"
                           onClick={() => setDeleteDialog({ open: true, producerId: producer.user_id })}
                           disabled={processing === producer.user_id}
                         >
@@ -507,7 +507,7 @@ export const ProducerApprovalTab = () => {
                           Excluir
                         </Button>
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 ))}
               </div>

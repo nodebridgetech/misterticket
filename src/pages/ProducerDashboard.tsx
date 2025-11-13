@@ -195,15 +195,15 @@ const ProducerDashboard = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4 md:py-8">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-2xl md:text-4xl font-bold mb-2">Dashboard</h1>
-        <p className="text-sm md:text-base text-muted-foreground">
+    <div className="container mx-auto px-4 py-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+        <p className="text-muted-foreground">
           Acompanhe suas vendas e desempenho em tempo real
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6 md:mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -225,8 +225,8 @@ const ProducerDashboard = () => {
         })}
       </div>
 
-      <div className="space-y-4 md:space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

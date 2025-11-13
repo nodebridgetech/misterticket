@@ -277,63 +277,63 @@ export const EventManagementTab = () => {
             </div>
           ) : (
             <>
-              {/* Mobile Cards */}
-              <div className="md:hidden space-y-4">
+              <div className="md:hidden space-y-3">
                 {currentEvents.map((event) => (
-                  <Card key={event.id}>
-                    <CardHeader className="pb-3">
+                  <Card key={event.id} className="p-4">
+                    <div className="space-y-3">
                       <div className="flex items-start justify-between gap-2">
-                        <CardTitle className="text-base line-clamp-2">{event.title}</CardTitle>
+                        <h3 className="font-medium text-sm line-clamp-2 flex-1">
+                          {event.title}
+                        </h3>
                         {event.is_published ? (
-                          <Badge variant="default" className="shrink-0">Publicado</Badge>
+                          <Badge variant="default" className="flex-shrink-0 text-xs">Publicado</Badge>
                         ) : (
-                          <Badge variant="secondary" className="shrink-0">Rascunho</Badge>
+                          <Badge variant="secondary" className="flex-shrink-0 text-xs">Rascunho</Badge>
                         )}
                       </div>
-                      <CardDescription>
-                        <Badge variant="outline">{event.category}</Badge>
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Data: </span>
+                      
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="outline" className="text-xs">{event.category}</Badge>
+                      </div>
+
+                      <div className="text-xs text-muted-foreground">
                         {format(new Date(event.event_date), "dd/MM/yyyy HH:mm")}
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-sm">Destaque:</Label>
-                          <Switch
-                            checked={event.is_featured}
-                            onCheckedChange={() => handleToggleFeatured(event.id, event.is_featured)}
-                            disabled={updatingFeatured === event.id}
-                          />
-                          {event.is_featured && (
-                            <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
-                          )}
-                        </div>
+
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs">Destaque:</Label>
+                        <Switch
+                          checked={event.is_featured}
+                          onCheckedChange={() => handleToggleFeatured(event.id, event.is_featured)}
+                          disabled={updatingFeatured === event.id}
+                        />
+                        {event.is_featured && (
+                          <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                        )}
                       </div>
-                      <div className="flex gap-2 pt-2">
+
+                      <div className="flex gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 text-xs"
                           onClick={() => navigate(`/event/${event.id}`)}
                         >
-                          <Eye className="h-4 w-4 mr-1" />
+                          <Eye className="h-3 w-3 mr-1" />
                           Ver
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="flex-1"
+                          className="flex-1 text-xs"
                           onClick={() => setEventToDelete(event.id)}
                           disabled={deleting === event.id}
                         >
-                          <Trash2 className="h-4 w-4 mr-1" />
+                          <Trash2 className="h-3 w-3 mr-1" />
                           Excluir
                         </Button>
                       </div>
-                    </CardContent>
+                    </div>
                   </Card>
                 ))}
               </div>

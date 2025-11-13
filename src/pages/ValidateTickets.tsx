@@ -40,6 +40,48 @@ export default function ValidateTickets() {
     }
   }, [userRole, navigate]);
 
+  // Initialize HTML5 scanner after DOM is ready
+  useEffect(() => {
+    if (scanning && !isNative && !scanner) {
+      console.log("Initializing HTML5 scanner after DOM render");
+      
+      // Wait for DOM to be ready
+      setTimeout(() => {
+        const element = document.getElementById("qr-reader");
+        if (!element) {
+          console.error("qr-reader element not found!");
+          toast.error("Erro: elemento scanner não encontrado");
+          setScanning(false);
+          return;
+        }
+
+        try {
+          const html5QrcodeScanner = new Html5QrcodeScanner(
+            "qr-reader",
+            { 
+              fps: 10, 
+              qrbox: { width: 250, height: 250 },
+              aspectRatio: 1.0,
+              // Request back camera on mobile
+              videoConstraints: {
+                facingMode: { ideal: "environment" }
+              }
+            },
+            false
+          );
+
+          html5QrcodeScanner.render(onScanSuccess, onScanError);
+          setScanner(html5QrcodeScanner);
+          console.log("HTML5 scanner initialized successfully");
+        } catch (error) {
+          console.error("Error initializing HTML5 scanner:", error);
+          toast.error("Erro ao inicializar scanner");
+          setScanning(false);
+        }
+      }, 100);
+    }
+  }, [scanning, isNative, scanner]);
+
   useEffect(() => {
     return () => {
       if (scanner) {
@@ -56,33 +98,16 @@ export default function ValidateTickets() {
   const startScanning = async () => {
     try {
       console.log("Starting scanner...", { isNative, platform: Capacitor.getPlatform() });
-      setScanning(true);
       setValidationResult(null);
 
       // Use native scanner if available (PWA/Native app)
       if (isNative) {
+        setScanning(true);
         console.log("Using native scanner");
         await startNativeScanning();
       } else {
-        // Use web scanner for web browsers
-        console.log("Using HTML5 scanner");
-        const html5QrcodeScanner = new Html5QrcodeScanner(
-          "qr-reader",
-          { 
-            fps: 10, 
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-            // Request back camera on mobile
-            videoConstraints: {
-              facingMode: { ideal: "environment" }
-            }
-          },
-          false
-        );
-
-        html5QrcodeScanner.render(onScanSuccess, onScanError);
-        setScanner(html5QrcodeScanner);
-        console.log("HTML5 scanner initialized");
+        // For web scanner, set scanning first to render the div
+        setScanning(true);
       }
     } catch (error) {
       console.error("Error starting scanner:", error);

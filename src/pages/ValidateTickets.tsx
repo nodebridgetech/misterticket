@@ -54,30 +54,40 @@ export default function ValidateTickets() {
   }, [scanner, scanning, isNative]);
 
   const startScanning = async () => {
-    setScanning(true);
-    setValidationResult(null);
+    try {
+      console.log("Starting scanner...", { isNative, platform: Capacitor.getPlatform() });
+      setScanning(true);
+      setValidationResult(null);
 
-    // Use native scanner if available (PWA/Native app)
-    if (isNative) {
-      await startNativeScanning();
-    } else {
-      // Use web scanner for web browsers
-      const html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0,
-          // Request back camera on mobile
-          videoConstraints: {
-            facingMode: { ideal: "environment" }
-          }
-        },
-        false
-      );
+      // Use native scanner if available (PWA/Native app)
+      if (isNative) {
+        console.log("Using native scanner");
+        await startNativeScanning();
+      } else {
+        // Use web scanner for web browsers
+        console.log("Using HTML5 scanner");
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+          "qr-reader",
+          { 
+            fps: 10, 
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+            // Request back camera on mobile
+            videoConstraints: {
+              facingMode: { ideal: "environment" }
+            }
+          },
+          false
+        );
 
-      html5QrcodeScanner.render(onScanSuccess, onScanError);
-      setScanner(html5QrcodeScanner);
+        html5QrcodeScanner.render(onScanSuccess, onScanError);
+        setScanner(html5QrcodeScanner);
+        console.log("HTML5 scanner initialized");
+      }
+    } catch (error) {
+      console.error("Error starting scanner:", error);
+      toast.error("Erro ao iniciar scanner");
+      setScanning(false);
     }
   };
 

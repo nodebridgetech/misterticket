@@ -30,7 +30,8 @@ export default function ValidateTickets() {
   const [scanning, setScanning] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [scanner, setScanner] = useState<Html5QrcodeScanner | null>(null);
-  const isNative = Capacitor.isNativePlatform();
+  // Only use native scanner on actual native platforms (iOS/Android), not web/PWA
+  const isNative = Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android';
 
   useEffect(() => {
     if (userRole !== "producer" && userRole !== "admin") {

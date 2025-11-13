@@ -350,10 +350,10 @@ export default function ValidateTickets() {
                     #qr-reader {
                       border: none !important;
                     }
-                    #qr-reader__dashboard_section {
+                    #qr-reader__filescan_input {
                       display: none !important;
                     }
-                    #qr-reader__dashboard_section_csr {
+                    #qr-reader__dashboard_section_fsr {
                       display: none !important;
                     }
                     #qr-reader video {
@@ -362,8 +362,35 @@ export default function ValidateTickets() {
                     #qr-reader__scan_region {
                       border-radius: var(--radius) !important;
                     }
+                    #qr-reader__scan_region img {
+                      filter: brightness(0) saturate(100%) invert(47%) sepia(96%) saturate(3527%) hue-rotate(340deg) brightness(98%) contrast(98%);
+                    }
                     #qr-reader__header_message {
                       display: none !important;
+                    }
+                    #qr-reader__camera_permission_button {
+                      background: hsl(var(--primary)) !important;
+                      color: hsl(var(--primary-foreground)) !important;
+                      border: none !important;
+                      padding: 0.75rem 1.5rem !important;
+                      border-radius: var(--radius) !important;
+                      font-weight: 500 !important;
+                      cursor: pointer !important;
+                    }
+                    #qr-reader__camera_permission_button:hover {
+                      opacity: 0.9 !important;
+                    }
+                    #html5-qrcode-button-camera-permission {
+                      background: hsl(var(--primary)) !important;
+                      color: hsl(var(--primary-foreground)) !important;
+                      border: none !important;
+                      padding: 0.75rem 1.5rem !important;
+                      border-radius: var(--radius) !important;
+                      font-weight: 500 !important;
+                      cursor: pointer !important;
+                    }
+                    #html5-qrcode-button-camera-permission:hover {
+                      opacity: 0.9 !important;
                     }
                   `}</style>
                 </div>

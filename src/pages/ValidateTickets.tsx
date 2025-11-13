@@ -350,7 +350,10 @@ export default function ValidateTickets() {
                     #qr-reader {
                       border: none !important;
                     }
-                    #qr-reader__filescan_input {
+                    #qr-reader__dashboard_section {
+                      display: none !important;
+                    }
+                    #qr-reader__dashboard_section_csr {
                       display: none !important;
                     }
                     #qr-reader__dashboard_section_fsr {
@@ -361,9 +364,12 @@ export default function ValidateTickets() {
                     }
                     #qr-reader__scan_region {
                       border-radius: var(--radius) !important;
+                      display: flex !important;
+                      align-items: center !important;
+                      justify-content: center !important;
                     }
                     #qr-reader__scan_region img {
-                      filter: brightness(0) saturate(100%) invert(47%) sepia(96%) saturate(3527%) hue-rotate(340deg) brightness(98%) contrast(98%);
+                      filter: invert(1) brightness(2);
                     }
                     #qr-reader__header_message {
                       display: none !important;

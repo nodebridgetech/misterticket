@@ -76,27 +76,36 @@ export const AppSidebar = () => {
                   </SidebarMenuItem>
                 );
               })}
+              
+              {/* Divider */}
+              <div className="my-2 border-t border-border" />
+              
+              {/* Theme Toggle */}
+              <SidebarMenuItem>
+                <div className="flex items-center justify-between px-2 py-2">
+                  <span className="text-sm text-muted-foreground">Tema</span>
+                  <ThemeToggle />
+                </div>
+              </SidebarMenuItem>
+              
+              {/* Minha Conta */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink 
+                    to="/minha-conta"
+                    className="flex items-center gap-2 hover:bg-accent"
+                    activeClassName="bg-accent text-accent-foreground font-medium"
+                  >
+                    <User className="h-4 w-4 shrink-0" />
+                    <span>Minha Conta</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4 space-y-2 mt-auto bg-background">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm text-muted-foreground">Tema</span>
-          <ThemeToggle />
-        </div>
-        <Button 
-          variant="ghost" 
-          className="w-full justify-start"
-          asChild
-        >
-          <Link to="/minha-conta" className="flex items-center gap-2">
-            <User className="h-4 w-4 shrink-0" />
-            <span>Minha Conta</span>
-          </Link>
-        </Button>
-      </SidebarFooter>
     </Sidebar>
   );
 };

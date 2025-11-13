@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, User, Smartphone } from "lucide-react";
+import { Search, User } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,10 +48,6 @@ export const VisitorNavbar = () => {
           <nav className="hidden md:flex items-center gap-6">
             <Link to="/eventos" className="text-foreground hover:text-primary transition-colors">
               Eventos
-            </Link>
-            <Link to="/instalar" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
-              <Smartphone className="h-4 w-4" />
-              Instalar App
             </Link>
           </nav>
 

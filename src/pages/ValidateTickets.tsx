@@ -68,9 +68,12 @@ export default function ValidateTickets() {
               // Request back camera on mobile
               videoConstraints: {
                 facingMode: { ideal: "environment" }
-              }
+              },
+              // Disable file upload option
+              showTorchButtonIfSupported: true,
+              formatsToSupport: [0] // Only QR codes
             },
-            false
+            /* verbose= */ false
           );
 
           console.log("Rendering scanner...");
@@ -340,7 +343,31 @@ export default function ValidateTickets() {
             </Button>
           ) : (
             <div className="space-y-4">
-              {!isNative && <div id="qr-reader" className="w-full" />}
+              {!isNative && (
+                <div className="relative">
+                  <div id="qr-reader" className="w-full rounded-lg overflow-hidden" />
+                  <style>{`
+                    #qr-reader {
+                      border: none !important;
+                    }
+                    #qr-reader__dashboard_section {
+                      display: none !important;
+                    }
+                    #qr-reader__dashboard_section_csr {
+                      display: none !important;
+                    }
+                    #qr-reader video {
+                      border-radius: var(--radius) !important;
+                    }
+                    #qr-reader__scan_region {
+                      border-radius: var(--radius) !important;
+                    }
+                    #qr-reader__header_message {
+                      display: none !important;
+                    }
+                  `}</style>
+                </div>
+              )}
               {isNative && (
                 <Alert>
                   <Camera className="h-4 w-4" />

@@ -19,12 +19,12 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
           <AppSidebar />
-          <SidebarInset className="flex-1">
+          <SidebarInset className="flex-1 w-full">
             <header className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-background px-4 lg:hidden">
               <SidebarTrigger />
               <h1 className="text-lg font-semibold">Menu</h1>
             </header>
-            <main className="flex-1 overflow-auto">
+            <main className="flex-1 w-full">
               {children}
             </main>
           </SidebarInset>

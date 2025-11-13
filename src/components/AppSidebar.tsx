@@ -47,16 +47,11 @@ export const AppSidebar = () => {
   const menuItems = userRole === "admin" ? adminMenuItems : producerMenuItems;
 
   return (
-    <Sidebar className="border-r border-border bg-background" collapsible="icon">
+    <Sidebar className="border-r border-border bg-background">
       <SidebarHeader className="border-b border-border p-4">
-        <div className="flex items-center justify-between gap-2">
-          {open && (
-            <Link to="/" className="flex items-center justify-center w-full">
-              <img src={logo} alt="Mister Ticket" className="h-12" />
-            </Link>
-          )}
-          <SidebarTrigger className="hidden lg:flex shrink-0" />
-        </div>
+        <Link to="/" className="flex items-center justify-center w-full">
+          <img src={logo} alt="Mister Ticket" className="h-12" />
+        </Link>
       </SidebarHeader>
 
       <SidebarContent className="bg-background">
@@ -73,10 +68,9 @@ export const AppSidebar = () => {
                         end={item.end}
                         className="flex items-center gap-2 hover:bg-accent"
                         activeClassName="bg-accent text-accent-foreground font-medium"
-                        title={item.label}
                       >
                         <Icon className="h-4 w-4 shrink-0" />
-                        {open && <span>{item.label}</span>}
+                        <span>{item.label}</span>
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -88,26 +82,18 @@ export const AppSidebar = () => {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border p-4 space-y-2 mt-auto bg-background">
-        {open && (
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Tema</span>
-            <ThemeToggle />
-          </div>
-        )}
-        {!open && (
-          <div className="flex justify-center">
-            <ThemeToggle />
-          </div>
-        )}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm text-muted-foreground">Tema</span>
+          <ThemeToggle />
+        </div>
         <Button 
           variant="ghost" 
-          className={open ? "w-full justify-start" : "w-full justify-center p-2"}
+          className="w-full justify-start"
           asChild
-          title="Minha Conta"
         >
           <Link to="/minha-conta" className="flex items-center gap-2">
             <User className="h-4 w-4 shrink-0" />
-            {open && <span>Minha Conta</span>}
+            <span>Minha Conta</span>
           </Link>
         </Button>
       </SidebarFooter>

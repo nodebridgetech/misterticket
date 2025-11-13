@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -37,12 +38,20 @@ serve(async (req) => {
       throw new Error("User not authenticated");
     }
 
-    const { sessionId } = await req.json();
+    // Validate session ID
+    const requestSchema = z.object({
+      sessionId: z.string().min(1, "Session ID is required"),
+    });
+
+    const requestData = await req.json();
+    const validation = requestSchema.safeParse(requestData);
     
-    if (!sessionId) {
-      throw new Error("Missing sessionId");
+    if (!validation.success) {
+      const errorMessage = validation.error.errors.map(e => e.message).join(", ");
+      throw new Error(`Invalid request data: ${errorMessage}`);
     }
 
+    const { sessionId } = validation.data;
     logStep("Verifying session", { sessionId, authenticatedUser: userData.user.id });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {

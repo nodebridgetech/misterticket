@@ -24,6 +24,21 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Sending welcome email to:", email);
 
+    // Sanitize name to prevent XSS in email template
+    const escapeHtml = (str: string) => 
+      str.replace(/[&<>"']/g, (char) => {
+        const entities: Record<string, string> = {
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        };
+        return entities[char];
+      });
+
+    const sanitizedName = escapeHtml(name);
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -51,7 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
                   <!-- Content -->
                   <tr>
                     <td style="padding: 40px 30px;">
-                      <h2 style="color: #1A1F2C; margin: 0 0 20px 0; font-size: 24px;">Olá, ${name}! 👋</h2>
+                      <h2 style="color: #1A1F2C; margin: 0 0 20px 0; font-size: 24px;">Olá, ${sanitizedName}! 👋</h2>
                       <p style="color: #403E43; margin: 0 0 20px 0; font-size: 16px; line-height: 1.6;">
                         Que bom ter você por aqui! Sua conta foi criada com sucesso e você já pode começar a explorar os eventos mais incríveis da sua região.
                       </p>

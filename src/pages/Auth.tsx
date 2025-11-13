@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,25 +12,40 @@ import { useNavigate, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-interface LoginForm {
-  email: string;
-  password: string;
-}
+const loginSchema = z.object({
+  email: z.string().trim().email("E-mail inválido").max(255, "E-mail muito longo"),
+  password: z.string().min(1, "Senha é obrigatória"),
+});
 
-interface SignUpForm {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
+const signUpSchema = z.object({
+  fullName: z.string().trim().min(2, "Nome muito curto").max(100, "Nome muito longo"),
+  email: z.string().trim().email("E-mail inválido").max(255, "E-mail muito longo"),
+  password: z
+    .string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .max(100, "Senha muito longa")
+    .regex(/[A-Z]/, "Senha deve conter ao menos uma letra maiúscula")
+    .regex(/[0-9]/, "Senha deve conter ao menos um número"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "As senhas não coincidem",
+  path: ["confirmPassword"],
+});
+
+type LoginForm = z.infer<typeof loginSchema>;
+type SignUpForm = z.infer<typeof signUpSchema>;
 
 const Auth = () => {
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
-  const loginForm = useForm<LoginForm>();
-  const signUpForm = useForm<SignUpForm>();
+  const loginForm = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+  });
+  const signUpForm = useForm<SignUpForm>({
+    resolver: zodResolver(signUpSchema),
+  });
 
   useEffect(() => {
     if (user) {
@@ -48,13 +65,6 @@ const Auth = () => {
   };
 
   const handleSignUp = async (data: SignUpForm) => {
-    if (data.password !== data.confirmPassword) {
-      signUpForm.setError("confirmPassword", {
-        message: "As senhas não coincidem",
-      });
-      return;
-    }
-
     setIsLoading(true);
     try {
       await signUp(data.email, data.password, data.fullName);
@@ -104,8 +114,13 @@ const Auth = () => {
                     id="login-email"
                     type="email"
                     placeholder="seu@email.com"
-                    {...loginForm.register("email", { required: true })}
+                    {...loginForm.register("email")}
                   />
+                  {loginForm.formState.errors.email && (
+                    <p className="text-sm text-destructive mt-1">
+                      {loginForm.formState.errors.email.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Senha</Label>
@@ -113,8 +128,13 @@ const Auth = () => {
                     id="login-password"
                     type="password"
                     placeholder="••••••••"
-                    {...loginForm.register("password", { required: true })}
+                    {...loginForm.register("password")}
                   />
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm text-destructive mt-1">
+                      {loginForm.formState.errors.password.message}
+                    </p>
+                  )}
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading ? "Entrando..." : "Entrar"}
@@ -137,8 +157,13 @@ const Auth = () => {
                   <Input
                     id="signup-name"
                     placeholder="Seu nome"
-                    {...signUpForm.register("fullName", { required: true })}
+                    {...signUpForm.register("fullName")}
                   />
+                  {signUpForm.formState.errors.fullName && (
+                    <p className="text-sm text-destructive mt-1">
+                      {signUpForm.formState.errors.fullName.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-email">E-mail</Label>
@@ -146,8 +171,13 @@ const Auth = () => {
                     id="signup-email"
                     type="email"
                     placeholder="seu@email.com"
-                    {...signUpForm.register("email", { required: true })}
+                    {...signUpForm.register("email")}
                   />
+                  {signUpForm.formState.errors.email && (
+                    <p className="text-sm text-destructive mt-1">
+                      {signUpForm.formState.errors.email.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Senha</Label>
@@ -155,8 +185,13 @@ const Auth = () => {
                     id="signup-password"
                     type="password"
                     placeholder="••••••••"
-                    {...signUpForm.register("password", { required: true })}
+                    {...signUpForm.register("password")}
                   />
+                  {signUpForm.formState.errors.password && (
+                    <p className="text-sm text-destructive mt-1">
+                      {signUpForm.formState.errors.password.message}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="signup-confirm">Confirmar senha</Label>
@@ -164,7 +199,7 @@ const Auth = () => {
                     id="signup-confirm"
                     type="password"
                     placeholder="••••••••"
-                    {...signUpForm.register("confirmPassword", { required: true })}
+                    {...signUpForm.register("confirmPassword")}
                   />
                   {signUpForm.formState.errors.confirmPassword && (
                     <p className="text-sm text-destructive">

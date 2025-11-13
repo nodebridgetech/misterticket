@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,13 +45,24 @@ serve(async (req) => {
     
     logStep("User authenticated", { userId: user.id, email: user.email });
 
-    const { eventId, ticketId, quantity } = await req.json();
+    // Validate request data
+    const requestSchema = z.object({
+      eventId: z.string().uuid("Invalid event ID"),
+      ticketId: z.string().uuid("Invalid ticket ID"),
+      quantity: z.number().int("Quantity must be an integer").min(1, "Quantity must be at least 1").max(10, "Maximum 10 tickets per purchase"),
+    });
+
+    const requestData = await req.json();
+    const validation = requestSchema.safeParse(requestData);
     
-    if (!eventId || !ticketId || !quantity) {
-      throw new Error("Missing required fields: eventId, ticketId, or quantity");
+    if (!validation.success) {
+      const errorMessage = validation.error.errors.map(e => e.message).join(", ");
+      logStep("Validation failed", { errors: validation.error.errors });
+      throw new Error(`Invalid request data: ${errorMessage}`);
     }
 
-    logStep("Request data", { eventId, ticketId, quantity });
+    const { eventId, ticketId, quantity } = validation.data;
+    logStep("Request data validated", { eventId, ticketId, quantity });
 
     // Fetch event and ticket details
     const { data: event, error: eventError } = await supabaseClient

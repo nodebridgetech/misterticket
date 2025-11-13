@@ -86,18 +86,11 @@ export const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4 space-y-2 mt-auto bg-background">
-        {open && (
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-muted-foreground">Tema</span>
-            <ThemeToggle />
-          </div>
-        )}
-        {!open && (
-          <div className="flex justify-center">
-            <ThemeToggle />
-          </div>
-        )}
+      <SidebarFooter className="border-t border-border p-3 space-y-2 bg-background">
+        <div className={open ? "flex items-center justify-between" : "flex justify-center"}>
+          {open && <span className="text-sm text-muted-foreground">Tema</span>}
+          <ThemeToggle />
+        </div>
         <Button 
           variant="ghost" 
           className={open ? "w-full justify-start" : "w-full justify-center p-2"}

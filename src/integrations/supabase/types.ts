@@ -170,6 +170,7 @@ export type Database = {
           platform_fee: number
           producer_amount: number
           qr_code: string | null
+          qr_token: string | null
           quantity: number
           stripe_customer_id: string | null
           stripe_payment_intent_id: string | null
@@ -192,6 +193,7 @@ export type Database = {
           platform_fee: number
           producer_amount: number
           qr_code?: string | null
+          qr_token?: string | null
           quantity: number
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null
@@ -214,6 +216,7 @@ export type Database = {
           platform_fee?: number
           producer_amount?: number
           qr_code?: string | null
+          qr_token?: string | null
           quantity?: number
           stripe_customer_id?: string | null
           stripe_payment_intent_id?: string | null

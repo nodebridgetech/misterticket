@@ -43,7 +43,7 @@ serve(async (req) => {
       throw new Error("Missing sessionId");
     }
 
-    logStep("Verifying session", { sessionId });
+    logStep("Verifying session", { sessionId, authenticatedUser: userData.user.id });
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -80,6 +80,26 @@ serve(async (req) => {
     const gatewayFee = parseFloat(metadata.gatewayFee || "0");
     const producerAmount = parseFloat(metadata.producerAmount || "0");
     const userId = metadata.userId;
+
+    // SECURITY: Verify user ID matches authenticated user
+    if (userId !== userData.user.id) {
+      logStep("Security violation: User ID mismatch", { 
+        metadataUserId: userId, 
+        authenticatedUserId: userData.user.id 
+      });
+      throw new Error("User ID mismatch - potential security issue");
+    }
+
+    // SECURITY: Verify session customer matches if available
+    if (session.customer && metadata.stripeCustomerId && session.customer !== metadata.stripeCustomerId) {
+      logStep("Security violation: Customer ID mismatch", {
+        sessionCustomer: session.customer,
+        metadataCustomer: metadata.stripeCustomerId
+      });
+      throw new Error("Session customer mismatch");
+    }
+
+    logStep("Security checks passed", { userId });
 
     // Check if sale already exists
     const { data: existingSale } = await supabaseClient
@@ -118,14 +138,18 @@ serve(async (req) => {
     const qrCodes = [];
     
     for (let i = 0; i < quantity; i++) {
-      // Generate unique QR code for each ticket
+      // SECURITY: Generate cryptographically secure random token for QR code
+      const tokenBytes = new Uint8Array(32);
+      crypto.getRandomValues(tokenBytes);
+      const qrToken = btoa(String.fromCharCode(...tokenBytes))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
+      
+      // Create QR code URL with just the secure token
       const qrCodeData = JSON.stringify({
-        sessionId,
-        eventId,
-        ticketId,
-        ticketNumber: i + 1,
-        userId,
-        timestamp: Date.now()
+        token: qrToken,
+        eventId: eventId
       });
       const qrCode = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrCodeData)}`;
       qrCodes.push(qrCode);
@@ -145,6 +169,7 @@ serve(async (req) => {
         stripe_customer_id: session.customer as string,
         stripe_session_id: sessionId,
         qr_code: qrCode,
+        qr_token: qrToken,
       });
     }
 

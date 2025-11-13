@@ -131,7 +131,26 @@ export default function ValidateTickets() {
 
   const validateQRCode = async (qrCode: string) => {
     try {
-      // Fetch sale with QR code
+      // Parse QR code data
+      let qrToken: string;
+      try {
+        const qrData = JSON.parse(qrCode);
+        qrToken = qrData.token;
+      } catch {
+        // If parsing fails, treat the whole string as the token (backward compatibility)
+        qrToken = qrCode;
+      }
+
+      if (!qrToken) {
+        setValidationResult({
+          success: false,
+          message: "QR Code inválido ou corrompido.",
+        });
+        toast.error("QR Code inválido");
+        return;
+      }
+
+      // Fetch sale using the secure qr_token
       const { data: sale, error: saleError } = await supabase
         .from("sales")
         .select(`
@@ -146,7 +165,7 @@ export default function ValidateTickets() {
             sector
           )
         `)
-        .eq("qr_code", qrCode)
+        .eq("qr_token", qrToken)
         .single();
 
       if (saleError || !sale) {

@@ -350,12 +350,6 @@ export default function ValidateTickets() {
                     #qr-reader {
                       border: none !important;
                     }
-                    #qr-reader__dashboard_section {
-                      display: none !important;
-                    }
-                    #qr-reader__dashboard_section_csr {
-                      display: none !important;
-                    }
                     #qr-reader__dashboard_section_fsr {
                       display: none !important;
                     }
@@ -369,7 +363,7 @@ export default function ValidateTickets() {
                       justify-content: center !important;
                     }
                     #qr-reader__scan_region img {
-                      filter: invert(1) brightness(2);
+                      opacity: 0.5 !important;
                     }
                     #qr-reader__header_message {
                       display: none !important;

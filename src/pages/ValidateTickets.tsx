@@ -56,24 +56,23 @@ export default function ValidateTickets() {
     setScanning(true);
     setValidationResult(null);
 
-    if (isNative) {
-      // Use native scanner for mobile
-      await startNativeScanning();
-    } else {
-      // Use web scanner for browser
-      const html5QrcodeScanner = new Html5QrcodeScanner(
-        "qr-reader",
-        { 
-          fps: 10, 
-          qrbox: { width: 250, height: 250 },
-          aspectRatio: 1.0
-        },
-        false
-      );
+    // Always use web scanner with camera (works on mobile browsers as PWA)
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "qr-reader",
+      { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        // Request back camera on mobile
+        videoConstraints: {
+          facingMode: { ideal: "environment" }
+        }
+      },
+      false
+    );
 
-      html5QrcodeScanner.render(onScanSuccess, onScanError);
-      setScanner(html5QrcodeScanner);
-    }
+    html5QrcodeScanner.render(onScanSuccess, onScanError);
+    setScanner(html5QrcodeScanner);
   };
 
   const startNativeScanning = async () => {
@@ -106,10 +105,7 @@ export default function ValidateTickets() {
   };
 
   const stopScanning = async () => {
-    if (isNative) {
-      await BarcodeScanner.stopScan();
-      document.body.classList.remove("scanner-active");
-    } else if (scanner) {
+    if (scanner) {
       scanner.clear();
       setScanner(null);
     }
@@ -251,9 +247,7 @@ export default function ValidateTickets() {
 
   const handleNewScan = async () => {
     setValidationResult(null);
-    if (isNative) {
-      await startNativeScanning();
-    } else if (scanner) {
+    if (scanner) {
       scanner.resume();
     }
   };
@@ -273,21 +267,12 @@ export default function ValidateTickets() {
         <CardContent className="space-y-6">
           {!scanning ? (
             <Button onClick={startScanning} className="w-full" size="lg">
-              {isNative ? <Camera className="mr-2 h-5 w-5" /> : <Scan className="mr-2 h-5 w-5" />}
-              {isNative ? "Abrir Câmera" : "Iniciar Scanner"}
+              <Camera className="mr-2 h-5 w-5" />
+              Iniciar Scanner com Câmera
             </Button>
           ) : (
             <div className="space-y-4">
-              {isNative ? (
-                <Alert>
-                  <Camera className="h-4 w-4" />
-                  <AlertDescription>
-                    Câmera ativa. Aponte para o QR Code do ingresso.
-                  </AlertDescription>
-                </Alert>
-              ) : (
-                <div id="qr-reader" className="w-full" />
-              )}
+              <div id="qr-reader" className="w-full" />
               <Button onClick={stopScanning} variant="outline" className="w-full">
                 Parar Scanner
               </Button>

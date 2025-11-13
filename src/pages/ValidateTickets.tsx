@@ -43,19 +43,22 @@ export default function ValidateTickets() {
   // Initialize HTML5 scanner after DOM is ready
   useEffect(() => {
     if (scanning && !isNative && !scanner) {
-      console.log("Initializing HTML5 scanner after DOM render");
+      console.log("=== HTML5 Scanner Initialization ===");
       
       // Wait for DOM to be ready
       setTimeout(() => {
         const element = document.getElementById("qr-reader");
+        console.log("qr-reader element:", element);
+        
         if (!element) {
-          console.error("qr-reader element not found!");
+          console.error("!!! qr-reader element not found in DOM!");
           toast.error("Erro: elemento scanner não encontrado");
           setScanning(false);
           return;
         }
 
         try {
+          console.log("Creating Html5QrcodeScanner instance...");
           const html5QrcodeScanner = new Html5QrcodeScanner(
             "qr-reader",
             { 
@@ -70,12 +73,17 @@ export default function ValidateTickets() {
             false
           );
 
+          console.log("Rendering scanner...");
           html5QrcodeScanner.render(onScanSuccess, onScanError);
           setScanner(html5QrcodeScanner);
-          console.log("HTML5 scanner initialized successfully");
+          console.log("✓ HTML5 scanner initialized successfully!");
         } catch (error) {
-          console.error("Error initializing HTML5 scanner:", error);
-          toast.error("Erro ao inicializar scanner");
+          console.error("!!! Error initializing HTML5 scanner:", error);
+          if (error instanceof Error) {
+            console.error("Error message:", error.message);
+            console.error("Error stack:", error.stack);
+          }
+          toast.error("Erro ao inicializar scanner: " + (error instanceof Error ? error.message : "Desconhecido"));
           setScanning(false);
         }
       }, 100);
@@ -85,6 +93,7 @@ export default function ValidateTickets() {
   useEffect(() => {
     return () => {
       if (scanner) {
+        console.log("Cleaning up scanner...");
         scanner.clear();
       }
       // Cleanup native scanner
@@ -97,20 +106,26 @@ export default function ValidateTickets() {
 
   const startScanning = async () => {
     try {
-      console.log("Starting scanner...", { isNative, platform: Capacitor.getPlatform() });
+      const platform = Capacitor.getPlatform();
+      console.log("=== SCANNER DEBUG ===");
+      console.log("Platform:", platform);
+      console.log("isNative:", isNative);
+      console.log("User Agent:", navigator.userAgent);
+      
       setValidationResult(null);
 
       // Use native scanner if available (PWA/Native app)
       if (isNative) {
         setScanning(true);
-        console.log("Using native scanner");
+        console.log("-> Using native scanner");
         await startNativeScanning();
       } else {
         // For web scanner, set scanning first to render the div
+        console.log("-> Using HTML5 web scanner");
         setScanning(true);
       }
     } catch (error) {
-      console.error("Error starting scanner:", error);
+      console.error("!!! Error in startScanning:", error);
       toast.error("Erro ao iniciar scanner");
       setScanning(false);
     }

@@ -56,23 +56,28 @@ export default function ValidateTickets() {
     setScanning(true);
     setValidationResult(null);
 
-    // Always use web scanner with camera (works on mobile browsers as PWA)
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "qr-reader",
-      { 
-        fps: 10, 
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        // Request back camera on mobile
-        videoConstraints: {
-          facingMode: { ideal: "environment" }
-        }
-      },
-      false
-    );
+    // Use native scanner if available (PWA/Native app)
+    if (isNative) {
+      await startNativeScanning();
+    } else {
+      // Use web scanner for web browsers
+      const html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader",
+        { 
+          fps: 10, 
+          qrbox: { width: 250, height: 250 },
+          aspectRatio: 1.0,
+          // Request back camera on mobile
+          videoConstraints: {
+            facingMode: { ideal: "environment" }
+          }
+        },
+        false
+      );
 
-    html5QrcodeScanner.render(onScanSuccess, onScanError);
-    setScanner(html5QrcodeScanner);
+      html5QrcodeScanner.render(onScanSuccess, onScanError);
+      setScanner(html5QrcodeScanner);
+    }
   };
 
   const startNativeScanning = async () => {
@@ -86,11 +91,17 @@ export default function ValidateTickets() {
         return;
       }
 
-      // Make background transparent
+      // Make background transparent for camera view
       document.body.classList.add("scanner-active");
+      BarcodeScanner.hideBackground();
       
       // Start scanning
       const result = await BarcodeScanner.startScan();
+      
+      // Stop scanning and restore UI
+      BarcodeScanner.showBackground();
+      document.body.classList.remove("scanner-active");
+      setScanning(false);
       
       if (result.hasContent) {
         await validateQRCode(result.content || "");
@@ -98,13 +109,19 @@ export default function ValidateTickets() {
     } catch (error) {
       console.error("Native scan error:", error);
       toast.error("Erro ao acessar câmera");
-      setScanning(false);
-    } finally {
+      BarcodeScanner.showBackground();
       document.body.classList.remove("scanner-active");
+      setScanning(false);
     }
   };
 
   const stopScanning = async () => {
+    if (isNative) {
+      BarcodeScanner.stopScan();
+      BarcodeScanner.showBackground();
+      document.body.classList.remove("scanner-active");
+    }
+    
     if (scanner) {
       scanner.clear();
       setScanner(null);
@@ -272,7 +289,15 @@ export default function ValidateTickets() {
             </Button>
           ) : (
             <div className="space-y-4">
-              <div id="qr-reader" className="w-full" />
+              {!isNative && <div id="qr-reader" className="w-full" />}
+              {isNative && (
+                <Alert>
+                  <Camera className="h-4 w-4" />
+                  <AlertDescription>
+                    Câmera ativa - aponte para o QR Code do ingresso
+                  </AlertDescription>
+                </Alert>
+              )}
               <Button onClick={stopScanning} variant="outline" className="w-full">
                 Parar Scanner
               </Button>

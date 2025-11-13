@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -181,15 +182,70 @@ export const CategoryManager = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h2 className="text-2xl font-bold">Gerenciar Categorias</h2>
-        <Button onClick={() => handleOpenDialog()}>
+        <Button onClick={() => handleOpenDialog()} className="w-full sm:w-auto">
           <Plus className="mr-2 h-4 w-4" />
           Nova Categoria
         </Button>
       </div>
 
-      <div className="border rounded-lg">
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-4">
+        {categories.map((category) => (
+          <Card key={category.id}>
+            <CardHeader className="pb-3">
+              <div className="flex items-start gap-3">
+                {category.image_url ? (
+                  <img
+                    src={category.image_url}
+                    alt={category.name}
+                    className="w-12 h-12 object-contain rounded shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 bg-muted rounded flex items-center justify-center shrink-0">
+                    <span className="text-xl">{category.name[0]}</span>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base">{category.name}</CardTitle>
+                  <CardDescription className="text-sm line-clamp-2">
+                    {category.description || "Sem descrição"}
+                  </CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleOpenDialog(category)}
+              >
+                <Pencil className="h-4 w-4 mr-1" />
+                Editar
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="flex-1"
+                onClick={() => handleDelete(category.id)}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Excluir
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+        {categories.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground border rounded-lg">
+            Nenhuma categoria cadastrada
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block border rounded-lg overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>

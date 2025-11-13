@@ -277,36 +277,31 @@ export const EventManagementTab = () => {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Título</TableHead>
-                    <TableHead>Categoria</TableHead>
-                    <TableHead>Data do Evento</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Destaque</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentEvents.map((event) => (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.title}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{event.category}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {format(new Date(event.event_date), "dd/MM/yyyy HH:mm")}
-                      </TableCell>
-                      <TableCell>
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-4">
+                {currentEvents.map((event) => (
+                  <Card key={event.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <CardTitle className="text-base line-clamp-2">{event.title}</CardTitle>
                         {event.is_published ? (
-                          <Badge variant="default">Publicado</Badge>
+                          <Badge variant="default" className="shrink-0">Publicado</Badge>
                         ) : (
-                          <Badge variant="secondary">Rascunho</Badge>
+                          <Badge variant="secondary" className="shrink-0">Rascunho</Badge>
                         )}
-                      </TableCell>
-                      <TableCell>
+                      </div>
+                      <CardDescription>
+                        <Badge variant="outline">{event.category}</Badge>
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Data: </span>
+                        {format(new Date(event.event_date), "dd/MM/yyyy HH:mm")}
+                      </div>
+                      <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
+                          <Label className="text-sm">Destaque:</Label>
                           <Switch
                             checked={event.is_featured}
                             onCheckedChange={() => handleToggleFeatured(event.id, event.is_featured)}
@@ -316,11 +311,12 @@ export const EventManagementTab = () => {
                             <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell className="text-right space-x-2">
+                      </div>
+                      <div className="flex gap-2 pt-2">
                         <Button
                           size="sm"
                           variant="outline"
+                          className="flex-1"
                           onClick={() => navigate(`/event/${event.id}`)}
                         >
                           <Eye className="h-4 w-4 mr-1" />
@@ -329,17 +325,85 @@ export const EventManagementTab = () => {
                         <Button
                           size="sm"
                           variant="destructive"
+                          className="flex-1"
                           onClick={() => setEventToDelete(event.id)}
                           disabled={deleting === event.id}
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
                           Excluir
                         </Button>
-                      </TableCell>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Título</TableHead>
+                      <TableHead>Categoria</TableHead>
+                      <TableHead>Data do Evento</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Destaque</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {currentEvents.map((event) => (
+                      <TableRow key={event.id}>
+                        <TableCell className="font-medium">{event.title}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{event.category}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {format(new Date(event.event_date), "dd/MM/yyyy HH:mm")}
+                        </TableCell>
+                        <TableCell>
+                          {event.is_published ? (
+                            <Badge variant="default">Publicado</Badge>
+                          ) : (
+                            <Badge variant="secondary">Rascunho</Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={event.is_featured}
+                              onCheckedChange={() => handleToggleFeatured(event.id, event.is_featured)}
+                              disabled={updatingFeatured === event.id}
+                            />
+                            {event.is_featured && (
+                              <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/event/${event.id}`)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Ver
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => setEventToDelete(event.id)}
+                            disabled={deleting === event.id}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Excluir
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (

@@ -166,31 +166,46 @@ export const ProducerApprovalTab = () => {
   const handleApproval = async (requestId: string, approve: boolean) => {
     setProcessing(requestId);
     try {
+      console.log("Processing request:", requestId, "approve:", approve);
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error("Usuário não autenticado");
       }
 
-      const { error } = await supabase
-        .from("user_roles")
-        .update({
-          is_approved: approve,
-          approved_at: approve ? new Date().toISOString() : null,
-          approved_by: approve ? user.id : null,
-        })
-        .eq("id", requestId);
+      if (approve) {
+        // Approve the request
+        const { error } = await supabase
+          .from("user_roles")
+          .update({
+            is_approved: true,
+            approved_at: new Date().toISOString(),
+            approved_by: user.id,
+          })
+          .eq("id", requestId);
 
-      if (error) {
-        console.error("Supabase error:", error);
-        throw error;
+        if (error) {
+          console.error("Supabase error on approve:", error);
+          throw error;
+        }
+      } else {
+        // Delete the request instead of updating
+        const { error } = await supabase
+          .from("user_roles")
+          .delete()
+          .eq("id", requestId);
+
+        if (error) {
+          console.error("Supabase error on reject:", error);
+          throw error;
+        }
       }
 
       toast({
         title: approve ? "Produtor aprovado!" : "Solicitação rejeitada",
         description: approve
           ? "O produtor agora pode criar eventos."
-          : "A solicitação foi rejeitada.",
+          : "A solicitação foi rejeitada e removida.",
       });
 
       await fetchProducerRequests();
@@ -363,7 +378,10 @@ export const ProducerApprovalTab = () => {
                       <Button
                         size="sm"
                         variant="destructive"
-                        onClick={() => handleApproval(request.id, false)}
+                        onClick={() => {
+                          console.log("Rejecting request:", request.id);
+                          handleApproval(request.id, false);
+                        }}
                         disabled={processing === request.id}
                       >
                         <X className="h-4 w-4 mr-1" />
@@ -388,8 +406,8 @@ export const ProducerApprovalTab = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {/* Filters and Search */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div className="flex flex-col gap-4">
+            <div className="w-full">
               <Input
                 placeholder="Buscar por nome ou email..."
                 value={searchTerm}
@@ -398,10 +416,10 @@ export const ProducerApprovalTab = () => {
               />
             </div>
             
-            <div className="flex items-center gap-2">
-              <Label>Ordenar por:</Label>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+              <Label className="shrink-0">Ordenar por:</Label>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[200px]">
+                <SelectTrigger className="w-full sm:w-[200px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -431,80 +449,146 @@ export const ProducerApprovalTab = () => {
             </div>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Eventos Criados</TableHead>
-                    <TableHead>Data de Aprovação</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {currentProducers.map((producer) => (
-                    <TableRow key={producer.id}>
-                      <TableCell className="font-medium">
+              {/* Mobile Cards */}
+              <div className="md:hidden space-y-4">
+                {currentProducers.map((producer) => (
+                  <Card key={producer.id}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between">
                         <div className="flex items-center gap-2">
                           <UserCheck className="h-4 w-4 text-primary" />
-                          {producer.profile?.full_name || "Nome não disponível"}
+                          <CardTitle className="text-base">
+                            {producer.profile?.full_name || "Nome não disponível"}
+                          </CardTitle>
                         </div>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-4 w-4" />
-                          {producer.profile?.email || "Email não disponível"}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">{producer.eventCount} eventos</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 text-sm">
-                          <Calendar className="h-4 w-4" />
-                          {producer.approved_at 
-                            ? format(new Date(producer.approved_at), "dd/MM/yyyy")
-                            : "Data não disponível"
-                          }
-                        </div>
-                      </TableCell>
-                      <TableCell>
                         <Badge variant="default">Ativo</Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              disabled={processing === producer.user_id}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => setDeactivateDialog({ open: true, producerId: producer.user_id })}
-                              className="text-orange-600"
-                            >
-                              <UserX className="h-4 w-4 mr-2" />
-                              Inativar Produtor
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => setDeleteDialog({ open: true, producerId: producer.user_id })}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Excluir Produtor
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+                      </div>
+                      <CardDescription className="flex items-center gap-2">
+                        <Mail className="h-3 w-3" />
+                        {producer.profile?.email || "Email não disponível"}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Eventos:</span>
+                        <Badge variant="secondary">{producer.eventCount} eventos</Badge>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Aprovação:</span>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          <span>
+                            {producer.approved_at 
+                              ? format(new Date(producer.approved_at), "dd/MM/yyyy")
+                              : "Data não disponível"
+                            }
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setDeactivateDialog({ open: true, producerId: producer.user_id })}
+                          disabled={processing === producer.user_id}
+                        >
+                          <UserX className="h-3 w-3 mr-1" />
+                          Inativar
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setDeleteDialog({ open: true, producerId: producer.user_id })}
+                          disabled={processing === producer.user_id}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" />
+                          Excluir
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Eventos Criados</TableHead>
+                      <TableHead>Data de Aprovação</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {currentProducers.map((producer) => (
+                      <TableRow key={producer.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <UserCheck className="h-4 w-4 text-primary" />
+                            {producer.profile?.full_name || "Nome não disponível"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          <div className="flex items-center gap-2">
+                            <Mail className="h-4 w-4" />
+                            {producer.profile?.email || "Email não disponível"}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">{producer.eventCount} eventos</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 text-sm">
+                            <Calendar className="h-4 w-4" />
+                            {producer.approved_at 
+                              ? format(new Date(producer.approved_at), "dd/MM/yyyy")
+                              : "Data não disponível"
+                            }
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="default">Ativo</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                disabled={processing === producer.user_id}
+                              >
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setDeactivateDialog({ open: true, producerId: producer.user_id })}
+                                className="text-orange-600"
+                              >
+                                <UserX className="h-4 w-4 mr-2" />
+                                Inativar Produtor
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => setDeleteDialog({ open: true, producerId: producer.user_id })}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Excluir Produtor
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
 
               {/* Pagination */}
               {totalPages > 1 && (

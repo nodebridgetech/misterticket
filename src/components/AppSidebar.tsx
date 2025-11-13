@@ -46,7 +46,7 @@ export const AppSidebar = () => {
   const menuItems = userRole === "admin" ? adminMenuItems : producerMenuItems;
 
   return (
-    <Sidebar className="border-r border-border" collapsible="icon">
+    <Sidebar className="border-r border-border bg-background" collapsible="icon">
       <SidebarHeader className="border-b border-border p-4">
         <div className="flex items-center justify-between gap-2">
           {open && (
@@ -58,7 +58,7 @@ export const AppSidebar = () => {
         </div>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="bg-background">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -86,7 +86,7 @@ export const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border p-4 space-y-2">
+      <SidebarFooter className="border-t border-border p-4 space-y-2 mt-auto bg-background">
         {open && (
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm text-muted-foreground">Tema</span>

@@ -207,6 +207,42 @@ serve(async (req) => {
 
     logStep("Sales created successfully", { count: sales.length, saleIds: sales.map(s => s.id) });
 
+    // Get event and user details for email
+    const { data: event } = await supabaseClient
+      .from("events")
+      .select("title, event_date, venue")
+      .eq("id", eventId)
+      .single();
+
+    const { data: userProfile } = await supabaseClient
+      .from("profiles")
+      .select("full_name, email")
+      .eq("user_id", userId)
+      .single();
+
+    // Send purchase confirmation email
+    if (event && userProfile && userProfile.email) {
+      try {
+        await supabaseClient.functions.invoke('send-purchase-confirmation', {
+          body: {
+            email: userProfile.email,
+            userName: userProfile.full_name,
+            eventTitle: event.title,
+            eventDate: new Date(event.event_date).toLocaleDateString('pt-BR'),
+            eventVenue: event.venue,
+            ticketType: metadata.ticketName || 'Ingresso',
+            quantity: quantity,
+            totalPrice: totalPrice,
+            qrCodes: qrCodes
+          }
+        });
+        logStep("Purchase confirmation email sent");
+      } catch (emailError) {
+        logStep("Error sending purchase confirmation email", { error: emailError });
+        // Don't fail the whole transaction if email fails
+      }
+    }
+
     return new Response(
       JSON.stringify({ 
         success: true, 

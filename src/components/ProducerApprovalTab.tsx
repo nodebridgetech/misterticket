@@ -174,6 +174,9 @@ export const ProducerApprovalTab = () => {
       }
 
       if (approve) {
+        // Get the producer request details for email
+        const request = producerRequests.find(r => r.id === requestId);
+        
         // Approve the request
         const { error } = await supabase
           .from("user_roles")
@@ -187,6 +190,22 @@ export const ProducerApprovalTab = () => {
         if (error) {
           console.error("Supabase error on approve:", error);
           throw error;
+        }
+
+        // Send approval notification email
+        if (request?.profiles?.email && request?.profiles?.full_name) {
+          try {
+            await supabase.functions.invoke('send-producer-approval', {
+              body: {
+                email: request.profiles.email,
+                userName: request.profiles.full_name
+              }
+            });
+            console.log("Producer approval email sent");
+          } catch (emailError) {
+            console.error("Error sending approval email:", emailError);
+            // Don't fail the whole operation if email fails
+          }
         }
       } else {
         // Delete the request instead of updating

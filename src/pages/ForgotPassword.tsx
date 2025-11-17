@@ -23,18 +23,8 @@ const ForgotPassword = () => {
   const onSubmit = async (data: ForgotPasswordForm) => {
     setIsLoading(true);
     try {
-      // Generate reset token using Supabase
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
-        data.email,
-        {
-          redirectTo: `${window.location.origin}/redefinir-senha`,
-        }
-      );
-
-      if (resetError) throw resetError;
-
-      // Send custom email via Resend
-      const resetLink = `${window.location.origin}/redefinir-senha`;
+      // Send custom email via Resend only (disable Supabase auto-email)
+      const resetLink = `${window.location.origin}/redefinir-senha#access_token=RESET_TOKEN`;
       
       const { error: emailError } = await supabase.functions.invoke('send-password-reset', {
         body: {
@@ -44,8 +34,21 @@ const ForgotPassword = () => {
       });
 
       if (emailError) {
-        console.error("Error sending custom email:", emailError);
-        // Don't throw error here - the reset link was still generated
+        console.error("Error sending email:", emailError);
+        throw emailError;
+      }
+
+      // Generate reset token (this won't send email if configured properly)
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(
+        data.email,
+        {
+          redirectTo: `${window.location.origin}/redefinir-senha`,
+        }
+      );
+
+      if (resetError) {
+        console.error("Error generating reset token:", resetError);
+        // Continue anyway since email was already sent
       }
 
       setEmailSent(true);

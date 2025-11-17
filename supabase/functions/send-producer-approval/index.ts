@@ -1,0 +1,110 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "https://esm.sh/resend@2.0.0";
+
+const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+interface ProducerApprovalRequest {
+  email: string;
+  userName: string;
+}
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { email, userName }: ProducerApprovalRequest = await req.json();
+
+    console.log("Sending producer approval notification to:", email);
+
+    const emailResponse = await resend.emails.send({
+      from: "Mister Ticket <no-reply@mailing.misterticket.com.br>",
+      to: [email],
+      subject: "Sua solicitação para ser produtor foi aprovada!",
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 10px 10px 0 0; text-align: center;">
+              <h1 style="color: white; margin: 0; font-size: 28px;">Parabéns! 🎉</h1>
+            </div>
+            
+            <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+              <p style="font-size: 16px; margin-bottom: 20px;">Olá <strong>${userName}</strong>,</p>
+              
+              <p style="font-size: 16px; margin-bottom: 20px;">
+                Temos uma ótima notícia! Sua solicitação para se tornar um produtor no <strong>Mister Ticket</strong> foi aprovada! 🎊
+              </p>
+              
+              <div style="background: #f0f9ff; border-left: 4px solid #667eea; padding: 20px; margin: 20px 0; border-radius: 4px;">
+                <h2 style="margin: 0 0 10px 0; color: #667eea; font-size: 20px;">O que você pode fazer agora:</h2>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  <li style="margin-bottom: 8px;">Criar e gerenciar eventos</li>
+                  <li style="margin-bottom: 8px;">Configurar diferentes tipos de ingressos</li>
+                  <li style="margin-bottom: 8px;">Acompanhar vendas em tempo real</li>
+                  <li style="margin-bottom: 8px;">Validar ingressos no dia do evento</li>
+                  <li style="margin-bottom: 8px;">Gerenciar lotes de vendas</li>
+                </ul>
+              </div>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${Deno.env.get("VITE_SUPABASE_URL") || "https://misterticket.com.br"}/produtor/dashboard" 
+                   style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 40px; text-decoration: none; border-radius: 25px; font-weight: bold; font-size: 16px;">
+                  Acessar Dashboard de Produtor
+                </a>
+              </div>
+
+              <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin-top: 20px; border-radius: 4px;">
+                <p style="margin: 0; font-size: 14px; color: #856404;">
+                  <strong>Dica:</strong> Comece criando seu primeiro evento! O processo é simples e intuitivo.
+                </p>
+              </div>
+
+              <p style="margin-top: 30px; font-size: 14px; color: #666;">
+                Estamos muito felizes em tê-lo como produtor na nossa plataforma. Se tiver dúvidas, nossa equipe está sempre disponível para ajudar!
+              </p>
+
+              <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+              
+              <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
+                Este é um e-mail automático. Por favor, não responda.<br>
+                © ${new Date().getFullYear()} Mister Ticket. Todos os direitos reservados.
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
+    });
+
+    console.log("Producer approval notification sent successfully:", emailResponse);
+
+    return new Response(JSON.stringify(emailResponse), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        ...corsHeaders,
+      },
+    });
+  } catch (error: any) {
+    console.error("Error in send-producer-approval function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+  }
+};
+
+serve(handler);

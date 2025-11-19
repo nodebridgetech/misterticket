@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Eye, Star, Filter, ArrowUpDown } from "lucide-react";
+import { Trash2, Eye, Star, Filter, ArrowUpDown, Edit } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -324,6 +324,15 @@ export const EventManagementTab = () => {
                         </Button>
                         <Button
                           size="sm"
+                          variant="outline"
+                          className="flex-1 text-xs"
+                          onClick={() => navigate(`/editar-evento/${event.id}`)}
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Editar
+                        </Button>
+                        <Button
+                          size="sm"
                           variant="destructive"
                           className="flex-1 text-xs"
                           onClick={() => setEventToDelete(event.id)}
@@ -391,12 +400,18 @@ export const EventManagementTab = () => {
                           </Button>
                           <Button
                             size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/editar-evento/${event.id}`)}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
                             variant="destructive"
                             onClick={() => setEventToDelete(event.id)}
                             disabled={deleting === event.id}
                           >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            Excluir
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </TableCell>
                       </TableRow>

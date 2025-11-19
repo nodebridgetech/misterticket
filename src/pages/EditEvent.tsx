@@ -37,7 +37,7 @@ interface TicketBatch {
 }
 
 const EditEvent = () => {
-  const { user, isProducerApproved, loading } = useAuth();
+  const { user, userRole, isProducerApproved, loading } = useAuth();
   const navigate = useNavigate();
   const { id } = useParams();
   const { toast } = useToast();
@@ -65,10 +65,10 @@ const EditEvent = () => {
   const [newBatchEndDate, setNewBatchEndDate] = useState<Date | undefined>();
 
   useEffect(() => {
-    if (!loading && (!user || !isProducerApproved)) {
+    if (!loading && (!user || (userRole !== "admin" && !isProducerApproved))) {
       navigate("/minha-conta");
     }
-  }, [user, isProducerApproved, loading, navigate]);
+  }, [user, userRole, isProducerApproved, loading, navigate]);
 
   useEffect(() => {
     fetchCategories();
@@ -92,7 +92,8 @@ const EditEvent = () => {
 
       if (eventError) throw eventError;
 
-      if (eventData.producer_id !== user?.id) {
+      // Allow admins to edit any event, producers can only edit their own
+      if (userRole !== "admin" && eventData.producer_id !== user?.id) {
         toast({
           title: "Acesso negado",
           description: "Você não tem permissão para editar este evento",

@@ -328,7 +328,8 @@ const EditEvent = () => {
     );
   }
 
-  if (!isProducerApproved) {
+  // Allow admins or approved producers
+  if (userRole !== "admin" && !isProducerApproved) {
     return null;
   }
 

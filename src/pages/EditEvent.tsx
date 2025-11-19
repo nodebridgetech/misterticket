@@ -84,13 +84,26 @@ const EditEvent = () => {
 
   const fetchEventData = async () => {
     try {
+      console.log("Fetching event data, userRole:", userRole, "user:", user?.id);
+      
       const { data: eventData, error: eventError } = await supabase
         .from("events")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (eventError) throw eventError;
+      console.log("Event data:", eventData, "Error:", eventError);
+
+      if (eventError) {
+        console.error("Event fetch error:", eventError);
+        throw eventError;
+      }
+
+      if (!eventData) {
+        throw new Error("Evento não encontrado");
+      }
+
+      console.log("Checking permissions - userRole:", userRole, "producer_id:", eventData.producer_id, "user_id:", user?.id);
 
       // Allow admins to edit any event, producers can only edit their own
       if (userRole !== "admin" && eventData.producer_id !== user?.id) {

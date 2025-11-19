@@ -71,11 +71,11 @@ const EditEvent = () => {
   }, [user, userRole, isProducerApproved, loading, navigate]);
 
   useEffect(() => {
-    fetchCategories();
-    if (id) {
+    if (!loading && user && id) {
+      fetchCategories();
       fetchEventData();
     }
-  }, [id]);
+  }, [id, user, loading]);
 
   const fetchCategories = async () => {
     const { data } = await supabase.from("categories").select("*").order("name");

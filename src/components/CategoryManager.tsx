@@ -21,9 +21,26 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 interface Category {
   id: string;
@@ -31,6 +48,7 @@ interface Category {
   description: string | null;
   image_url: string | null;
   created_at: string;
+  position: number | null;
 }
 
 export const CategoryManager = () => {
@@ -54,6 +72,7 @@ export const CategoryManager = () => {
       const { data, error } = await supabase
         .from("categories")
         .select("*")
+        .order("position", { ascending: true, nullsFirst: false })
         .order("name");
 
       if (error) throw error;
@@ -176,6 +195,113 @@ export const CategoryManager = () => {
     setFormData({ ...formData, image_url: "" });
   };
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = categories.findIndex((cat) => cat.id === active.id);
+      const newIndex = categories.findIndex((cat) => cat.id === over.id);
+
+      const newCategories = arrayMove(categories, oldIndex, newIndex);
+      setCategories(newCategories);
+
+      // Update positions in database
+      try {
+        const updates = newCategories.map((cat, index) => ({
+          id: cat.id,
+          position: index + 1,
+        }));
+
+        for (const update of updates) {
+          const { error } = await supabase
+            .from("categories")
+            .update({ position: update.position })
+            .eq("id", update.id);
+
+          if (error) throw error;
+        }
+
+        toast({
+          title: "Ordem atualizada",
+          description: "A ordem das categorias foi atualizada com sucesso",
+        });
+      } catch (error: any) {
+        toast({
+          title: "Erro ao atualizar ordem",
+          description: error.message,
+          variant: "destructive",
+        });
+        fetchCategories(); // Reload to get correct order
+      }
+    }
+  };
+
+  const SortableTableRow = ({ category }: { category: Category }) => {
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+      id: category.id,
+    });
+
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+      <TableRow ref={setNodeRef} style={style}>
+        <TableCell>
+          <div className="flex items-center gap-2">
+            <button
+              className="cursor-grab active:cursor-grabbing touch-none"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4 text-muted-foreground" />
+            </button>
+            {category.image_url ? (
+              <img
+                src={category.image_url}
+                alt={category.name}
+                className="w-10 h-10 object-contain rounded"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
+                <span className="text-lg">{category.name[0]}</span>
+              </div>
+            )}
+          </div>
+        </TableCell>
+        <TableCell className="font-medium">{category.name}</TableCell>
+        <TableCell className="text-muted-foreground">
+          {category.description || "-"}
+        </TableCell>
+        <TableCell className="text-right space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleOpenDialog(category)}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => handleDelete(category.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </TableCell>
+      </TableRow>
+    );
+  };
+
   if (loading) {
     return <div>Carregando categorias...</div>;
   }
@@ -246,62 +372,36 @@ export const CategoryManager = () => {
 
       {/* Desktop Table */}
       <div className="hidden md:block border rounded-lg overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Ícone</TableHead>
-              <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categories.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>
-                  {category.image_url ? (
-                    <img
-                      src={category.image_url}
-                      alt={category.name}
-                      className="w-10 h-10 object-contain rounded"
-                    />
-                  ) : (
-                    <div className="w-10 h-10 bg-muted rounded flex items-center justify-center">
-                      <span className="text-lg">{category.name[0]}</span>
-                    </div>
-                  )}
-                </TableCell>
-                <TableCell className="font-medium">{category.name}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {category.description || "-"}
-                </TableCell>
-                <TableCell className="text-right space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleOpenDialog(category)}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleDelete(category.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {categories.length === 0 && (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-muted-foreground">
-                  Nenhuma categoria cadastrada
-                </TableCell>
+                <TableHead>Ícone</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              <SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                {categories.map((category) => (
+                  <SortableTableRow key={category.id} category={category} />
+                ))}
+              </SortableContext>
+              {categories.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    Nenhuma categoria cadastrada
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </DndContext>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

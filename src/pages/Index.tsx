@@ -106,6 +106,7 @@ const Index = () => {
     const { data: cats } = await supabase
       .from("categories")
       .select("*")
+      .order("position", { ascending: true, nullsFirst: false })
       .order("name");
 
     // Eventos próximos (7 dias)

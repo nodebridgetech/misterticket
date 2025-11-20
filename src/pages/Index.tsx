@@ -263,7 +263,7 @@ const Index = () => {
                     to={`/eventos?category=${encodeURIComponent(category.name)}`}
                     className="group block"
                   >
-                    <div className="flex items-center justify-center p-4 rounded-lg border border-border bg-card hover:bg-accent hover:shadow-md transition-all min-h-[80px]">
+                    <div className="flex items-center justify-center p-3 rounded-lg border border-border bg-card hover:bg-accent hover:shadow-md transition-all min-h-[60px]">
                       <span className="text-sm font-medium text-center">{category.name}</span>
                     </div>
                   </Link>

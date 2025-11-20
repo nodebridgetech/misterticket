@@ -127,7 +127,7 @@ export const FeeConfigTab = () => {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="gateway_fee">Taxa do Gateway de Pagamento (%)</Label>
+            <Label htmlFor="gateway_fee">Taxa de Processamento (%)</Label>
             <Input
               id="gateway_fee"
               type="number"

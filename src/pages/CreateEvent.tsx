@@ -11,12 +11,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Eye, Copy, Edit } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye, Copy, Edit, GripVertical } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
 import { DatePicker } from "@/components/DatePicker";
 import { Badge } from "@/components/ui/badge";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 interface Category {
   id: string;
@@ -31,7 +48,109 @@ interface TicketBatch {
   quantity_total: number;
   sale_start_date: string;
   sale_end_date: string;
+  position: number;
 }
+
+interface SortableTicketBatchProps {
+  batch: TicketBatch;
+  index: number;
+  isNextBatch: boolean;
+  onEdit: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onRemove: (id: string) => void;
+}
+
+const SortableTicketBatch = ({ batch, index, isNextBatch, onEdit, onDuplicate, onRemove }: SortableTicketBatchProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: batch.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 p-4 border rounded-lg bg-card"
+    >
+      <div
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing touch-none"
+      >
+        <GripVertical className="h-5 w-5 text-muted-foreground" />
+      </div>
+      
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold">{batch.batch_name}</p>
+            {isNextBatch && (
+              <Badge variant="secondary" className="text-xs">
+                Próximo lote
+              </Badge>
+            )}
+          </div>
+          {batch.sector && <p className="text-sm text-muted-foreground">{batch.sector}</p>}
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Preço</p>
+          <p className="font-semibold">R$ {batch.price.toFixed(2)}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Quantidade</p>
+          <p className="font-semibold">{batch.quantity_total}</p>
+        </div>
+        <div>
+          <p className="text-sm text-muted-foreground">Período de Vendas</p>
+          <p className="text-xs">
+            {batch.sale_start_date ? new Date(batch.sale_start_date).toLocaleDateString("pt-BR") : "Não definido"} -{" "}
+            {batch.sale_end_date ? new Date(batch.sale_end_date).toLocaleDateString("pt-BR") : "Não definido"}
+          </p>
+        </div>
+      </div>
+      
+      <div className="flex gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => onEdit(batch.id)}
+          title="Editar lote"
+        >
+          <Edit className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => onDuplicate(batch.id)}
+          title="Duplicar lote"
+        >
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          onClick={() => onRemove(batch.id)}
+          title="Remover lote"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+};
 
 const CreateEvent = () => {
   const { user, isProducerApproved, loading } = useAuth();
@@ -72,6 +191,13 @@ const CreateEvent = () => {
     sale_end_date: undefined,
   });
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   useEffect(() => {
     if (!loading && (!user || !isProducerApproved)) {
       navigate("/minha-conta");
@@ -101,7 +227,7 @@ const CreateEvent = () => {
       
       // Pre-fill ticket batches
       if (duplicateFrom.tickets && duplicateFrom.tickets.length > 0) {
-        const batches = duplicateFrom.tickets.map((ticket: any) => ({
+        const batches = duplicateFrom.tickets.map((ticket: any, index: number) => ({
           id: crypto.randomUUID(),
           batch_name: ticket.batch_name,
           sector: ticket.sector || "",
@@ -109,6 +235,7 @@ const CreateEvent = () => {
           quantity_total: ticket.quantity_total,
           sale_start_date: ticket.sale_start_date,
           sale_end_date: ticket.sale_end_date,
+          position: index,
         }));
         setTicketBatches(batches);
       }
@@ -164,6 +291,7 @@ const CreateEvent = () => {
         quantity_total: Number(currentBatch.quantity_total),
         sale_start_date: currentBatch.sale_start_date?.toISOString() || "",
         sale_end_date: currentBatch.sale_end_date?.toISOString() || "",
+        position: ticketBatches.length,
       };
       setTicketBatches([...ticketBatches, newBatch]);
       toast.success("Lote adicionado!");
@@ -212,6 +340,22 @@ const CreateEvent = () => {
     setEditingBatchId(null);
     setShowBatchForm(true);
     toast.success("Lote duplicado! Ajuste os dados e adicione.");
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setTicketBatches((batches) => {
+        const oldIndex = batches.findIndex((b) => b.id === active.id);
+        const newIndex = batches.findIndex((b) => b.id === over.id);
+        
+        const newBatches = arrayMove(batches, oldIndex, newIndex);
+        // Update positions
+        return newBatches.map((batch, index) => ({ ...batch, position: index }));
+      });
+      toast.success("Ordem dos lotes atualizada!");
+    }
   };
 
   const handleRemoveBatch = (id: string) => {
@@ -546,80 +690,38 @@ const CreateEvent = () => {
                   Nenhum lote adicionado. Clique em "Adicionar Lote" para começar.
                 </div>
               ) : (
-                <div className="space-y-2">
-                  {[...ticketBatches].sort((a, b) => 
-                    new Date(a.sale_start_date).getTime() - new Date(b.sale_start_date).getTime()
-                  ).map((batch, index, sortedBatches) => {
-                    // Check if this is the next batch to be auto-activated
-                    const isNextBatch = autoAdvanceBatches && batch.sector && index > 0 && 
-                      sortedBatches[index - 1].sector === batch.sector;
-                    
-                    return (
-                      <div
-                        key={batch.id}
-                        className="flex items-center justify-between p-4 border rounded-lg"
-                      >
-                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold">{batch.batch_name}</p>
-                              {isNextBatch && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Próximo lote
-                                </Badge>
-                              )}
-                            </div>
-                            {batch.sector && <p className="text-sm text-muted-foreground">{batch.sector}</p>}
-                          </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Preço</p>
-                          <p className="font-semibold">R$ {batch.price.toFixed(2)}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Quantidade</p>
-                          <p className="font-semibold">{batch.quantity_total}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Período de Vendas</p>
-                          <p className="text-xs">
-                            {batch.sale_start_date ? new Date(batch.sale_start_date).toLocaleDateString("pt-BR") : "Não definido"} -{" "}
-                            {batch.sale_end_date ? new Date(batch.sale_end_date).toLocaleDateString("pt-BR") : "Não definido"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleEditBatch(batch.id)}
-                          title="Editar lote"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleDuplicateBatch(batch.id)}
-                          title="Duplicar lote"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveBatch(batch.id)}
-                          title="Remover lote"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={ticketBatches.map(b => b.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-2">
+                      {ticketBatches
+                        .sort((a, b) => a.position - b.position)
+                        .map((batch, index, sortedBatches) => {
+                          // Check if this is the next batch to be auto-activated
+                          const isNextBatch = autoAdvanceBatches && batch.sector && index > 0 && 
+                            sortedBatches[index - 1].sector === batch.sector;
+                          
+                          return (
+                            <SortableTicketBatch
+                              key={batch.id}
+                              batch={batch}
+                              index={index}
+                              isNextBatch={isNextBatch}
+                              onEdit={handleEditBatch}
+                              onDuplicate={handleDuplicateBatch}
+                              onRemove={handleRemoveBatch}
+                            />
+                          );
+                        })}
                     </div>
-                  );
-                  })}
-                </div>
+                  </SortableContext>
+                </DndContext>
               )}
             </CardContent>
           </Card>

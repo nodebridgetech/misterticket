@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Eye, Copy } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye, Copy, Edit } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
@@ -55,6 +55,7 @@ const CreateEvent = () => {
   // Ticket batches state
   const [ticketBatches, setTicketBatches] = useState<TicketBatch[]>([]);
   const [showBatchForm, setShowBatchForm] = useState(false);
+  const [editingBatchId, setEditingBatchId] = useState<string | null>(null);
   const [currentBatch, setCurrentBatch] = useState<{
     batch_name?: string;
     sector?: string;
@@ -137,17 +138,37 @@ const CreateEvent = () => {
       return;
     }
 
-    const newBatch: TicketBatch = {
-      id: crypto.randomUUID(),
-      batch_name: currentBatch.batch_name!,
-      sector: currentBatch.sector || "",
-      price: Number(currentBatch.price),
-      quantity_total: Number(currentBatch.quantity_total),
-      sale_start_date: currentBatch.sale_start_date?.toISOString() || "",
-      sale_end_date: currentBatch.sale_end_date?.toISOString() || "",
-    };
+    if (editingBatchId) {
+      // Editing existing batch
+      setTicketBatches(ticketBatches.map(batch => 
+        batch.id === editingBatchId
+          ? {
+              ...batch,
+              batch_name: currentBatch.batch_name!,
+              sector: currentBatch.sector || "",
+              price: Number(currentBatch.price),
+              quantity_total: Number(currentBatch.quantity_total),
+              sale_start_date: currentBatch.sale_start_date?.toISOString() || "",
+              sale_end_date: currentBatch.sale_end_date?.toISOString() || "",
+            }
+          : batch
+      ));
+      toast.success("Lote atualizado!");
+    } else {
+      // Adding new batch
+      const newBatch: TicketBatch = {
+        id: crypto.randomUUID(),
+        batch_name: currentBatch.batch_name!,
+        sector: currentBatch.sector || "",
+        price: Number(currentBatch.price),
+        quantity_total: Number(currentBatch.quantity_total),
+        sale_start_date: currentBatch.sale_start_date?.toISOString() || "",
+        sale_end_date: currentBatch.sale_end_date?.toISOString() || "",
+      };
+      setTicketBatches([...ticketBatches, newBatch]);
+      toast.success("Lote adicionado!");
+    }
 
-    setTicketBatches([...ticketBatches, newBatch]);
     setCurrentBatch({
       batch_name: "",
       sector: "",
@@ -157,7 +178,23 @@ const CreateEvent = () => {
       sale_end_date: undefined,
     });
     setShowBatchForm(false);
-    toast.success("Lote adicionado!");
+    setEditingBatchId(null);
+  };
+
+  const handleEditBatch = (batchId: string) => {
+    const batchToEdit = ticketBatches.find(b => b.id === batchId);
+    if (!batchToEdit) return;
+
+    setCurrentBatch({
+      batch_name: batchToEdit.batch_name,
+      sector: batchToEdit.sector,
+      price: batchToEdit.price,
+      quantity_total: batchToEdit.quantity_total,
+      sale_start_date: batchToEdit.sale_start_date ? new Date(batchToEdit.sale_start_date) : undefined,
+      sale_end_date: batchToEdit.sale_end_date ? new Date(batchToEdit.sale_end_date) : undefined,
+    });
+    setEditingBatchId(batchId);
+    setShowBatchForm(true);
   };
 
   const handleDuplicateBatch = (batchId: string) => {
@@ -169,9 +206,10 @@ const CreateEvent = () => {
       sector: batchToDuplicate.sector,
       price: batchToDuplicate.price,
       quantity_total: batchToDuplicate.quantity_total,
-      sale_start_date: new Date(batchToDuplicate.sale_start_date),
-      sale_end_date: new Date(batchToDuplicate.sale_end_date),
+      sale_start_date: batchToDuplicate.sale_start_date ? new Date(batchToDuplicate.sale_start_date) : undefined,
+      sale_end_date: batchToDuplicate.sale_end_date ? new Date(batchToDuplicate.sale_end_date) : undefined,
     });
+    setEditingBatchId(null);
     setShowBatchForm(true);
     toast.success("Lote duplicado! Ajuste os dados e adicione.");
   };
@@ -458,7 +496,7 @@ const CreateEvent = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Início das Vendas *</Label>
+                        <Label>Início das Vendas</Label>
                         <DatePicker
                           date={currentBatch.sale_start_date}
                           onDateChange={(date) => setCurrentBatch({ ...currentBatch, sale_start_date: date })}
@@ -467,7 +505,7 @@ const CreateEvent = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Fim das Vendas *</Label>
+                        <Label>Fim das Vendas</Label>
                         <DatePicker
                           date={currentBatch.sale_end_date}
                           onDateChange={(date) => setCurrentBatch({ ...currentBatch, sale_end_date: date })}
@@ -478,12 +516,23 @@ const CreateEvent = () => {
 
                     <div className="flex gap-2">
                       <Button type="button" onClick={handleAddBatch}>
-                        Adicionar
+                        {editingBatchId ? "Salvar" : "Adicionar"}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
-                        onClick={() => setShowBatchForm(false)}
+                        onClick={() => {
+                          setShowBatchForm(false);
+                          setEditingBatchId(null);
+                          setCurrentBatch({
+                            batch_name: "",
+                            sector: "",
+                            price: 0,
+                            quantity_total: 0,
+                            sale_start_date: undefined,
+                            sale_end_date: undefined,
+                          });
+                        }}
                       >
                         Cancelar
                       </Button>
@@ -533,12 +582,21 @@ const CreateEvent = () => {
                         <div>
                           <p className="text-sm text-muted-foreground">Período de Vendas</p>
                           <p className="text-xs">
-                            {new Date(batch.sale_start_date).toLocaleDateString("pt-BR")} -{" "}
-                            {new Date(batch.sale_end_date).toLocaleDateString("pt-BR")}
+                            {batch.sale_start_date ? new Date(batch.sale_start_date).toLocaleDateString("pt-BR") : "Não definido"} -{" "}
+                            {batch.sale_end_date ? new Date(batch.sale_end_date).toLocaleDateString("pt-BR") : "Não definido"}
                           </p>
                         </div>
                       </div>
                       <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleEditBatch(batch.id)}
+                          title="Editar lote"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
                         <Button
                           type="button"
                           variant="outline"

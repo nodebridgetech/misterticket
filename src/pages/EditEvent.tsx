@@ -16,6 +16,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { DatePicker } from "@/components/DatePicker";
 import { Badge } from "@/components/ui/badge";
 import { EventPreview } from "@/components/EventPreview";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Eye } from "lucide-react";
 
@@ -393,16 +394,12 @@ const EditEvent = () => {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="address">Endereço *</Label>
-                  <Input
-                    id="address"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    placeholder="Endereço completo"
-                    required
-                  />
-                </div>
+                <AddressAutocomplete
+                  value={address}
+                  onChange={setAddress}
+                  label="Endereço"
+                  required
+                />
 
                 <div>
                   <Label htmlFor="description">Descrição</Label>

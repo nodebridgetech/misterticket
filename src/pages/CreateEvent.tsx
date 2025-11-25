@@ -17,6 +17,7 @@ import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
 import { DatePicker } from "@/components/DatePicker";
 import { Badge } from "@/components/ui/badge";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import {
   DndContext,
   closestCenter,
@@ -519,16 +520,11 @@ const CreateEvent = () => {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address">Endereço Completo *</Label>
-                <Input
-                  id="address"
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  placeholder="Rua, número, bairro, cidade - UF"
-                  required
-                />
-              </div>
+              <AddressAutocomplete
+                value={address}
+                onChange={setAddress}
+                required
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="description">Descrição</Label>

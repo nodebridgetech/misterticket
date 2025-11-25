@@ -27,7 +27,6 @@ export const AppSidebar = () => {
 
   // Menu items for admin
   const adminMenuItems = [
-    { path: "/", label: "Página Inicial", icon: LayoutDashboard, end: true },
     { path: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
     { path: "/admin/produtores", label: "Produtores", icon: Users, end: false },
     { path: "/admin/eventos", label: "Eventos", icon: Calendar, end: false },
@@ -37,7 +36,6 @@ export const AppSidebar = () => {
 
   // Menu items for producers
   const producerMenuItems = [
-    { path: "/", label: "Página Inicial", icon: LayoutDashboard, end: true },
     { path: "/painel", label: "Dashboard", icon: LayoutDashboard, end: true },
     { path: "/meus-eventos", label: "Meus Eventos", icon: Calendar, end: false },
     { path: "/validar-ingressos", label: "Validar Ingressos", icon: ScanLine, end: false },

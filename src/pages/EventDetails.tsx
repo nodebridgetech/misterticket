@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,22 +13,26 @@ const EventDetails = () => {
   const [event, setEvent] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const hasTrackedView = useRef(false);
 
   useEffect(() => {
     if (id) {
       fetchEventDetails();
-      trackPageView();
     }
   }, [id]);
 
   const trackPageView = async () => {
+    if (hasTrackedView.current) return;
+    
     try {
+      hasTrackedView.current = true;
       await supabase.from("event_analytics").insert({
         event_id: id,
         event_type: "page_view",
       });
     } catch (error) {
       console.error("Error tracking page view:", error);
+      hasTrackedView.current = false;
     }
   };
 
@@ -48,6 +52,9 @@ const EventDetails = () => {
       }
 
       setEvent(eventData);
+      
+      // Track page view only after successfully loading event
+      trackPageView();
 
       const { data: ticketsData } = await supabase
         .from("tickets")

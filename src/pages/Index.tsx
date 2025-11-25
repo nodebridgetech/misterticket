@@ -22,6 +22,7 @@ interface Event {
   title: string;
   image_url: string | null;
   event_date: string;
+  event_end_date: string | null;
   venue: string;
   address: string;
   category: string;
@@ -163,6 +164,7 @@ const Index = () => {
     title: event.title,
     image: event.image_url || "/placeholder.svg",
     date: format(new Date(event.event_date), "dd 'de' MMMM, yyyy", { locale: ptBR }),
+    endDate: event.event_end_date ? format(new Date(event.event_end_date), "dd 'de' MMMM, yyyy", { locale: ptBR }) : undefined,
     location: `${event.venue}, ${event.address}`,
     price: event.price,
     category: event.category,

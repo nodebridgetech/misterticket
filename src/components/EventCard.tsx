@@ -8,12 +8,13 @@ interface EventCardProps {
   title: string;
   image: string;
   date: string;
+  endDate?: string;
   location: string;
   price: string;
   category: string;
 }
 
-export const EventCard = ({ id, title, image, date, location, price, category }: EventCardProps) => {
+export const EventCard = ({ id, title, image, date, endDate, location, price, category }: EventCardProps) => {
   return (
     <Link to={`/event/${id}`}>
       <Card className="overflow-hidden group hover:shadow-hover transition-all duration-300 cursor-pointer">
@@ -34,7 +35,7 @@ export const EventCard = ({ id, title, image, date, location, price, category }:
           <div className="space-y-2 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
-              <span>{date}</span>
+              <span>{date}{endDate && ` - ${endDate}`}</span>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4" />

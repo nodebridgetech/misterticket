@@ -129,7 +129,7 @@ const EventDetails = () => {
                       <Calendar className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Data</p>
+                      <p className="text-sm text-muted-foreground">Data de Início</p>
                       <p className="font-semibold">{new Date(event.event_date).toLocaleDateString('pt-BR', { 
                         day: '2-digit',
                         month: 'long',
@@ -142,13 +142,42 @@ const EventDetails = () => {
                       <Clock className="h-5 w-5 text-primary" />
                     </div>
                     <div>
-                      <p className="text-sm text-muted-foreground">Horário</p>
+                      <p className="text-sm text-muted-foreground">Horário de Início</p>
                       <p className="font-semibold">{new Date(event.event_date).toLocaleTimeString('pt-BR', { 
                         hour: '2-digit',
                         minute: '2-digit'
                       })}</p>
                     </div>
                   </div>
+                  {event.event_end_date && (
+                    <>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Calendar className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Data de Término</p>
+                          <p className="font-semibold">{new Date(event.event_end_date).toLocaleDateString('pt-BR', { 
+                            day: '2-digit',
+                            month: 'long',
+                            year: 'numeric'
+                          })}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                          <Clock className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Horário de Término</p>
+                          <p className="font-semibold">{new Date(event.event_end_date).toLocaleTimeString('pt-BR', { 
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}</p>
+                        </div>
+                      </div>
+                    </>
+                  )}
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
                       <MapPin className="h-5 w-5 text-primary" />

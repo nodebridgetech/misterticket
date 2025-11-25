@@ -135,6 +135,7 @@ const Events = () => {
                 id={event.id}
                 title={event.title}
                 date={new Date(event.event_date).toLocaleDateString('pt-BR')}
+                endDate={event.event_end_date ? new Date(event.event_end_date).toLocaleDateString('pt-BR') : undefined}
                 location={`${event.venue} - ${event.address}`}
                 price={event.price}
                 image={event.image_url || "/placeholder.svg"}

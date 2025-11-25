@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -40,6 +41,7 @@ interface Category {
 
 const Index = () => {
   const navigate = useNavigate();
+  const { userRole } = useAuth();
   const [loading, setLoading] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -48,6 +50,15 @@ const Index = () => {
   const [allEvents, setAllEvents] = useState<EventWithPrice[]>([]);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
   const [categoryCarouselApi, setCategoryCarouselApi] = useState<CarouselApi>();
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (userRole === "admin") {
+      navigate("/admin");
+    } else if (userRole === "producer") {
+      navigate("/painel");
+    }
+  }, [userRole, navigate]);
 
   useEffect(() => {
     fetchData();

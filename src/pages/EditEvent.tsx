@@ -49,6 +49,7 @@ const EditEvent = () => {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [eventDate, setEventDate] = useState<Date | undefined>();
+  const [eventEndDate, setEventEndDate] = useState<Date | undefined>();
   const [venue, setVenue] = useState("");
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
@@ -123,6 +124,7 @@ const EditEvent = () => {
       setDescription(eventData.description || "");
       setCategory(eventData.category);
       setEventDate(new Date(eventData.event_date));
+      setEventEndDate(eventData.event_end_date ? new Date(eventData.event_end_date) : undefined);
       setVenue(eventData.venue);
       setAddress(eventData.address);
       setAddressNumber(eventData.address_number || "");
@@ -249,6 +251,15 @@ const EditEvent = () => {
       return;
     }
 
+    if (eventEndDate && eventEndDate < eventDate) {
+      toast({
+        title: "Data inválida",
+        description: "A data de término deve ser posterior à data de início",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error: eventError } = await supabase
         .from("events")
@@ -257,6 +268,7 @@ const EditEvent = () => {
           description,
           category,
           event_date: eventDate?.toISOString() || new Date().toISOString(),
+          event_end_date: eventEndDate?.toISOString() || null,
           venue,
           address,
           address_number: addressNumber || null,
@@ -386,6 +398,15 @@ const EditEvent = () => {
                     date={eventDate}
                     onDateChange={setEventDate}
                     placeholder="Selecione a data e horário do evento"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="eventEndDate">Data e Horário de Término</Label>
+                  <DatePicker
+                    date={eventEndDate}
+                    onDateChange={setEventEndDate}
+                    placeholder="Selecione a data e horário de término (opcional)"
                   />
                 </div>
 

@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 interface AddressAutocompleteProps {
   value: string;
@@ -9,76 +10,105 @@ interface AddressAutocompleteProps {
   required?: boolean;
 }
 
+interface ViaCepResponse {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+}
+
 export const AddressAutocomplete = ({
   value,
   onChange,
   label = "Endereço Completo",
   required = false,
 }: AddressAutocompleteProps) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [cep, setCep] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
-    
-    if (!apiKey) {
-      console.error("Google Places API key not found");
-      return;
+  const formatCep = (value: string) => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 5) return numbers;
+    return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatted = formatCep(e.target.value);
+    setCep(formatted);
+
+    // Auto-fetch when CEP is complete
+    if (formatted.length === 9) {
+      fetchAddress(formatted);
     }
+  };
 
-    // Load Google Maps script
-    const script = document.createElement("script");
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initAutocomplete`;
-    script.async = true;
-    script.defer = true;
+  const fetchAddress = async (cepValue: string) => {
+    const cleanCep = cepValue.replace(/\D/g, "");
+    
+    if (cleanCep.length !== 8) return;
 
-    // Define the callback function
-    (window as any).initAutocomplete = () => {
-      if (!inputRef.current) return;
+    setLoading(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data: ViaCepResponse = await response.json();
 
-      const autocomplete = new google.maps.places.Autocomplete(
-        inputRef.current,
-        {
-          types: ["address"],
-          componentRestrictions: { country: "br" },
-          fields: ["formatted_address", "address_components", "geometry"],
-        }
-      );
-
-      autocomplete.addListener("place_changed", () => {
-        const place = autocomplete.getPlace();
-        
-        if (place.formatted_address) {
-          onChange(place.formatted_address);
-        }
-      });
-    };
-
-    document.head.appendChild(script);
-
-    return () => {
-      // Cleanup
-      const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
-      if (existingScript) {
-        document.head.removeChild(existingScript);
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
       }
-      delete (window as any).initAutocomplete;
-    };
-  }, [onChange]);
+
+      // Format complete address
+      const fullAddress = [
+        data.logradouro,
+        data.bairro,
+        data.localidade,
+        data.uf
+      ].filter(Boolean).join(", ");
+
+      onChange(fullAddress);
+      toast.success("Endereço encontrado!");
+    } catch (error) {
+      toast.error("Erro ao buscar endereço");
+      console.error("ViaCEP error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="address">
-        {label}
-        {required && <span className="text-destructive ml-1">*</span>}
-      </Label>
-      <Input
-        ref={inputRef}
-        id="address"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Digite o endereço e selecione uma sugestão"
-        required={required}
-      />
+    <div className="space-y-4">
+      <div className="space-y-2">
+        <Label htmlFor="cep">
+          CEP
+          {required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+        <Input
+          id="cep"
+          value={cep}
+          onChange={handleCepChange}
+          placeholder="00000-000"
+          maxLength={9}
+          disabled={loading}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="address">
+          {label}
+          {required && <span className="text-destructive ml-1">*</span>}
+        </Label>
+        <Input
+          id="address"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Rua, bairro, cidade, estado"
+          required={required}
+          disabled={loading}
+        />
+      </div>
     </div>
   );
 };

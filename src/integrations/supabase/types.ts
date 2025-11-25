@@ -97,12 +97,14 @@ export type Database = {
           description: string | null
           event_date: string
           event_end_date: string | null
+          google_pixel_code: string | null
           id: string
           image_url: string | null
           is_active: boolean
           is_featured: boolean
           is_published: boolean
           is_trending: boolean
+          meta_pixel_code: string | null
           producer_id: string
           title: string
           updated_at: string
@@ -118,12 +120,14 @@ export type Database = {
           description?: string | null
           event_date: string
           event_end_date?: string | null
+          google_pixel_code?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_published?: boolean
           is_trending?: boolean
+          meta_pixel_code?: string | null
           producer_id: string
           title: string
           updated_at?: string
@@ -139,12 +143,14 @@ export type Database = {
           description?: string | null
           event_date?: string
           event_end_date?: string | null
+          google_pixel_code?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
           is_featured?: boolean
           is_published?: boolean
           is_trending?: boolean
+          meta_pixel_code?: string | null
           producer_id?: string
           title?: string
           updated_at?: string

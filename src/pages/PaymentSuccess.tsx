@@ -73,6 +73,34 @@ const PaymentSuccess = () => {
         setVerified(true);
         setSales(data.sales || []);
         
+        // Inject conversion pixels if available
+        if (data.sales && data.sales.length > 0 && data.sales[0].eventId) {
+          const eventId = data.sales[0].eventId;
+          
+          // Fetch event data to get pixels
+          const { data: eventData } = await supabase
+            .from("events")
+            .select("google_pixel_code, meta_pixel_code")
+            .eq("id", eventId)
+            .single();
+          
+          if (eventData) {
+            // Inject Google conversion pixel
+            if (eventData.google_pixel_code) {
+              const googleScript = document.createElement('div');
+              googleScript.innerHTML = eventData.google_pixel_code;
+              document.head.appendChild(googleScript);
+            }
+            
+            // Inject Meta conversion pixel
+            if (eventData.meta_pixel_code) {
+              const metaScript = document.createElement('div');
+              metaScript.innerHTML = eventData.meta_pixel_code;
+              document.head.appendChild(metaScript);
+            }
+          }
+        }
+        
         toast({
           title: "Pagamento confirmado!",
           description: `${data.sales?.length || 1} ingresso(s) enviado(s) para o e-mail cadastrado.`,

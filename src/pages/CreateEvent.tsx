@@ -174,6 +174,8 @@ const CreateEvent = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [autoAdvanceBatches, setAutoAdvanceBatches] = useState(true);
+  const [googlePixelCode, setGooglePixelCode] = useState("");
+  const [metaPixelCode, setMetaPixelCode] = useState("");
   
   // Ticket batches state
   const [ticketBatches, setTicketBatches] = useState<TicketBatch[]>([]);
@@ -409,6 +411,8 @@ const CreateEvent = () => {
           image_url: imageUrl || null,
           is_published: isPublished,
           auto_advance_batches: autoAdvanceBatches,
+          google_pixel_code: googlePixelCode || null,
+          meta_pixel_code: metaPixelCode || null,
           producer_id: user?.id,
         })
         .select()
@@ -592,6 +596,46 @@ const CreateEvent = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Pixels de Rastreamento</CardTitle>
+              <CardDescription>
+                Códigos de rastreamento para campanhas de tráfego pago (opcional)
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="googlePixelCode">Pixel do Google Ads</Label>
+                <Textarea
+                  id="googlePixelCode"
+                  value={googlePixelCode}
+                  onChange={(e) => setGooglePixelCode(e.target.value)}
+                  placeholder='Cole o código completo do pixel do Google Ads aqui&#10;Exemplo: <script>...</script>'
+                  rows={6}
+                  className="font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este código será injetado na página do evento para rastrear visualizações e conversões
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="metaPixelCode">Pixel do Meta (Facebook/Instagram)</Label>
+                <Textarea
+                  id="metaPixelCode"
+                  value={metaPixelCode}
+                  onChange={(e) => setMetaPixelCode(e.target.value)}
+                  placeholder='Cole o código completo do pixel do Meta aqui&#10;Exemplo: <script>...</script>'
+                  rows={6}
+                  className="font-mono text-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Este código será injetado na página do evento para rastrear visualizações e conversões
+                </p>
               </div>
             </CardContent>
           </Card>

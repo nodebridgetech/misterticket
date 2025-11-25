@@ -47,6 +47,8 @@ export type Database = {
       events: {
         Row: {
           address: string
+          address_complement: string | null
+          address_number: string | null
           auto_advance_batches: boolean
           category: string
           created_at: string
@@ -64,6 +66,8 @@ export type Database = {
         }
         Insert: {
           address: string
+          address_complement?: string | null
+          address_number?: string | null
           auto_advance_batches?: boolean
           category: string
           created_at?: string
@@ -81,6 +85,8 @@ export type Database = {
         }
         Update: {
           address?: string
+          address_complement?: string | null
+          address_number?: string | null
           auto_advance_batches?: boolean
           category?: string
           created_at?: string

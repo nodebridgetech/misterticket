@@ -166,6 +166,7 @@ const CreateEvent = () => {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [eventDate, setEventDate] = useState<Date | undefined>();
+  const [eventEndDate, setEventEndDate] = useState<Date | undefined>();
   const [venue, setVenue] = useState("");
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
@@ -376,6 +377,11 @@ const CreateEvent = () => {
       return;
     }
 
+    if (eventEndDate && eventEndDate < eventDate) {
+      toast.error("A data de término deve ser posterior à data de início");
+      return;
+    }
+
     if (ticketBatches.length === 0) {
       toast.error("Adicione pelo menos um lote de ingressos");
       return;
@@ -395,6 +401,7 @@ const CreateEvent = () => {
           description,
           category: category?.name || "",
           event_date: eventDate?.toISOString() || new Date().toISOString(),
+          event_end_date: eventEndDate?.toISOString() || null,
           venue,
           address,
           address_number: addressNumber || null,
@@ -511,6 +518,15 @@ const CreateEvent = () => {
                     date={eventDate}
                     onDateChange={setEventDate}
                     placeholder="Selecione a data e horário do evento"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="eventEndDate">Data e Horário de Término</Label>
+                  <DatePicker
+                    date={eventEndDate}
+                    onDateChange={setEventEndDate}
+                    placeholder="Selecione a data e horário de término (opcional)"
                   />
                 </div>
 

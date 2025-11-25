@@ -270,13 +270,17 @@ const EventDetails = () => {
                             className="w-full"
                             disabled={!isAvailable || !isSaleActive}
                             variant={isAvailable && isSaleActive ? "hero" : "secondary"}
-                            onClick={() => {
+                            onClick={async () => {
                               if (isAvailable && isSaleActive) {
-                                supabase.from("event_analytics").insert({
-                                  event_id: id,
-                                  event_type: "ticket_click",
-                                  ticket_id: ticket.id,
-                                });
+                                try {
+                                  await supabase.from("event_analytics").insert({
+                                    event_id: id,
+                                    event_type: "ticket_click",
+                                    ticket_id: ticket.id,
+                                  });
+                                } catch (error) {
+                                  console.error("Error tracking ticket click:", error);
+                                }
                                 navigate(`/checkout/${id}?ticket=${ticket.id}`);
                               }
                             }}

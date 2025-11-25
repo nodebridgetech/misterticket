@@ -60,6 +60,7 @@ export type Database = {
           is_active: boolean
           is_featured: boolean
           is_published: boolean
+          is_trending: boolean
           producer_id: string
           title: string
           updated_at: string
@@ -80,6 +81,7 @@ export type Database = {
           is_active?: boolean
           is_featured?: boolean
           is_published?: boolean
+          is_trending?: boolean
           producer_id: string
           title: string
           updated_at?: string
@@ -100,6 +102,7 @@ export type Database = {
           is_active?: boolean
           is_featured?: boolean
           is_published?: boolean
+          is_trending?: boolean
           producer_id?: string
           title?: string
           updated_at?: string

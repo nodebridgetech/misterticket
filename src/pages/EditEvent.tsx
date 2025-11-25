@@ -243,6 +243,45 @@ const EditEvent = () => {
     ));
   };
 
+  const validatePixelCode = (code: string, type: string): boolean => {
+    if (!code.trim()) return true; // Empty is valid (optional field)
+    
+    // Check if it contains script tags or other valid tracking code elements
+    const hasScript = /<script[\s\S]*?>[\s\S]*?<\/script>/i.test(code);
+    const hasNoScript = /<noscript[\s\S]*?>[\s\S]*?<\/noscript>/i.test(code);
+    const hasImg = /<img[\s\S]*?>/i.test(code);
+    const hasIframe = /<iframe[\s\S]*?>[\s\S]*?<\/iframe>/i.test(code);
+    
+    if (!hasScript && !hasNoScript && !hasImg && !hasIframe) {
+      toast({
+        title: `Código de pixel ${type} inválido`,
+        description: "O código deve conter tags HTML válidas como <script>, <noscript>, <img> ou <iframe>",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Basic security check - prevent obviously malicious code
+    const dangerousPatterns = [
+      /document\.cookie/i,
+      /localStorage\./i,
+      /sessionStorage\./i,
+      /eval\(/i,
+    ];
+    
+    const hasDangerousCode = dangerousPatterns.some(pattern => pattern.test(code));
+    if (hasDangerousCode) {
+      toast({
+        title: `Código de pixel ${type} contém padrões suspeitos`,
+        description: "O código não pode acessar cookies, localStorage ou usar eval()",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -261,6 +300,15 @@ const EditEvent = () => {
         description: "A data de término deve ser posterior à data de início",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Validate pixel codes
+    if (!validatePixelCode(googlePixelCode, "do Google Ads")) {
+      return;
+    }
+    
+    if (!validatePixelCode(metaPixelCode, "do Meta")) {
       return;
     }
 

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Eye, Star, Filter, ArrowUpDown, Edit } from "lucide-react";
+import { Trash2, Eye, Star, Filter, ArrowUpDown, Edit, BarChart3 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -355,34 +355,39 @@ export const EventManagementTab = () => {
                         )}
                       </div>
 
-                      <div className="flex gap-2">
+                      <div className="grid grid-cols-4 gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 text-xs"
+                          className="text-xs"
                           onClick={() => navigate(`/event/${event.id}`)}
                         >
-                          <Eye className="h-3 w-3 mr-1" />
-                          Ver
+                          <Eye className="h-3 w-3" />
                         </Button>
                         <Button
                           size="sm"
                           variant="outline"
-                          className="flex-1 text-xs"
+                          className="text-xs"
                           onClick={() => navigate(`/editar-evento/${event.id}`)}
                         >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Editar
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-xs"
+                          onClick={() => navigate(`/event-analytics/${event.id}`)}
+                        >
+                          <BarChart3 className="h-3 w-3" />
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
-                          className="flex-1 text-xs"
+                          className="text-xs"
                           onClick={() => setEventToDelete(event.id)}
                           disabled={deleting === event.id}
                         >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Excluir
+                          <Trash2 className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
@@ -460,6 +465,13 @@ export const EventManagementTab = () => {
                             onClick={() => navigate(`/editar-evento/${event.id}`)}
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/event-analytics/${event.id}`)}
+                          >
+                            <BarChart3 className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"

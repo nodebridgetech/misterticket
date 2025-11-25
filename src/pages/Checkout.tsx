@@ -80,6 +80,13 @@ const Checkout = () => {
 
     setProcessing(true);
     try {
+      // Track checkout click
+      await supabase.from("event_analytics").insert({
+        event_id: event.id,
+        event_type: "checkout_click",
+        ticket_id: ticket.id,
+      });
+
       toast({
         title: "Processando",
         description: "Criando sessão de pagamento...",

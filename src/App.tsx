@@ -25,6 +25,7 @@ import PaymentSuccess from "./pages/PaymentSuccess";
 import ValidateTickets from "./pages/ValidateTickets";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
+import EventAnalytics from "./pages/EventAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
             <Route path="/meus-eventos" element={<MyEvents />} />
             <Route path="/criar-evento" element={<CreateEvent />} />
             <Route path="/editar-evento/:id" element={<EditEvent />} />
+            <Route path="/event-analytics/:id" element={<EventAnalytics />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/produtores" element={<ProducersManagement />} />
             <Route path="/admin/eventos" element={<EventsManagement />} />

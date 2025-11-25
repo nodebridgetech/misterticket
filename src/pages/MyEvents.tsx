@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CalendarDays, Plus, Trash2, Copy, Edit, Power, Eye } from "lucide-react";
+import { CalendarDays, Plus, Trash2, Copy, Edit, Power, Eye, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -357,7 +357,7 @@ const MyEvents = () => {
                           </Button>
                         </div>
                         
-                        <div className="grid grid-cols-4 gap-2">
+                        <div className="grid grid-cols-5 gap-2">
                           <Button
                             size="sm"
                             variant="outline"
@@ -371,6 +371,13 @@ const MyEvents = () => {
                             onClick={() => navigate(`/editar-evento/${event.id}`)}
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/event-analytics/${event.id}`)}
+                          >
+                            <BarChart3 className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"
@@ -451,6 +458,13 @@ const MyEvents = () => {
                             onClick={() => navigate(`/editar-evento/${event.id}`)}
                           >
                             <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => navigate(`/event-analytics/${event.id}`)}
+                          >
+                            <BarChart3 className="h-4 w-4" />
                           </Button>
                           <Button
                             size="sm"

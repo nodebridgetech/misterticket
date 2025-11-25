@@ -43,8 +43,7 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
   const [featuredEvents, setFeaturedEvents] = useState<Event[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [upcomingEvents, setUpcomingEvents] = useState<EventWithPrice[]>([]);
-  const [next30DaysEvents, setNext30DaysEvents] = useState<EventWithPrice[]>([]);
+  const [trendingEvents, setTrendingEvents] = useState<EventWithPrice[]>([]);
   const [recentEvents, setRecentEvents] = useState<EventWithPrice[]>([]);
   const [allEvents, setAllEvents] = useState<EventWithPrice[]>([]);
   const [carouselApi, setCarouselApi] = useState<CarouselApi>();
@@ -90,8 +89,6 @@ const Index = () => {
   const fetchData = async () => {
     setLoading(true);
     const now = new Date().toISOString();
-    const next7Days = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-    const next30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     // Featured events - prioritize events marked as featured, then by date
     const { data: featured } = await supabase
@@ -110,23 +107,13 @@ const Index = () => {
       .order("position", { ascending: true, nullsFirst: false })
       .order("name");
 
-    // Eventos próximos (7 dias)
-    const { data: upcoming } = await supabase
+    // Eventos em alta
+    const { data: trending } = await supabase
       .from("events")
       .select("*")
       .eq("is_published", true)
+      .eq("is_trending", true)
       .gte("event_date", now)
-      .lte("event_date", next7Days)
-      .order("event_date", { ascending: true })
-      .limit(6);
-
-    // Eventos próximos 30 dias
-    const { data: next30 } = await supabase
-      .from("events")
-      .select("*")
-      .eq("is_published", true)
-      .gte("event_date", next7Days)
-      .lte("event_date", next30Days)
       .order("event_date", { ascending: true })
       .limit(6);
 
@@ -151,8 +138,7 @@ const Index = () => {
     setCategories(cats || []);
     
     // Enrich events with prices
-    if (upcoming) setUpcomingEvents(await enrichEventsWithPrice(upcoming));
-    if (next30) setNext30DaysEvents(await enrichEventsWithPrice(next30));
+    if (trending) setTrendingEvents(await enrichEventsWithPrice(trending));
     if (recent) setRecentEvents(await enrichEventsWithPrice(recent));
     if (all) setAllEvents(await enrichEventsWithPrice(all));
     
@@ -278,14 +264,14 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Upcoming Events (7 days) */}
-      {upcomingEvents.length > 0 && (
+      {/* Trending Events */}
+      {trendingEvents.length > 0 && (
         <section className="py-16 bg-secondary/20">
           <div className="container mx-auto px-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">Acontecendo em breve</h2>
-                <p className="text-sm md:text-base text-muted-foreground">Próximos 7 dias</p>
+                <h2 className="text-2xl md:text-3xl font-bold mb-2">🔥 Eventos em Alta</h2>
+                <p className="text-sm md:text-base text-muted-foreground">Os eventos mais procurados do momento</p>
               </div>
               <Button variant="ghost" asChild className="self-start sm:self-auto">
                 <Link to="/eventos">
@@ -295,32 +281,7 @@ const Index = () => {
               </Button>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {upcomingEvents.map((event) => (
-                <EventCard key={event.id} {...formatEventCard(event)} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Next 30 Days Events */}
-      {next30DaysEvents.length > 0 && (
-        <section className="py-16 bg-background">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold mb-2">Próximos eventos</h2>
-                <p className="text-sm md:text-base text-muted-foreground">Nos próximos 30 dias</p>
-              </div>
-              <Button variant="ghost" asChild className="self-start sm:self-auto">
-                <Link to="/eventos">
-                  Ver todos
-                  <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {next30DaysEvents.map((event) => (
+              {trendingEvents.map((event) => (
                 <EventCard key={event.id} {...formatEventCard(event)} />
               ))}
             </div>

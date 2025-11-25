@@ -44,6 +44,7 @@ export const EventManagementTab = () => {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [eventToDelete, setEventToDelete] = useState<string | null>(null);
   const [updatingFeatured, setUpdatingFeatured] = useState<string | null>(null);
+  const [updatingTrending, setUpdatingTrending] = useState<string | null>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -192,6 +193,36 @@ export const EventManagementTab = () => {
     }
   };
 
+  const handleToggleTrending = async (eventId: string, currentValue: boolean) => {
+    setUpdatingTrending(eventId);
+    try {
+      const { error } = await supabase
+        .from("events")
+        .update({ is_trending: !currentValue })
+        .eq("id", eventId);
+
+      if (error) throw error;
+
+      toast({
+        title: currentValue ? "Evento removido de Em Alta" : "Evento marcado como Em Alta",
+        description: currentValue 
+          ? "O evento não aparecerá mais na seção Eventos em Alta." 
+          : "O evento será exibido na seção Eventos em Alta da página inicial.",
+      });
+
+      fetchEvents();
+    } catch (error) {
+      console.error("Error updating trending status:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível atualizar o status de Em Alta.",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingTrending(null);
+    }
+  };
+
   return (
     <>
       <Card>
@@ -312,6 +343,18 @@ export const EventManagementTab = () => {
                         )}
                       </div>
 
+                      <div className="flex items-center gap-2">
+                        <Label className="text-xs">Em Alta:</Label>
+                        <Switch
+                          checked={event.is_trending}
+                          onCheckedChange={() => handleToggleTrending(event.id, event.is_trending)}
+                          disabled={updatingTrending === event.id}
+                        />
+                        {event.is_trending && (
+                          <span className="text-xs">🔥</span>
+                        )}
+                      </div>
+
                       <div className="flex gap-2">
                         <Button
                           size="sm"
@@ -357,6 +400,7 @@ export const EventManagementTab = () => {
                       <TableHead>Data do Evento</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Destaque</TableHead>
+                      <TableHead>Em Alta</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -386,6 +430,18 @@ export const EventManagementTab = () => {
                             />
                             {event.is_featured && (
                               <Star className="h-4 w-4 fill-yellow-500 text-yellow-500" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={event.is_trending}
+                              onCheckedChange={() => handleToggleTrending(event.id, event.is_trending)}
+                              disabled={updatingTrending === event.id}
+                            />
+                            {event.is_trending && (
+                              <span>🔥</span>
                             )}
                           </div>
                         </TableCell>

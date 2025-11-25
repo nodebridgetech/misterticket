@@ -14,6 +14,7 @@ const EventDetails = () => {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const hasTrackedView = useRef(false);
+  const pixelsInjected = useRef(false);
 
   useEffect(() => {
     if (id) {
@@ -35,6 +36,36 @@ const EventDetails = () => {
       hasTrackedView.current = false;
     }
   };
+
+  // Inject pixels when event is loaded
+  useEffect(() => {
+    if (event && !pixelsInjected.current) {
+      pixelsInjected.current = true;
+      
+      // Inject Google Pixel
+      if (event.google_pixel_code) {
+        const googleDiv = document.createElement('div');
+        googleDiv.innerHTML = event.google_pixel_code;
+        googleDiv.setAttribute('data-pixel-injected', 'google');
+        document.head.appendChild(googleDiv);
+      }
+      
+      // Inject Meta Pixel
+      if (event.meta_pixel_code) {
+        const metaDiv = document.createElement('div');
+        metaDiv.innerHTML = event.meta_pixel_code;
+        metaDiv.setAttribute('data-pixel-injected', 'meta');
+        document.head.appendChild(metaDiv);
+      }
+    }
+
+    // Cleanup function
+    return () => {
+      const scriptsToRemove = document.head.querySelectorAll('[data-pixel-injected]');
+      scriptsToRemove.forEach(script => script.remove());
+      pixelsInjected.current = false;
+    };
+  }, [event]);
 
   const fetchEventDetails = async () => {
     try {

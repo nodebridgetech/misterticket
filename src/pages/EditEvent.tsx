@@ -57,6 +57,8 @@ const EditEvent = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [autoAdvanceBatches, setAutoAdvanceBatches] = useState(true);
+  const [googlePixelCode, setGooglePixelCode] = useState("");
+  const [metaPixelCode, setMetaPixelCode] = useState("");
   const [ticketBatches, setTicketBatches] = useState<TicketBatch[]>([]);
   const [deletedBatchIds, setDeletedBatchIds] = useState<string[]>([]);
 
@@ -132,6 +134,8 @@ const EditEvent = () => {
       setImageUrl(eventData.image_url || "");
       setIsPublished(eventData.is_published);
       setAutoAdvanceBatches(eventData.auto_advance_batches ?? true);
+      setGooglePixelCode(eventData.google_pixel_code || "");
+      setMetaPixelCode(eventData.meta_pixel_code || "");
 
       const { data: ticketsData } = await supabase
         .from("tickets")
@@ -276,6 +280,8 @@ const EditEvent = () => {
           image_url: imageUrl || null,
           is_published: isPublished,
           auto_advance_batches: autoAdvanceBatches,
+          google_pixel_code: googlePixelCode || null,
+          meta_pixel_code: metaPixelCode || null,
         })
         .eq("id", id);
 
@@ -659,6 +665,46 @@ const EditEvent = () => {
                     <Plus className="h-4 w-4 mr-2" />
                     Adicionar Lote
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pixels de Rastreamento</CardTitle>
+                <CardDescription>
+                  Códigos de rastreamento para campanhas de tráfego pago (opcional)
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="googlePixelCode">Pixel do Google Ads</Label>
+                  <Textarea
+                    id="googlePixelCode"
+                    value={googlePixelCode}
+                    onChange={(e) => setGooglePixelCode(e.target.value)}
+                    placeholder='Cole o código completo do pixel do Google Ads aqui&#10;Exemplo: <script>...</script>'
+                    rows={6}
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este código será injetado na página do evento para rastrear visualizações e conversões
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="metaPixelCode">Pixel do Meta (Facebook/Instagram)</Label>
+                  <Textarea
+                    id="metaPixelCode"
+                    value={metaPixelCode}
+                    onChange={(e) => setMetaPixelCode(e.target.value)}
+                    placeholder='Cole o código completo do pixel do Meta aqui&#10;Exemplo: <script>...</script>'
+                    rows={6}
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este código será injetado na página do evento para rastrear visualizações e conversões
+                  </p>
                 </div>
               </CardContent>
             </Card>

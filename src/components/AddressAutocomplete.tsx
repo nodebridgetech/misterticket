@@ -4,9 +4,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 
 interface AddressAutocompleteProps {
-  value: string;
-  onChange: (address: string) => void;
-  label?: string;
+  address: string;
+  number: string;
+  complement: string;
+  onAddressChange: (address: string) => void;
+  onNumberChange: (number: string) => void;
+  onComplementChange: (complement: string) => void;
   required?: boolean;
 }
 
@@ -21,9 +24,12 @@ interface ViaCepResponse {
 }
 
 export const AddressAutocomplete = ({
-  value,
-  onChange,
-  label = "Endereço Completo",
+  address,
+  number,
+  complement,
+  onAddressChange,
+  onNumberChange,
+  onComplementChange,
   required = false,
 }: AddressAutocompleteProps) => {
   const [cep, setCep] = useState("");
@@ -60,7 +66,7 @@ export const AddressAutocomplete = ({
         return;
       }
 
-      // Format complete address
+      // Format complete address (street, neighborhood, city, state)
       const fullAddress = [
         data.logradouro,
         data.bairro,
@@ -68,7 +74,13 @@ export const AddressAutocomplete = ({
         data.uf
       ].filter(Boolean).join(", ");
 
-      onChange(fullAddress);
+      onAddressChange(fullAddress);
+      
+      // If ViaCEP returns a complement, fill it
+      if (data.complemento) {
+        onComplementChange(data.complemento);
+      }
+      
       toast.success("Endereço encontrado!");
     } catch (error) {
       toast.error("Erro ao buscar endereço");
@@ -97,17 +109,47 @@ export const AddressAutocomplete = ({
 
       <div className="space-y-2">
         <Label htmlFor="address">
-          {label}
+          Endereço
           {required && <span className="text-destructive ml-1">*</span>}
         </Label>
         <Input
           id="address"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
+          value={address}
+          onChange={(e) => onAddressChange(e.target.value)}
           placeholder="Rua, bairro, cidade, estado"
           required={required}
           disabled={loading}
         />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="number">
+            Número
+            {required && <span className="text-destructive ml-1">*</span>}
+          </Label>
+          <Input
+            id="number"
+            value={number}
+            onChange={(e) => onNumberChange(e.target.value)}
+            placeholder="123"
+            required={required}
+            disabled={loading}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="complement">
+            Complemento
+          </Label>
+          <Input
+            id="complement"
+            value={complement}
+            onChange={(e) => onComplementChange(e.target.value)}
+            placeholder="Apto 45, Bloco B"
+            disabled={loading}
+          />
+        </div>
       </div>
     </div>
   );

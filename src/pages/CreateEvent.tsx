@@ -168,6 +168,8 @@ const CreateEvent = () => {
   const [eventDate, setEventDate] = useState<Date | undefined>();
   const [venue, setVenue] = useState("");
   const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [isPublished, setIsPublished] = useState(false);
   const [autoAdvanceBatches, setAutoAdvanceBatches] = useState(true);
@@ -223,6 +225,8 @@ const CreateEvent = () => {
       
       setVenue(duplicateFrom.venue);
       setAddress(duplicateFrom.address);
+      setAddressNumber(duplicateFrom.address_number || "");
+      setAddressComplement(duplicateFrom.address_complement || "");
       setImageUrl(duplicateFrom.image_url || "");
       setIsPublished(false); // Always start as draft for duplicates
       
@@ -393,6 +397,8 @@ const CreateEvent = () => {
           event_date: eventDate?.toISOString() || new Date().toISOString(),
           venue,
           address,
+          address_number: addressNumber || null,
+          address_complement: addressComplement || null,
           image_url: imageUrl || null,
           is_published: isPublished,
           auto_advance_batches: autoAdvanceBatches,
@@ -521,8 +527,12 @@ const CreateEvent = () => {
               </div>
 
               <AddressAutocomplete
-                value={address}
-                onChange={setAddress}
+                address={address}
+                number={addressNumber}
+                complement={addressComplement}
+                onAddressChange={setAddress}
+                onNumberChange={setAddressNumber}
+                onComplementChange={setAddressComplement}
                 required
               />
 

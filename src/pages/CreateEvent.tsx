@@ -11,13 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Plus, Trash2, Eye, Copy, Edit, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Eye, Copy, Edit, GripVertical, Code2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
 import { DatePicker } from "@/components/DatePicker";
 import { Badge } from "@/components/ui/badge";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   DndContext,
   closestCenter,
@@ -653,12 +654,31 @@ const CreateEvent = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="googlePixelCode">Pixel do Google Ads</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="googlePixelCode">Pixel do Google Ads</Label>
+                  {googlePixelCode && (
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="gap-2">
+                          <Code2 className="h-4 w-4" />
+                          Ver Preview
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="rounded-md bg-muted p-4 overflow-auto max-h-60">
+                          <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                            {googlePixelCode}
+                          </pre>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </div>
                 <Textarea
                   id="googlePixelCode"
                   value={googlePixelCode}
                   onChange={(e) => setGooglePixelCode(e.target.value)}
-                  placeholder='Cole o código completo do pixel do Google Ads aqui&#10;Exemplo: <script>...</script>'
+                  placeholder="Cole o código completo do pixel do Google Ads aqui&#10;Exemplo: <script>...</script>"
                   rows={6}
                   className="font-mono text-xs"
                 />
@@ -668,12 +688,31 @@ const CreateEvent = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="metaPixelCode">Pixel do Meta (Facebook/Instagram)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="metaPixelCode">Pixel do Meta (Facebook/Instagram)</Label>
+                  {metaPixelCode && (
+                    <Collapsible>
+                      <CollapsibleTrigger asChild>
+                        <Button type="button" variant="outline" size="sm" className="gap-2">
+                          <Code2 className="h-4 w-4" />
+                          Ver Preview
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="mt-2">
+                        <div className="rounded-md bg-muted p-4 overflow-auto max-h-60">
+                          <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                            {metaPixelCode}
+                          </pre>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                  )}
+                </div>
                 <Textarea
                   id="metaPixelCode"
                   value={metaPixelCode}
                   onChange={(e) => setMetaPixelCode(e.target.value)}
-                  placeholder='Cole o código completo do pixel do Meta aqui&#10;Exemplo: <script>...</script>'
+                  placeholder="Cole o código completo do pixel do Meta aqui&#10;Exemplo: <script>...</script>"
                   rows={6}
                   className="font-mono text-xs"
                 />

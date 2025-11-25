@@ -17,8 +17,20 @@ const EventDetails = () => {
   useEffect(() => {
     if (id) {
       fetchEventDetails();
+      trackPageView();
     }
   }, [id]);
+
+  const trackPageView = async () => {
+    try {
+      await supabase.from("event_analytics").insert({
+        event_id: id,
+        event_type: "page_view",
+      });
+    } catch (error) {
+      console.error("Error tracking page view:", error);
+    }
+  };
 
   const fetchEventDetails = async () => {
     try {
@@ -258,7 +270,16 @@ const EventDetails = () => {
                             className="w-full"
                             disabled={!isAvailable || !isSaleActive}
                             variant={isAvailable && isSaleActive ? "hero" : "secondary"}
-                            onClick={() => isAvailable && isSaleActive && navigate(`/checkout/${id}?ticket=${ticket.id}`)}
+                            onClick={() => {
+                              if (isAvailable && isSaleActive) {
+                                supabase.from("event_analytics").insert({
+                                  event_id: id,
+                                  event_type: "ticket_click",
+                                  ticket_id: ticket.id,
+                                });
+                                navigate(`/checkout/${id}?ticket=${ticket.id}`);
+                              }
+                            }}
                           >
                             {!isSaleActive ? "Fora do período" : isAvailable ? "Comprar" : "Esgotado"}
                           </Button>

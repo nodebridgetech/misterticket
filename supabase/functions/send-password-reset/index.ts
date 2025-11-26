@@ -1,7 +1,14 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+
+// Create Supabase admin client
+const supabaseAdmin = createClient(
+  Deno.env.get("SUPABASE_URL") ?? "",
+  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+);
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,7 +17,6 @@ const corsHeaders = {
 
 interface PasswordResetRequest {
   email: string;
-  resetLink: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -20,8 +26,29 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, resetLink }: PasswordResetRequest = await req.json();
+    const { email }: PasswordResetRequest = await req.json();
 
+    console.log("Generating password reset link for:", email);
+
+    // Generate the reset link using Supabase Admin API
+    const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'recovery',
+      email: email,
+      options: {
+        redirectTo: `${Deno.env.get("VITE_SUPABASE_URL") || "https://misterticket.com.br"}/redefinir-senha`
+      }
+    });
+
+    if (linkError) {
+      console.error("Error generating reset link:", linkError);
+      throw linkError;
+    }
+
+    if (!data?.properties?.action_link) {
+      throw new Error("Failed to generate reset link");
+    }
+
+    const resetLink = data.properties.action_link;
     console.log("Sending password reset email to:", email);
 
     const html = `

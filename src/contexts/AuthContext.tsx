@@ -43,16 +43,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loadCachedRole = (userId: string): boolean => {
     try {
       const cached = localStorage.getItem(`${ROLE_CACHE_KEY}_${userId}`);
-      if (!cached) return false;
+      if (!cached) {
+        console.log("AuthContext: No cache found for user", userId);
+        return false;
+      }
 
       const cachedData: CachedRole = JSON.parse(cached);
       const isExpired = Date.now() - cachedData.timestamp > CACHE_DURATION;
+      
+      console.log("AuthContext: Cache loaded", { 
+        userId, 
+        cachedData, 
+        isExpired,
+        age: Math.round((Date.now() - cachedData.timestamp) / 1000) + 's'
+      });
       
       if (!isExpired) {
         setUserRole(cachedData.userRole);
         setIsProducerApproved(cachedData.isProducerApproved);
         setHasPendingProducerRequest(cachedData.hasPendingProducerRequest);
         return true;
+      } else {
+        console.log("AuthContext: Cache expired, clearing");
       }
     } catch (error) {
       console.error("Error loading cached role:", error);
@@ -85,13 +97,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserRole = async (userId: string, useCache: boolean = true) => {
     setRoleLoading(true);
     
-    // Load from cache first for instant UI
+    // Load from cache first for instant UI (but keep loading state)
     if (useCache) {
-      const hasCached = loadCachedRole(userId);
-      if (hasCached) {
-        setRoleLoading(false);
-        // Continue to fetch in background to revalidate
-      }
+      loadCachedRole(userId);
+      // Keep roleLoading true until DB revalidation completes
     }
 
     try {
@@ -145,6 +154,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(role);
       setIsProducerApproved(approved);
       setHasPendingProducerRequest(pending);
+      
+      console.log("AuthContext: Role updated", { userId, role, approved, pending });
       
       // Save to cache
       saveCachedRole(userId, role, approved, pending);

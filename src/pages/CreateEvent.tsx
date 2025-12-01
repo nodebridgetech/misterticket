@@ -155,7 +155,7 @@ const SortableTicketBatch = ({ batch, index, isNextBatch, onEdit, onDuplicate, o
 };
 
 const CreateEvent = () => {
-  const { user, isProducerApproved, loading } = useAuth();
+  const { user, isProducerApproved, loading, roleLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const duplicateFrom = location.state?.duplicateFrom;
@@ -206,10 +206,10 @@ const CreateEvent = () => {
   );
 
   useEffect(() => {
-    if (!loading && (!user || !isProducerApproved)) {
+    if (!loading && !roleLoading && (!user || !isProducerApproved)) {
       navigate("/minha-conta");
     }
-  }, [user, isProducerApproved, loading, navigate]);
+  }, [user, isProducerApproved, loading, roleLoading, navigate]);
 
   useEffect(() => {
     fetchCategories();
@@ -493,7 +493,7 @@ const CreateEvent = () => {
     }
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Carregando...</p>
@@ -502,7 +502,11 @@ const CreateEvent = () => {
   }
 
   if (!isProducerApproved) {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Verificando permissões...</p>
+      </div>
+    );
   }
 
   return (

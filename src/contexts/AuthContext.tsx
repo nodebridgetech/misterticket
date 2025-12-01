@@ -11,6 +11,7 @@ interface AuthContextType {
   isProducerApproved: boolean;
   hasPendingProducerRequest: boolean;
   loading: boolean;
+  roleLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -26,59 +27,73 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isProducerApproved, setIsProducerApproved] = useState(false);
   const [hasPendingProducerRequest, setHasPendingProducerRequest] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [roleLoading, setRoleLoading] = useState(false);
   const navigate = useNavigate();
 
   const fetchUserRole = async (userId: string) => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role, is_approved")
-      .eq("user_id", userId)
-      .order("requested_at", { ascending: false });
+    setRoleLoading(true);
+    try {
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role, is_approved")
+        .eq("user_id", userId)
+        .order("requested_at", { ascending: false });
 
-    if (data && data.length > 0) {
-      // Check if user is admin
-      const adminRole = data.find(r => r.role === "admin");
-      if (adminRole) {
-        setUserRole("admin");
-        setIsProducerApproved(false);
-        setHasPendingProducerRequest(false);
-        return;
-      }
+      if (data && data.length > 0) {
+        // Check if user is admin
+        const adminRole = data.find(r => r.role === "admin");
+        if (adminRole) {
+          setUserRole("admin");
+          setIsProducerApproved(false);
+          setHasPendingProducerRequest(false);
+          return;
+        }
 
-      // Check if user is approved producer
-      const producerRole = data.find(r => r.role === "producer" && r.is_approved);
-      if (producerRole) {
-        setUserRole("producer");
-        setIsProducerApproved(true);
-        setHasPendingProducerRequest(false);
-        return;
-      }
+        // Check if user is approved producer
+        const producerRole = data.find(r => r.role === "producer" && r.is_approved);
+        if (producerRole) {
+          setUserRole("producer");
+          setIsProducerApproved(true);
+          setHasPendingProducerRequest(false);
+          return;
+        }
 
-      // Check if user has pending producer request
-      const pendingProducerRole = data.find(r => r.role === "producer" && !r.is_approved);
-      if (pendingProducerRole) {
+        // Check if user has pending producer request
+        const pendingProducerRole = data.find(r => r.role === "producer" && !r.is_approved);
+        if (pendingProducerRole) {
+          setUserRole("visitor");
+          setIsProducerApproved(false);
+          setHasPendingProducerRequest(true);
+          return;
+        }
+
+        // Default to visitor
         setUserRole("visitor");
         setIsProducerApproved(false);
-        setHasPendingProducerRequest(true);
-        return;
+        setHasPendingProducerRequest(false);
+      } else {
+        // No roles found - default to visitor
+        setUserRole("visitor");
+        setIsProducerApproved(false);
+        setHasPendingProducerRequest(false);
       }
-
-      // Default to visitor
+    } catch (error) {
+      console.error("Error fetching user role:", error);
       setUserRole("visitor");
       setIsProducerApproved(false);
       setHasPendingProducerRequest(false);
+    } finally {
+      setRoleLoading(false);
     }
   };
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        setTimeout(() => {
-          fetchUserRole(session.user.id);
-        }, 0);
+        await fetchUserRole(session.user.id);
       } else {
         setUserRole(null);
         setIsProducerApproved(false);
@@ -86,14 +101,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        await fetchUserRole(session.user.id);
       }
       setLoading(false);
     });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
@@ -175,6 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isProducerApproved,
         hasPendingProducerRequest,
         loading,
+        roleLoading,
         signIn,
         signUp,
         signOut,

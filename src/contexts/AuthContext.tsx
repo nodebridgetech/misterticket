@@ -171,6 +171,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("AuthContext: Auth state changed", { event, userId: session?.user?.id });
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -180,14 +181,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(null);
         setIsProducerApproved(false);
         setHasPendingProducerRequest(false);
+        setRoleLoading(false);
       }
+      
+      // Ensure loading is false after handling auth change
+      setLoading(false);
     });
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log("AuthContext: Initial session loaded", { userId: session?.user?.id });
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         await fetchUserRole(session.user.id);
+      } else {
+        setRoleLoading(false);
       }
       setLoading(false);
     });

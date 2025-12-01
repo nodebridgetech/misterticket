@@ -155,7 +155,7 @@ const SortableTicketBatch = ({ batch, index, isNextBatch, onEdit, onDuplicate, o
 };
 
 const CreateEvent = () => {
-  const { user, isProducerApproved, loading, roleLoading } = useAuth();
+  const { user, isProducerApproved, loading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const duplicateFrom = location.state?.duplicateFrom;
@@ -206,11 +206,10 @@ const CreateEvent = () => {
   );
 
   useEffect(() => {
-    if (!loading && !roleLoading && (!user || !isProducerApproved)) {
-      console.log("CreateEvent: Redirecting to account", { user: !!user, isProducerApproved, loading, roleLoading });
+    if (!loading && (!user || !isProducerApproved)) {
       navigate("/minha-conta");
     }
-  }, [user, isProducerApproved, loading, roleLoading, navigate]);
+  }, [user, isProducerApproved, loading, navigate]);
 
   useEffect(() => {
     fetchCategories();
@@ -494,8 +493,7 @@ const CreateEvent = () => {
     }
   };
 
-  if (loading || roleLoading) {
-    console.log("CreateEvent: Loading state", { loading, roleLoading, isProducerApproved });
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Carregando...</p>
@@ -504,15 +502,8 @@ const CreateEvent = () => {
   }
 
   if (!isProducerApproved) {
-    console.log("CreateEvent: Not approved", { isProducerApproved, loading, roleLoading });
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Verificando permissões...</p>
-      </div>
-    );
+    return null;
   }
-
-  console.log("CreateEvent: Rendering form", { isProducerApproved, loading, roleLoading });
 
   return (
     <>

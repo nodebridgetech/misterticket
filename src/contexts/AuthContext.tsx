@@ -18,6 +18,16 @@ interface AuthContextType {
   requestProducerRole: () => Promise<void>;
 }
 
+interface CachedRole {
+  userRole: string | null;
+  isProducerApproved: boolean;
+  hasPendingProducerRequest: boolean;
+  timestamp: number;
+}
+
+const ROLE_CACHE_KEY = 'user_role_cache';
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -30,8 +40,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [roleLoading, setRoleLoading] = useState(false);
   const navigate = useNavigate();
 
-  const fetchUserRole = async (userId: string) => {
+  const loadCachedRole = (userId: string): boolean => {
+    try {
+      const cached = localStorage.getItem(`${ROLE_CACHE_KEY}_${userId}`);
+      if (!cached) return false;
+
+      const cachedData: CachedRole = JSON.parse(cached);
+      const isExpired = Date.now() - cachedData.timestamp > CACHE_DURATION;
+      
+      if (!isExpired) {
+        setUserRole(cachedData.userRole);
+        setIsProducerApproved(cachedData.isProducerApproved);
+        setHasPendingProducerRequest(cachedData.hasPendingProducerRequest);
+        return true;
+      }
+    } catch (error) {
+      console.error("Error loading cached role:", error);
+    }
+    return false;
+  };
+
+  const saveCachedRole = (userId: string, role: string | null, approved: boolean, pending: boolean) => {
+    try {
+      const cacheData: CachedRole = {
+        userRole: role,
+        isProducerApproved: approved,
+        hasPendingProducerRequest: pending,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(`${ROLE_CACHE_KEY}_${userId}`, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error("Error saving cached role:", error);
+    }
+  };
+
+  const clearCachedRole = (userId: string) => {
+    try {
+      localStorage.removeItem(`${ROLE_CACHE_KEY}_${userId}`);
+    } catch (error) {
+      console.error("Error clearing cached role:", error);
+    }
+  };
+
+  const fetchUserRole = async (userId: string, useCache: boolean = true) => {
     setRoleLoading(true);
+    
+    // Load from cache first for instant UI
+    if (useCache) {
+      const hasCached = loadCachedRole(userId);
+      if (hasCached) {
+        setRoleLoading(false);
+        // Continue to fetch in background to revalidate
+      }
+    }
+
     try {
       const { data } = await supabase
         .from("user_roles")
@@ -39,44 +101,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         .eq("user_id", userId)
         .order("requested_at", { ascending: false });
 
+      let role: string | null = null;
+      let approved = false;
+      let pending = false;
+
       if (data && data.length > 0) {
         // Check if user is admin
         const adminRole = data.find(r => r.role === "admin");
         if (adminRole) {
-          setUserRole("admin");
-          setIsProducerApproved(false);
-          setHasPendingProducerRequest(false);
-          return;
+          role = "admin";
+          approved = false;
+          pending = false;
+        } else {
+          // Check if user is approved producer
+          const producerRole = data.find(r => r.role === "producer" && r.is_approved);
+          if (producerRole) {
+            role = "producer";
+            approved = true;
+            pending = false;
+          } else {
+            // Check if user has pending producer request
+            const pendingProducerRole = data.find(r => r.role === "producer" && !r.is_approved);
+            if (pendingProducerRole) {
+              role = "visitor";
+              approved = false;
+              pending = true;
+            } else {
+              // Default to visitor
+              role = "visitor";
+              approved = false;
+              pending = false;
+            }
+          }
         }
-
-        // Check if user is approved producer
-        const producerRole = data.find(r => r.role === "producer" && r.is_approved);
-        if (producerRole) {
-          setUserRole("producer");
-          setIsProducerApproved(true);
-          setHasPendingProducerRequest(false);
-          return;
-        }
-
-        // Check if user has pending producer request
-        const pendingProducerRole = data.find(r => r.role === "producer" && !r.is_approved);
-        if (pendingProducerRole) {
-          setUserRole("visitor");
-          setIsProducerApproved(false);
-          setHasPendingProducerRequest(true);
-          return;
-        }
-
-        // Default to visitor
-        setUserRole("visitor");
-        setIsProducerApproved(false);
-        setHasPendingProducerRequest(false);
       } else {
         // No roles found - default to visitor
-        setUserRole("visitor");
-        setIsProducerApproved(false);
-        setHasPendingProducerRequest(false);
+        role = "visitor";
+        approved = false;
+        pending = false;
       }
+
+      // Update state
+      setUserRole(role);
+      setIsProducerApproved(approved);
+      setHasPendingProducerRequest(pending);
+      
+      // Save to cache
+      saveCachedRole(userId, role, approved, pending);
     } catch (error) {
       console.error("Error fetching user role:", error);
       setUserRole("visitor");
@@ -149,6 +220,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    if (user) {
+      clearCachedRole(user.id);
+    }
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

@@ -48,8 +48,59 @@ interface CachedRole {
   timestamp: number;
 }
 
-const ROLE_CACHE_KEY = 'user_role_cache';
+const CACHE_VERSION = 1; // Incrementar para invalidar todos os caches
+const ROLE_CACHE_KEY = `user_role_cache_v${CACHE_VERSION}`;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+// Cleanup old cache versions
+const cleanupOldCaches = () => {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('user_role_cache_v') && !key.includes(`_v${CACHE_VERSION}_`)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      authLog.info("Old cache version removed", { key });
+    });
+    if (keysToRemove.length > 0) {
+      authLog.info("Cache cleanup completed", { removedCount: keysToRemove.length });
+    }
+  } catch (error) {
+    authLog.error("Cleanup old caches failed", error);
+  }
+};
+
+// Check if URL has clear_cache parameter
+const shouldClearCache = (): boolean => {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('clear_cache') === 'true';
+  } catch (error) {
+    authLog.error("Error checking clear_cache parameter", error);
+    return false;
+  }
+};
+
+// Clear all role caches from localStorage
+const clearAllRoleCaches = () => {
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('user_role_cache')) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    authLog.info("All role caches cleared via URL parameter", { count: keysToRemove.length });
+  } catch (error) {
+    authLog.error("Clear all caches failed", error);
+  }
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -221,6 +272,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     authLog.info("Auth context initializing");
     
+    // Cleanup old cache versions
+    cleanupOldCaches();
+    
+    // Check for clear_cache query parameter
+    if (shouldClearCache()) {
+      authLog.info("Clear cache parameter detected, clearing all caches");
+      clearAllRoleCaches();
+      
+      // Remove the parameter from URL without reloading
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('clear_cache');
+        window.history.replaceState({}, '', url.toString());
+        authLog.info("Clear cache parameter removed from URL");
+      } catch (error) {
+        authLog.error("Failed to remove clear_cache parameter from URL", error);
+      }
+    }
+    
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       authLog.info("Auth state changed", { 
         event, 
@@ -233,7 +303,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await fetchUserRole(session.user.id);
+        // If clear_cache was triggered, force fetch without cache
+        const useCache = !shouldClearCache();
+        await fetchUserRole(session.user.id, useCache);
       } else {
         authLog.info("No session, clearing state");
         setUserRole(null);
@@ -258,7 +330,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        await fetchUserRole(session.user.id);
+        // If clear_cache was triggered, force fetch without cache
+        const useCache = !shouldClearCache();
+        await fetchUserRole(session.user.id, useCache);
       } else {
         setRoleLoading(false);
       }

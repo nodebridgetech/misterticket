@@ -75,6 +75,28 @@ const Index = () => {
     return () => clearInterval(interval);
   }, [carouselApi]);
 
+  // Preload LCP image (first featured event image) for better performance
+  useEffect(() => {
+    if (featuredEvents.length > 0 && featuredEvents[0].image_url) {
+      const existingPreload = document.querySelector('link[data-lcp-preload="true"]');
+      if (existingPreload) {
+        existingPreload.remove();
+      }
+      
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = featuredEvents[0].image_url;
+      link.setAttribute('data-lcp-preload', 'true');
+      link.setAttribute('fetchpriority', 'high');
+      document.head.appendChild(link);
+      
+      return () => {
+        link.remove();
+      };
+    }
+  }, [featuredEvents]);
+
   const getEventPrice = async (eventId: string): Promise<string> => {
     const { data: tickets } = await supabase
       .from("tickets")

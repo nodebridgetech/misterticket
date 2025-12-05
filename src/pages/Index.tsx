@@ -215,7 +215,7 @@ const Index = () => {
             className="w-full"
           >
             <CarouselContent>
-              {featuredEvents.map((event) => (
+              {featuredEvents.map((event, index) => (
                 <CarouselItem key={event.id}>
                   <Link to={`/event/${event.id}`}>
                     <div className="relative h-[400px] md:h-[500px] rounded-lg overflow-hidden">
@@ -223,6 +223,7 @@ const Index = () => {
                         src={event.image_url || "/placeholder.svg"}
                         alt={event.title}
                         className="w-full h-full object-cover"
+                        fetchPriority={index === 0 ? "high" : "auto"}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                       <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 text-white">

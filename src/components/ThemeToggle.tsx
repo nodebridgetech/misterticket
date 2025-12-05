@@ -27,6 +27,7 @@ export const ThemeToggle = () => {
       size="icon"
       onClick={toggleTheme}
       className="rounded-full"
+      aria-label={theme === "light" ? "Ativar modo escuro" : "Ativar modo claro"}
     >
       {theme === "light" ? (
         <Moon className="h-5 w-5" />

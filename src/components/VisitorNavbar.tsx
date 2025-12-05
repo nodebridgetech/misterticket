@@ -61,6 +61,7 @@ export const VisitorNavbar = () => {
                 size="icon"
                 onClick={() => navigate("/minha-conta")}
                 className="shrink-0"
+                aria-label="Minha conta"
               >
                 <User className="h-5 w-5" />
               </Button>

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Clock, Users, Share2 } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { injectSanitizedPixel, removeInjectedPixels } from "@/lib/sanitize-pixels";
 
 const EventDetails = () => {
   const { id } = useParams();
@@ -37,32 +38,21 @@ const EventDetails = () => {
     }
   };
 
-  // Inject pixels when event is loaded
+  // Inject pixels when event is loaded (now using sanitized injection)
   useEffect(() => {
     if (event && !pixelsInjected.current) {
       pixelsInjected.current = true;
       
-      // Inject Google Pixel
-      if (event.google_pixel_code) {
-        const googleDiv = document.createElement('div');
-        googleDiv.innerHTML = event.google_pixel_code;
-        googleDiv.setAttribute('data-pixel-injected', 'google');
-        document.head.appendChild(googleDiv);
-      }
+      // Inject Google Pixel (sanitized)
+      injectSanitizedPixel(event.google_pixel_code, 'google');
       
-      // Inject Meta Pixel
-      if (event.meta_pixel_code) {
-        const metaDiv = document.createElement('div');
-        metaDiv.innerHTML = event.meta_pixel_code;
-        metaDiv.setAttribute('data-pixel-injected', 'meta');
-        document.head.appendChild(metaDiv);
-      }
+      // Inject Meta Pixel (sanitized)
+      injectSanitizedPixel(event.meta_pixel_code, 'meta');
     }
 
     // Cleanup function
     return () => {
-      const scriptsToRemove = document.head.querySelectorAll('[data-pixel-injected]');
-      scriptsToRemove.forEach(script => script.remove());
+      removeInjectedPixels();
       pixelsInjected.current = false;
     };
   }, [event]);

@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { injectSanitizedPixel } from "@/lib/sanitize-pixels";
 
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
@@ -85,19 +86,11 @@ const PaymentSuccess = () => {
             .single();
           
           if (eventData) {
-            // Inject Google conversion pixel
-            if (eventData.google_pixel_code) {
-              const googleScript = document.createElement('div');
-              googleScript.innerHTML = eventData.google_pixel_code;
-              document.head.appendChild(googleScript);
-            }
+            // Inject Google conversion pixel (sanitized)
+            injectSanitizedPixel(eventData.google_pixel_code, 'google');
             
-            // Inject Meta conversion pixel
-            if (eventData.meta_pixel_code) {
-              const metaScript = document.createElement('div');
-              metaScript.innerHTML = eventData.meta_pixel_code;
-              document.head.appendChild(metaScript);
-            }
+            // Inject Meta conversion pixel (sanitized)
+            injectSanitizedPixel(eventData.meta_pixel_code, 'meta');
           }
         }
         

@@ -314,7 +314,7 @@ const Index = () => {
                 </Link>
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {trendingEvents.map((event) => (
                 <EventCard key={event.id} {...formatEventCard(event)} />
               ))}
@@ -339,7 +339,7 @@ const Index = () => {
                 </Link>
               </Button>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {recentEvents.map((event) => (
                 <EventCard key={event.id} {...formatEventCard(event)} />
               ))}
@@ -351,11 +351,19 @@ const Index = () => {
       {/* All Events */}
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
-          <div className="mb-8">
-            <h2 className="text-2xl md:text-3xl font-bold mb-2">Todos os eventos</h2>
-            <p className="text-sm md:text-base text-muted-foreground">Explore todos os eventos disponíveis</p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold mb-2">Todos os eventos</h2>
+              <p className="text-sm md:text-base text-muted-foreground">Explore todos os eventos disponíveis</p>
+            </div>
+            <Button variant="ghost" asChild className="self-start sm:self-auto">
+              <Link to="/eventos">
+                Ver todos
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {allEvents.map((event) => (
               <EventCard key={event.id} {...formatEventCard(event)} />
             ))}

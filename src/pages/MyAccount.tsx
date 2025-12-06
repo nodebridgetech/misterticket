@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode } from "lucide-react";
+import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -43,6 +43,15 @@ const MyAccount = () => {
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
+  
+  // Estados para edição
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [editForm, setEditForm] = useState({
+    full_name: "",
+    phone: "",
+    document: ""
+  });
 
   useEffect(() => {
     if (!user) {
@@ -58,6 +67,13 @@ const MyAccount = () => {
         .single();
       
       setProfile(data);
+      if (data) {
+        setEditForm({
+          full_name: data.full_name || "",
+          phone: data.phone || "",
+          document: data.document || ""
+        });
+      }
       setLoading(false);
     };
 
@@ -110,6 +126,54 @@ const MyAccount = () => {
     }
   };
 
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setEditForm({
+      full_name: profile?.full_name || "",
+      phone: profile?.phone || "",
+      document: profile?.document || ""
+    });
+  };
+
+  const handleSaveProfile = async () => {
+    if (!editForm.full_name.trim()) {
+      toast.error("O nome completo é obrigatório");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          full_name: editForm.full_name.trim(),
+          phone: editForm.phone.trim() || null,
+          document: editForm.document.trim() || null
+        })
+        .eq("user_id", user!.id);
+
+      if (error) throw error;
+
+      setProfile({
+        ...profile,
+        full_name: editForm.full_name.trim(),
+        phone: editForm.phone.trim() || null,
+        document: editForm.document.trim() || null
+      });
+      setIsEditing(false);
+      toast.success("Perfil atualizado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar perfil:", error);
+      toast.error("Erro ao atualizar perfil");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -137,28 +201,95 @@ const MyAccount = () => {
 
           <TabsContent value="profile" className="space-y-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Informações Pessoais</CardTitle>
-                <CardDescription>
-                  Gerencie seus dados pessoais
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+                <div>
+                  <CardTitle>Informações Pessoais</CardTitle>
+                  <CardDescription>
+                    Gerencie seus dados pessoais
+                  </CardDescription>
+                </div>
+                {!isEditing ? (
+                  <Button variant="outline" size="sm" onClick={handleEditClick}>
+                    <Pencil className="h-4 w-4 mr-2" />
+                    Editar
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCancelEdit}
+                      disabled={isSaving}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Cancelar
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveProfile}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4 mr-2" />
+                      )}
+                      Salvar
+                    </Button>
+                  </div>
+                )}
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label>Nome completo</Label>
-                  <Input value={profile?.full_name || ""} disabled />
+                  {isEditing ? (
+                    <Input 
+                      value={editForm.full_name} 
+                      onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                      placeholder="Seu nome completo"
+                    />
+                  ) : (
+                    <Input value={profile?.full_name || ""} disabled />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>E-mail</Label>
                   <Input value={user?.email || ""} disabled />
+                  {isEditing && (
+                    <p className="text-xs text-muted-foreground">O e-mail não pode ser alterado</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Telefone</Label>
-                  <Input 
-                    placeholder="(00) 00000-0000" 
-                    value={profile?.phone || ""} 
-                    disabled 
-                  />
+                  {isEditing ? (
+                    <Input 
+                      value={editForm.phone} 
+                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  ) : (
+                    <Input 
+                      placeholder="Não informado" 
+                      value={profile?.phone || ""} 
+                      disabled 
+                    />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label>CPF</Label>
+                  {isEditing ? (
+                    <Input 
+                      value={editForm.document} 
+                      onChange={(e) => setEditForm({ ...editForm, document: e.target.value })}
+                      placeholder="000.000.000-00"
+                    />
+                  ) : (
+                    <Input 
+                      placeholder="Não informado" 
+                      value={profile?.document || ""} 
+                      disabled 
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

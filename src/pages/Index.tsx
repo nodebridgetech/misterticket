@@ -159,13 +159,14 @@ const Index = () => {
       .order("created_at", { ascending: false })
       .limit(6);
 
-    // Todos os eventos
+    // Todos os eventos (limitado a 12 na home)
     const { data: all } = await supabase
       .from("events")
       .select("*")
       .eq("is_published", true)
       .gte("event_date", now)
-      .order("event_date", { ascending: true });
+      .order("event_date", { ascending: true })
+      .limit(12);
 
     setFeaturedEvents(featured || []);
     setCategories(cats || []);

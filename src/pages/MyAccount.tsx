@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import { formatCPF, formatPhone, isValidCPF } from "@/lib/format-utils";
 
 interface Sale {
   id: string;
@@ -139,9 +140,24 @@ const MyAccount = () => {
     });
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditForm({ ...editForm, phone: formatPhone(e.target.value) });
+  };
+
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEditForm({ ...editForm, document: formatCPF(e.target.value) });
+  };
+
   const handleSaveProfile = async () => {
     if (!editForm.full_name.trim()) {
       toast.error("O nome completo é obrigatório");
+      return;
+    }
+
+    // Validar CPF se preenchido
+    const cpfNumbers = editForm.document.replace(/\D/g, "");
+    if (cpfNumbers.length > 0 && !isValidCPF(editForm.document)) {
+      toast.error("CPF inválido");
       return;
     }
 
@@ -264,7 +280,7 @@ const MyAccount = () => {
                   {isEditing ? (
                     <Input 
                       value={editForm.phone} 
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      onChange={handlePhoneChange}
                       placeholder="(00) 00000-0000"
                     />
                   ) : (
@@ -280,7 +296,7 @@ const MyAccount = () => {
                   {isEditing ? (
                     <Input 
                       value={editForm.document} 
-                      onChange={(e) => setEditForm({ ...editForm, document: e.target.value })}
+                      onChange={handleDocumentChange}
                       placeholder="000.000.000-00"
                     />
                   ) : (

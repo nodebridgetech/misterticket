@@ -9,7 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, AlertTriangle, Scan, Camera } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle, XCircle, AlertTriangle, Scan, Camera, Keyboard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface ValidationResult {
@@ -30,6 +33,8 @@ export default function ValidateTickets() {
   const [scanning, setScanning] = useState(false);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [scanner, setScanner] = useState<Html5QrcodeScanner | null>(null);
+  const [manualCode, setManualCode] = useState("");
+  const [manualValidating, setManualValidating] = useState(false);
   // Only use native scanner on actual native platforms (iOS/Android), not web/PWA
   const isNative = Capacitor.getPlatform() === 'ios' || Capacitor.getPlatform() === 'android';
 
@@ -323,6 +328,25 @@ export default function ValidateTickets() {
     }
   };
 
+  const handleManualValidation = async () => {
+    if (!manualCode.trim()) {
+      toast.error("Digite o código do ingresso");
+      return;
+    }
+
+    setManualValidating(true);
+    setValidationResult(null);
+
+    await validateQRCode(manualCode.trim());
+    
+    setManualValidating(false);
+  };
+
+  const handleClearManual = () => {
+    setManualCode("");
+    setValidationResult(null);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <Card>
@@ -332,16 +356,29 @@ export default function ValidateTickets() {
             Validação de Ingressos
           </CardTitle>
           <CardDescription>
-            Escaneie o QR Code dos ingressos para validar a entrada no evento
+            Valide ingressos escaneando o QR Code ou digitando o código manualmente
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {!scanning ? (
-            <Button onClick={startScanning} className="w-full" size="lg">
-              <Camera className="mr-2 h-5 w-5" />
-              Iniciar Scanner com Câmera
-            </Button>
-          ) : (
+          <Tabs defaultValue="camera" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="camera" className="flex items-center gap-2">
+                <Camera className="h-4 w-4" />
+                Câmera
+              </TabsTrigger>
+              <TabsTrigger value="manual" className="flex items-center gap-2">
+                <Keyboard className="h-4 w-4" />
+                Manual
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="camera" className="space-y-4 mt-4">
+              {!scanning ? (
+                <Button onClick={startScanning} className="w-full" size="lg">
+                  <Camera className="mr-2 h-5 w-5" />
+                  Iniciar Scanner com Câmera
+                </Button>
+              ) : (
             <div className="space-y-4">
               {!isNative && (
                 <div className="relative">
@@ -403,11 +440,52 @@ export default function ValidateTickets() {
                   </AlertDescription>
                 </Alert>
               )}
-              <Button onClick={stopScanning} variant="outline" className="w-full">
-                Parar Scanner
-              </Button>
-            </div>
-          )}
+                <Button onClick={stopScanning} variant="outline" className="w-full">
+                  Parar Scanner
+                </Button>
+              </div>
+            )}
+            </TabsContent>
+
+            <TabsContent value="manual" className="space-y-4 mt-4">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="manual-code">Código do Ingresso</Label>
+                  <Input
+                    id="manual-code"
+                    placeholder="Digite ou cole o código do QR Code"
+                    value={manualCode}
+                    onChange={(e) => setManualCode(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !manualValidating) {
+                        handleManualValidation();
+                      }
+                    }}
+                    disabled={manualValidating}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    O código pode ser encontrado nos dados do QR Code do ingresso
+                  </p>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button
+                    onClick={handleManualValidation}
+                    disabled={manualValidating || !manualCode.trim()}
+                    className="flex-1"
+                  >
+                    {manualValidating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Validar Ingresso
+                  </Button>
+                  {manualCode && (
+                    <Button variant="outline" onClick={handleClearManual} disabled={manualValidating}>
+                      Limpar
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
           {validationResult && (
             <Alert
@@ -459,6 +537,11 @@ export default function ValidateTickets() {
                   {scanning && (
                     <Button onClick={handleNewScan} className="w-full mt-3">
                       Escanear Próximo Ingresso
+                    </Button>
+                  )}
+                  {!scanning && (
+                    <Button onClick={handleClearManual} className="w-full mt-3">
+                      Validar Outro Ingresso
                     </Button>
                   )}
                 </div>

@@ -197,6 +197,36 @@ export type Database = {
         }
         Relationships: []
       }
+      faq_items: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          is_active: boolean
+          position: number
+          question: string
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          position?: number
+          question: string
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          position?: number
+          question?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fee_config: {
         Row: {
           created_at: string
@@ -475,6 +505,33 @@ export type Database = {
           requested_at?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      whatsapp_config: {
+        Row: {
+          created_at: string
+          default_message: string
+          id: string
+          is_active: boolean
+          phone_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_message?: string
+          id?: string
+          is_active?: boolean
+          phone_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_message?: string
+          id?: string
+          is_active?: boolean
+          phone_number?: string
+          updated_at?: string
         }
         Relationships: []
       }

@@ -1,4 +1,5 @@
 import { Footer } from "@/components/Footer";
+import { FAQSection } from "@/components/FAQSection";
 import { EventCard } from "@/components/EventCard";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
@@ -376,6 +377,8 @@ const Index = () => {
           )}
         </div>
       </section>
+
+      <FAQSection />
 
       <Footer />
     </>

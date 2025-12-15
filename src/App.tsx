@@ -27,6 +27,7 @@ import ValidateTickets from "./pages/ValidateTickets";
 import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import EventAnalytics from "./pages/EventAnalytics";
+import SiteSettingsManagement from "./pages/SiteSettingsManagement";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/admin/categorias" element={<CategoriesManagement />} />
             <Route path="/admin/taxas" element={<FeesManagement />} />
             <Route path="/admin/logs" element={<ActivityLogs />} />
+            <Route path="/admin/configuracoes" element={<SiteSettingsManagement />} />
             <Route path="/validar-ingressos" element={<ValidateTickets />} />
             <Route path="/instalar" element={<Install />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

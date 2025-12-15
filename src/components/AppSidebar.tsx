@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Users, Calendar, Tag, DollarSign, User, ScanLine, Smartphone, FileText } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Tag, DollarSign, User, ScanLine, Smartphone, FileText, Settings } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -33,6 +33,7 @@ export const AppSidebar = () => {
     { path: "/admin/categorias", label: "Categorias", icon: Tag, end: false },
     { path: "/admin/taxas", label: "Taxas", icon: DollarSign, end: false },
     { path: "/admin/logs", label: "Logs", icon: FileText, end: false },
+    { path: "/admin/configuracoes", label: "Configurações", icon: Settings, end: false },
   ];
 
   // Menu items for producers

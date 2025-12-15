@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { VisitorNavbar } from "./VisitorNavbar";
+import { FloatingWhatsApp } from "./FloatingWhatsApp";
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -29,6 +30,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
             </main>
           </SidebarInset>
         </div>
+        <FloatingWhatsApp />
       </SidebarProvider>
     );
   }
@@ -40,6 +42,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <main className="flex-1">
         {children}
       </main>
+      <FloatingWhatsApp />
     </div>
   );
 };

@@ -43,6 +43,21 @@ interface ChartData {
   net: number;
 }
 
+interface MonthlyComparison {
+  month: string;
+  monthLabel: string;
+  revenue: number;
+  net: number;
+  growthRevenue: number | null;
+  growthNet: number | null;
+}
+
+interface ForecastData {
+  month: string;
+  actual: number | null;
+  forecast: number | null;
+}
+
 const ITEMS_PER_PAGE = 15;
 
 const FinancialDashboard = () => {
@@ -59,6 +74,9 @@ const FinancialDashboard = () => {
   const [netRevenue, setNetRevenue] = useState(0);
   const [availableBalance, setAvailableBalance] = useState(0);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparison[]>([]);
+  const [forecastData, setForecastData] = useState<ForecastData[]>([]);
+  const [futureEventsRevenue, setFutureEventsRevenue] = useState(0);
   
   // Filters
   const [eventFilter, setEventFilter] = useState<string>("all");
@@ -201,6 +219,12 @@ const FinancialDashboard = () => {
 
       // Generate chart data (last 30 days)
       generateChartData(paidSales);
+      
+      // Generate monthly comparison data (last 6 months)
+      generateMonthlyComparison(paidSales);
+      
+      // Generate forecast data
+      await generateForecast(paidSales);
     } catch (error) {
       console.error("Error fetching data:", error);
       toast.error("Erro ao carregar dados financeiros");
@@ -235,6 +259,136 @@ const FinancialDashboard = () => {
     }
     
     setChartData(data);
+  };
+
+  const generateMonthlyComparison = (paidSales: Sale[]) => {
+    const months: MonthlyComparison[] = [];
+    const now = new Date();
+    
+    // Last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
+      
+      const monthSales = paidSales.filter(s => {
+        const saleDate = new Date(s.created_at);
+        return saleDate >= monthDate && saleDate <= monthEnd;
+      });
+      
+      const revenue = monthSales.reduce((sum, s) => sum + s.total_price, 0);
+      const net = monthSales.reduce((sum, s) => sum + s.producer_amount, 0);
+      
+      months.push({
+        month: format(monthDate, "yyyy-MM"),
+        monthLabel: format(monthDate, "MMM/yy", { locale: ptBR }),
+        revenue,
+        net,
+        growthRevenue: null,
+        growthNet: null,
+      });
+    }
+    
+    // Calculate growth percentages
+    for (let i = 1; i < months.length; i++) {
+      const prevRevenue = months[i - 1].revenue;
+      const prevNet = months[i - 1].net;
+      
+      if (prevRevenue > 0) {
+        months[i].growthRevenue = ((months[i].revenue - prevRevenue) / prevRevenue) * 100;
+      }
+      if (prevNet > 0) {
+        months[i].growthNet = ((months[i].net - prevNet) / prevNet) * 100;
+      }
+    }
+    
+    setMonthlyComparison(months);
+  };
+
+  const generateForecast = async (paidSales: Sale[]) => {
+    const now = new Date();
+    const forecastMonths: ForecastData[] = [];
+    
+    // Last 3 months actuals
+    for (let i = 2; i >= 0; i--) {
+      const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59, 999);
+      
+      const monthSales = paidSales.filter(s => {
+        const saleDate = new Date(s.created_at);
+        return saleDate >= monthDate && saleDate <= monthEnd;
+      });
+      
+      const net = monthSales.reduce((sum, s) => sum + s.producer_amount, 0);
+      
+      forecastMonths.push({
+        month: format(monthDate, "MMM/yy", { locale: ptBR }),
+        actual: net,
+        forecast: null,
+      });
+    }
+    
+    // Calculate average monthly revenue for forecasting
+    const avgMonthlyNet = forecastMonths.reduce((sum, m) => sum + (m.actual || 0), 0) / 3;
+    
+    // Fetch future events to estimate potential revenue
+    try {
+      const { data: futureEvents } = await supabase
+        .from("events")
+        .select(`
+          id,
+          title,
+          event_date,
+          tickets (
+            id,
+            price,
+            quantity_total,
+            quantity_sold
+          )
+        `)
+        .eq("producer_id", user?.id)
+        .gte("event_date", now.toISOString())
+        .eq("is_active", true);
+      
+      // Calculate potential revenue from future events
+      let potentialRevenue = 0;
+      (futureEvents || []).forEach(event => {
+        const tickets = event.tickets as any[] || [];
+        tickets.forEach(ticket => {
+          const remaining = ticket.quantity_total - ticket.quantity_sold;
+          // Estimate 50% of remaining tickets will sell
+          potentialRevenue += remaining * 0.5 * Number(ticket.price) * 0.85; // 85% after fees estimate
+        });
+      });
+      
+      setFutureEventsRevenue(potentialRevenue);
+      
+      // Generate forecasts for next 3 months
+      for (let i = 1; i <= 3; i++) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        
+        // Blend historical average with future events potential
+        const monthForecast = avgMonthlyNet * 0.7 + (potentialRevenue / 3) * 0.3;
+        
+        forecastMonths.push({
+          month: format(monthDate, "MMM/yy", { locale: ptBR }),
+          actual: null,
+          forecast: monthForecast > 0 ? monthForecast : avgMonthlyNet,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching future events:", error);
+      // Fallback: use simple average for forecast
+      for (let i = 1; i <= 3; i++) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        forecastMonths.push({
+          month: format(monthDate, "MMM/yy", { locale: ptBR }),
+          actual: null,
+          forecast: avgMonthlyNet,
+        });
+      }
+    }
+    
+    setForecastData(forecastMonths);
   };
 
   const clearFilters = () => {
@@ -414,6 +568,111 @@ const FinancialDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Monthly Comparison & Forecast */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Monthly Comparison */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5" />
+              Comparativo Mensal
+            </CardTitle>
+            <CardDescription>Evolução de receita mês a mês (últimos 6 meses)</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {monthlyComparison.map((month, index) => (
+                <div key={month.month} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-3">
+                    <span className="font-medium capitalize w-16">{month.monthLabel}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm text-muted-foreground">
+                        Líquido: R$ {month.net.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {month.growthNet !== null && (
+                      <div className={cn(
+                        "flex items-center gap-1 px-2 py-1 rounded text-sm font-medium",
+                        month.growthNet >= 0 
+                          ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400" 
+                          : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                      )}>
+                        {month.growthNet >= 0 ? (
+                          <ArrowUpRight className="h-4 w-4" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4" />
+                        )}
+                        {month.growthNet >= 0 ? "+" : ""}{month.growthNet.toFixed(1)}%
+                      </div>
+                    )}
+                    {month.growthNet === null && index === 0 && (
+                      <span className="text-xs text-muted-foreground">Base</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {monthlyComparison.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-muted-foreground">Dados insuficientes para comparação</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Revenue Forecast */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PiggyBank className="h-5 w-5" />
+              Previsão de Receita
+            </CardTitle>
+            <CardDescription>Projeção baseada em histórico e eventos futuros</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] mb-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={forecastData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" className="text-xs" tick={{ fill: 'currentColor' }} />
+                  <YAxis className="text-xs" tick={{ fill: 'currentColor' }} tickFormatter={(value) => `R$${value}`} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: 'hsl(var(--background))', 
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value: number | null, name: string) => [
+                      value ? `R$ ${value.toFixed(2)}` : '-', 
+                      name === 'actual' ? 'Real' : 'Previsão'
+                    ]}
+                  />
+                  <Legend formatter={(value) => value === 'actual' ? 'Real' : 'Previsão'} />
+                  <Bar dataKey="actual" name="actual" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="forecast" name="forecast" fill="hsl(var(--primary) / 0.4)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            {futureEventsRevenue > 0 && (
+              <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                <div className="flex items-center gap-2 text-sm">
+                  <CalendarIcon className="h-4 w-4 text-primary" />
+                  <span className="font-medium">Potencial de eventos futuros:</span>
+                  <span className="text-primary font-bold">
+                    R$ {futureEventsRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Estimativa baseada em 50% dos ingressos restantes
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Transactions Table */}
       <Card>

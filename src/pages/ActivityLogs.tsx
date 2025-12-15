@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -48,6 +49,7 @@ const ActivityLogs = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [actionFilter, setActionFilter] = useState<string>("all");
   const itemsPerPage = 15;
 
   useEffect(() => {
@@ -131,10 +133,16 @@ const ActivityLogs = () => {
       log.user_phone?.includes(searchTerm);
 
     const logDate = new Date(log.created_at);
-    const matchesStartDate = !startDate || logDate >= new Date(startDate.setHours(0, 0, 0, 0));
-    const matchesEndDate = !endDate || logDate <= new Date(new Date(endDate).setHours(23, 59, 59, 999));
+    const startOfDay = startDate ? new Date(startDate) : null;
+    if (startOfDay) startOfDay.setHours(0, 0, 0, 0);
+    const matchesStartDate = !startOfDay || logDate >= startOfDay;
+    const endOfDay = endDate ? new Date(endDate) : null;
+    if (endOfDay) endOfDay.setHours(23, 59, 59, 999);
+    const matchesEndDate = !endOfDay || logDate <= endOfDay;
 
-    return matchesSearch && matchesStartDate && matchesEndDate;
+    const matchesAction = actionFilter === "all" || log.action_type === actionFilter;
+
+    return matchesSearch && matchesStartDate && matchesEndDate && matchesAction;
   });
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
@@ -143,11 +151,12 @@ const ActivityLogs = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeTab, startDate, endDate]);
+  }, [searchTerm, activeTab, startDate, endDate, actionFilter]);
 
   const clearDateFilters = () => {
     setStartDate(undefined);
     setEndDate(undefined);
+    setActionFilter("all");
   };
 
   const exportToCSV = () => {
@@ -279,9 +288,21 @@ const ActivityLogs = () => {
                   </PopoverContent>
                 </Popover>
 
-                {(startDate || endDate) && (
+                <Select value={actionFilter} onValueChange={setActionFilter}>
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue placeholder="Tipo de ação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas ações</SelectItem>
+                    <SelectItem value="create">Criação</SelectItem>
+                    <SelectItem value="update">Edição</SelectItem>
+                    <SelectItem value="delete">Exclusão</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {(startDate || endDate || actionFilter !== "all") && (
                   <Button variant="ghost" onClick={clearDateFilters} size="sm">
-                    Limpar datas
+                    Limpar filtros
                   </Button>
                 )}
               </div>

@@ -7,6 +7,7 @@ import { Calendar, MapPin, Clock, Users, Share2 } from "lucide-react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { injectSanitizedPixel, removeInjectedPixels } from "@/lib/sanitize-pixels";
+import { LocationMap } from "@/components/LocationMap";
 
 const EventDetails = () => {
   const { id } = useParams();
@@ -298,7 +299,16 @@ const EventDetails = () => {
               <Card className="p-4 md:p-6 space-y-4">
                 <h2 className="text-xl md:text-2xl font-bold">Localização</h2>
                 <p className="text-muted-foreground">{event.venue}</p>
-                <p className="text-sm text-muted-foreground">{event.address}</p>
+                <p className="text-sm text-muted-foreground">
+                  {event.address}
+                  {event.address_number && `, ${event.address_number}`}
+                  {event.address_complement && ` - ${event.address_complement}`}
+                </p>
+                <LocationMap 
+                  address={event.address}
+                  addressNumber={event.address_number}
+                  venue={event.venue}
+                />
               </Card>
             </div>
 

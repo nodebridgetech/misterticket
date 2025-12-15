@@ -18,6 +18,7 @@ import ProducersManagement from "./pages/ProducersManagement";
 import EventsManagement from "./pages/EventsManagement";
 import CategoriesManagement from "./pages/CategoriesManagement";
 import FeesManagement from "./pages/FeesManagement";
+import ActivityLogs from "./pages/ActivityLogs";
 import CreateEvent from "./pages/CreateEvent";
 import EditEvent from "./pages/EditEvent";
 import Checkout from "./pages/Checkout";
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/admin/eventos" element={<EventsManagement />} />
             <Route path="/admin/categorias" element={<CategoriesManagement />} />
             <Route path="/admin/taxas" element={<FeesManagement />} />
+            <Route path="/admin/logs" element={<ActivityLogs />} />
             <Route path="/validar-ingressos" element={<ValidateTickets />} />
             <Route path="/instalar" element={<Install />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

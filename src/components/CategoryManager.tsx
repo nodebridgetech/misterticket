@@ -24,6 +24,7 @@ import {
 import { Pencil, Trash2, Plus, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ImageUpload } from "@/components/ImageUpload";
+import { logActivity } from "@/hooks/useActivityLog";
 import {
   DndContext,
   closestCenter,
@@ -134,18 +135,32 @@ export const CategoryManager = () => {
 
         if (error) throw error;
 
+        await logActivity({
+          actionType: "update",
+          entityType: "category",
+          entityId: editingCategory.id,
+          entityName: formData.name,
+        });
+
         toast({
           title: "Categoria atualizada",
           description: "A categoria foi atualizada com sucesso",
         });
       } else {
-        const { error } = await supabase.from("categories").insert({
+        const { data, error } = await supabase.from("categories").insert({
           name: formData.name,
           description: formData.description || null,
           image_url: formData.image_url || null,
-        });
+        }).select().single();
 
         if (error) throw error;
+
+        await logActivity({
+          actionType: "create",
+          entityType: "category",
+          entityId: data.id,
+          entityName: formData.name,
+        });
 
         toast({
           title: "Categoria criada",
@@ -165,12 +180,20 @@ export const CategoryManager = () => {
   };
 
   const handleDelete = async (id: string) => {
+    const categoryToDelete = categories.find(c => c.id === id);
     if (!confirm("Tem certeza que deseja excluir esta categoria?")) return;
 
     try {
       const { error } = await supabase.from("categories").delete().eq("id", id);
 
       if (error) throw error;
+
+      await logActivity({
+        actionType: "delete",
+        entityType: "category",
+        entityId: id,
+        entityName: categoryToDelete?.name || "Categoria",
+      });
 
       toast({
         title: "Categoria excluída",

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Plus, Trash2, Eye, Copy, Edit, GripVertical, Code2 } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 import { Switch } from "@/components/ui/switch";
 import { ImageUpload } from "@/components/ImageUpload";
 import { EventPreview } from "@/components/EventPreview";
@@ -482,6 +483,13 @@ const CreateEvent = () => {
         .insert(ticketsToInsert);
 
       if (ticketsError) throw ticketsError;
+
+      await logActivity({
+        actionType: "create",
+        entityType: "event",
+        entityId: event.id,
+        entityName: title,
+      });
 
       toast.success("Evento criado com sucesso!");
       navigate("/painel");

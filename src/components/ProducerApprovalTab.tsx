@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Check, X, UserCheck, Phone, Calendar, UserX, Trash2, Eye, Percent } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -256,6 +257,15 @@ export const ProducerApprovalTab = () => {
         }
       }
 
+      const request = producerRequests.find(r => r.id === requestId);
+      await logActivity({
+        actionType: approve ? "update" : "delete",
+        entityType: "producer",
+        entityId: request?.user_id,
+        entityName: request?.profiles?.full_name || "Produtor",
+        details: { action: approve ? "approved" : "rejected" },
+      });
+
       toast({
         title: approve ? "Produtor aprovado!" : "Solicitação rejeitada",
         description: approve
@@ -320,6 +330,14 @@ export const ProducerApprovalTab = () => {
         .eq("role", "producer");
 
       if (error) throw error;
+
+      const producer = activeProducers.find(p => p.user_id === producerId);
+      await logActivity({
+        actionType: "delete",
+        entityType: "producer",
+        entityId: producerId,
+        entityName: producer?.profile?.full_name || "Produtor",
+      });
 
       toast({
         title: "Produtor excluído",

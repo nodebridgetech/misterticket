@@ -414,6 +414,63 @@ interface LogsTableProps {
   getEntityTypeLabel: (type: string) => string;
 }
 
+const formatDetails = (log: ActivityLog): string => {
+  if (!log.details) {
+    if (log.action_type === "login") return "Acesso ao sistema";
+    if (log.action_type === "logout") return "Saída do sistema";
+    return log.entity_name || "-";
+  }
+
+  const details = log.details;
+  
+  // Handle specific action types
+  if (log.action_type === "login") {
+    return `Login via ${details.method === "password" ? "senha" : details.method}`;
+  }
+  
+  if (log.action_type === "logout") {
+    return "Saída do sistema";
+  }
+
+  if (log.action_type === "transfer" && details.action === "transfer") {
+    return `Transferido para ${details.to_user} (${details.quantity}x)`;
+  }
+
+  if (details.action === "deactivated") {
+    return `Produtor ${log.entity_name} inativado`;
+  }
+
+  if (details.action === "custom_fee_set") {
+    return `Taxa personalizada: ${details.fee_value}${details.fee_type === "percentage" ? "%" : " R$"}`;
+  }
+
+  if (details.action === "custom_fee_removed") {
+    return "Taxa personalizada removida";
+  }
+
+  if (details.updated_fields && Array.isArray(details.updated_fields)) {
+    const fieldLabels: Record<string, string> = {
+      full_name: "Nome",
+      phone: "Telefone",
+      document: "CPF",
+      cnpj: "CNPJ",
+      cep: "CEP",
+      address: "Endereço",
+      address_number: "Número",
+      address_complement: "Complemento",
+      birth_date: "Data de nascimento",
+    };
+    const fields = details.updated_fields.map((f: string) => fieldLabels[f] || f);
+    return `Editado: ${fields.join(", ")}`;
+  }
+
+  if (details.platform_fee_value !== undefined) {
+    return `Taxa: ${details.platform_fee_value}${details.platform_fee_type === "percentage" ? "%" : " R$"}`;
+  }
+
+  return log.entity_name || "-";
+};
+
 const LogsTable = ({ logs, getActionBadge, getEntityTypeLabel }: LogsTableProps) => {
   return (
     <>
@@ -444,11 +501,9 @@ const LogsTable = ({ logs, getActionBadge, getEntityTypeLabel }: LogsTableProps)
                   </div>
                 )}
               </div>
-              {log.entity_name && (
-                <div className="text-sm text-muted-foreground">
-                  <span className="font-medium">Entidade:</span> {log.entity_name}
-                </div>
-              )}
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">Detalhes:</span> {formatDetails(log)}
+              </div>
             </div>
           </Card>
         ))}
@@ -464,7 +519,7 @@ const LogsTable = ({ logs, getActionBadge, getEntityTypeLabel }: LogsTableProps)
               <TableHead>Tipo</TableHead>
               <TableHead>Usuário</TableHead>
               <TableHead>Telefone</TableHead>
-              <TableHead>Entidade</TableHead>
+              <TableHead>Detalhes</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -496,8 +551,8 @@ const LogsTable = ({ logs, getActionBadge, getEntityTypeLabel }: LogsTableProps)
                     <span className="text-muted-foreground">-</span>
                   )}
                 </TableCell>
-                <TableCell className="max-w-[200px] truncate" title={log.entity_name || ""}>
-                  {log.entity_name || "-"}
+                <TableCell className="max-w-[250px]" title={formatDetails(log)}>
+                  {formatDetails(log)}
                 </TableCell>
               </TableRow>
             ))}

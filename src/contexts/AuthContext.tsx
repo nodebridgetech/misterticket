@@ -110,23 +110,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Log login activity
     if (data.user) {
-      setTimeout(async () => {
+      try {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("full_name")
-          .eq("user_id", data.user!.id)
+          .select("full_name, phone")
+          .eq("user_id", data.user.id)
           .single();
         
         await supabase.from("activity_logs").insert({
-          user_id: data.user!.id,
+          user_id: data.user.id,
           user_name: profile?.full_name || email,
+          user_phone: profile?.phone || null,
           action_type: "login",
           entity_type: "user",
-          entity_id: data.user!.id,
+          entity_id: data.user.id,
           entity_name: profile?.full_name || email,
           details: { method: "password" },
         });
-      }, 0);
+      } catch (logError) {
+        console.error("Error logging login activity:", logError);
+      }
     }
     
     toast.success("Login realizado com sucesso!");

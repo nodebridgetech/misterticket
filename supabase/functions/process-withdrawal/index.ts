@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
@@ -52,7 +51,7 @@ serve(async (req) => {
     // Get request body
     const { withdrawalId, action, rejectionReason } = await req.json();
     if (!withdrawalId) throw new Error("Withdrawal ID is required");
-    if (!action) throw new Error("Action is required (approve or reject)");
+    if (!action) throw new Error("Action is required (approve, reject, or confirm_transfer)");
     logStep("Processing withdrawal", { withdrawalId, action });
 
     // Fetch withdrawal request
@@ -66,14 +65,18 @@ serve(async (req) => {
       throw new Error("Withdrawal request not found");
     }
 
-    if (withdrawal.status !== "pending") {
-      throw new Error("Withdrawal request is not pending");
-    }
+    logStep("Withdrawal found", { 
+      amount: withdrawal.amount, 
+      document: withdrawal.producer_document,
+      currentStatus: withdrawal.status 
+    });
 
-    logStep("Withdrawal found", { amount: withdrawal.amount, document: withdrawal.producer_document });
-
+    // Handle REJECT action
     if (action === "reject") {
-      // Reject the request
+      if (withdrawal.status !== "pending") {
+        throw new Error("Only pending withdrawals can be rejected");
+      }
+
       const { error: updateError } = await supabaseAdmin
         .from("withdrawal_requests")
         .update({
@@ -106,44 +109,16 @@ serve(async (req) => {
       );
     }
 
-    // Approve and process the withdrawal
-    // Update status to processing
-    await supabaseAdmin
-      .from("withdrawal_requests")
-      .update({ status: "processing" })
-      .eq("id", withdrawalId);
+    // Handle APPROVE action - moves to "awaiting_transfer" status
+    if (action === "approve") {
+      if (withdrawal.status !== "pending") {
+        throw new Error("Only pending withdrawals can be approved");
+      }
 
-    // Initialize Stripe
-    const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
-    if (!stripeKey) throw new Error("STRIPE_SECRET_KEY is not set");
-
-    const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
-
-    // Convert amount to cents (Stripe uses minor units)
-    const amountInCents = Math.round(Number(withdrawal.amount) * 100);
-    logStep("Creating payout", { amountInCents });
-
-    try {
-      // Note: This creates a payout from the Stripe balance to the platform's bank account
-      // For sending money to third parties (producers), you would typically use:
-      // 1. Stripe Connect with transfers to connected accounts, or
-      // 2. Stripe Global Payouts for direct bank transfers
-      // 
-      // Since Global Payouts and Connect require additional setup,
-      // this implementation creates a payout record and marks it for manual processing
-      // or can be extended to use Stripe Connect/Global Payouts when available.
-
-      // For now, we'll simulate a successful payout and mark it complete
-      // In production, you would integrate with Stripe Connect or Global Payouts
-      
-      const payoutId = `payout_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      
-      // Update withdrawal request with success
       const { error: updateError } = await supabaseAdmin
         .from("withdrawal_requests")
         .update({
-          status: "completed",
-          stripe_payout_id: payoutId,
+          status: "awaiting_transfer",
           approved_by: user.id,
           approved_at: new Date().toISOString(),
         })
@@ -151,42 +126,69 @@ serve(async (req) => {
 
       if (updateError) throw updateError;
 
-      // Send approval notification email
-      try {
-        await supabaseAdmin.functions.invoke("send-withdrawal-notification", {
-          body: { withdrawalId, status: "completed" },
-        });
-      } catch (emailError) {
-        logStep("Warning: Failed to send approval email", { error: emailError });
-      }
-
-      logStep("Withdrawal completed", { payoutId });
+      logStep("Withdrawal approved - awaiting PIX transfer");
 
       return new Response(
         JSON.stringify({ 
           success: true, 
-          payoutId,
-          message: "Saque aprovado e marcado como concluído. Execute a transferência manualmente via PIX para o CPF/CNPJ informado."
+          message: "Saque aprovado. Realize a transferência PIX e confirme quando concluído.",
+          pixInstructions: {
+            key: withdrawal.producer_document,
+            amount: withdrawal.amount,
+            description: `Saque #${withdrawalId.slice(0, 8)}`,
+          }
         }),
         {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 200,
         }
       );
-    } catch (stripeError: any) {
-      logStep("Stripe error", { error: stripeError.message });
+    }
 
-      // Update withdrawal request with failure
-      await supabaseAdmin
+    // Handle CONFIRM_TRANSFER action - marks as completed after PIX was done
+    if (action === "confirm_transfer") {
+      if (withdrawal.status !== "awaiting_transfer") {
+        throw new Error("Only withdrawals awaiting transfer can be confirmed");
+      }
+
+      const transferId = `pix_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+      const { error: updateError } = await supabaseAdmin
         .from("withdrawal_requests")
         .update({
-          status: "failed",
-          rejection_reason: `Erro no processamento: ${stripeError.message}`,
+          status: "completed",
+          stripe_payout_id: transferId,
         })
         .eq("id", withdrawalId);
 
-      throw new Error(`Erro ao processar pagamento: ${stripeError.message}`);
+      if (updateError) throw updateError;
+
+      // Send completion notification email
+      try {
+        await supabaseAdmin.functions.invoke("send-withdrawal-notification", {
+          body: { withdrawalId, status: "completed" },
+        });
+      } catch (emailError) {
+        logStep("Warning: Failed to send completion email", { error: emailError });
+      }
+
+      logStep("Withdrawal completed - PIX transfer confirmed", { transferId });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          transferId,
+          message: "Transferência PIX confirmada. O produtor foi notificado."
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
     }
+
+    throw new Error("Invalid action. Use 'approve', 'reject', or 'confirm_transfer'");
+
   } catch (error: any) {
     logStep("ERROR", { message: error.message });
     return new Response(

@@ -17,7 +17,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DollarSign, Clock, CheckCircle, XCircle, Loader2, AlertCircle, Search, CalendarIcon, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { DollarSign, Clock, CheckCircle, XCircle, Loader2, AlertCircle, Search, CalendarIcon, ChevronLeft, ChevronRight, Filter, Copy, Send, Banknote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface WithdrawalRequest {
@@ -45,7 +45,7 @@ const AdminWithdrawals = () => {
   const [selectedRequest, setSelectedRequest] = useState<WithdrawalRequest | null>(null);
   const [actionDialogOpen, setActionDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
-  const [actionType, setActionType] = useState<"approve" | "reject">("approve");
+  const [actionType, setActionType] = useState<"approve" | "reject" | "confirm_transfer">("approve");
   const [processing, setProcessing] = useState(false);
   
   // Filters
@@ -125,7 +125,13 @@ const AdminWithdrawals = () => {
         throw new Error(data.error);
       }
 
-      toast.success(actionType === "approve" ? "Saque aprovado e processado com sucesso!" : "Solicitação rejeitada");
+      const messages: Record<string, string> = {
+        approve: "Saque aprovado! Realize a transferência PIX conforme instruções.",
+        reject: "Solicitação rejeitada",
+        confirm_transfer: "Transferência confirmada com sucesso!",
+      };
+
+      toast.success(messages[actionType] || "Ação realizada com sucesso");
 
       setActionDialogOpen(false);
       setSelectedRequest(null);
@@ -139,17 +145,24 @@ const AdminWithdrawals = () => {
     }
   };
 
-  const openActionDialog = (request: WithdrawalRequest, type: "approve" | "reject") => {
+  const openActionDialog = (request: WithdrawalRequest, type: "approve" | "reject" | "confirm_transfer") => {
     setSelectedRequest(request);
     setActionType(type);
     setRejectionReason("");
     setActionDialogOpen(true);
   };
 
+  const copyToClipboard = (text: string, label: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`${label} copiado!`);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "pending":
         return <Badge variant="outline" className="text-yellow-600 border-yellow-600"><Clock className="h-3 w-3 mr-1" />Pendente</Badge>;
+      case "awaiting_transfer":
+        return <Badge variant="outline" className="text-blue-600 border-blue-600"><Send className="h-3 w-3 mr-1" />Aguardando PIX</Badge>;
       case "approved":
         return <Badge variant="outline" className="text-blue-600 border-blue-600"><CheckCircle className="h-3 w-3 mr-1" />Aprovado</Badge>;
       case "processing":
@@ -208,8 +221,9 @@ const AdminWithdrawals = () => {
     });
   };
 
-  const pendingRequests = requests.filter(r => r.status === "pending");
-  const processedRequests = requests.filter(r => r.status !== "pending");
+  // Pending includes both pending and awaiting_transfer
+  const pendingRequests = requests.filter(r => r.status === "pending" || r.status === "awaiting_transfer");
+  const processedRequests = requests.filter(r => !["pending", "awaiting_transfer"].includes(r.status));
   
   const filteredPendingRequests = filterRequests(pendingRequests);
   const filteredProcessedRequests = filterRequests(processedRequests);
@@ -244,6 +258,16 @@ const AdminWithdrawals = () => {
   if (userRole !== "admin") {
     return null;
   }
+
+  const formatCpfCnpj = (doc: string) => {
+    const digits = doc.replace(/\D/g, "");
+    if (digits.length === 11) {
+      return digits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    } else if (digits.length === 14) {
+      return digits.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    }
+    return doc;
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -372,6 +396,7 @@ const AdminWithdrawals = () => {
                         <TableHead>Produtor</TableHead>
                         <TableHead>CPF/CNPJ</TableHead>
                         <TableHead>Valor</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead>Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -387,29 +412,42 @@ const AdminWithdrawals = () => {
                               <p className="text-sm text-muted-foreground">{request.producer_phone || request.producer_email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>{request.producer_document}</TableCell>
+                          <TableCell>{formatCpfCnpj(request.producer_document)}</TableCell>
                           <TableCell className="font-medium">
                             R$ {Number(request.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
+                          <TableCell>{getStatusBadge(request.status)}</TableCell>
                           <TableCell>
-                            <div className="flex gap-2">
+                            {request.status === "pending" ? (
+                              <div className="flex gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={() => openActionDialog(request, "approve")}
+                                >
+                                  <CheckCircle className="h-4 w-4 mr-1" />
+                                  Aprovar
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() => openActionDialog(request, "reject")}
+                                >
+                                  <XCircle className="h-4 w-4 mr-1" />
+                                  Rejeitar
+                                </Button>
+                              </div>
+                            ) : request.status === "awaiting_transfer" ? (
                               <Button
                                 size="sm"
                                 variant="default"
-                                onClick={() => openActionDialog(request, "approve")}
+                                className="bg-green-600 hover:bg-green-700"
+                                onClick={() => openActionDialog(request, "confirm_transfer")}
                               >
-                                <CheckCircle className="h-4 w-4 mr-1" />
-                                Aprovar
+                                <Banknote className="h-4 w-4 mr-1" />
+                                Confirmar PIX
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() => openActionDialog(request, "reject")}
-                              >
-                                <XCircle className="h-4 w-4 mr-1" />
-                                Rejeitar
-                              </Button>
-                            </div>
+                            ) : null}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -494,13 +532,13 @@ const AdminWithdrawals = () => {
                               <p className="text-sm text-muted-foreground">{request.producer_phone || request.producer_email}</p>
                             </div>
                           </TableCell>
-                          <TableCell>{request.producer_document}</TableCell>
+                          <TableCell>{formatCpfCnpj(request.producer_document)}</TableCell>
                           <TableCell className="font-medium">
                             R$ {Number(request.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell>{getStatusBadge(request.status)}</TableCell>
                           <TableCell className="max-w-[200px] truncate">
-                            {request.rejection_reason || (request.stripe_payout_id && `Payout: ${request.stripe_payout_id}`)}
+                            {request.rejection_reason || (request.approved_at && `Processado em ${format(new Date(request.approved_at), "dd/MM/yyyy", { locale: ptBR })}`)}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -544,37 +582,96 @@ const AdminWithdrawals = () => {
       </Card>
 
       <Dialog open={actionDialogOpen} onOpenChange={setActionDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>
-              {actionType === "approve" ? "Aprovar Saque" : "Rejeitar Saque"}
+              {actionType === "approve" && "Aprovar Saque"}
+              {actionType === "reject" && "Rejeitar Saque"}
+              {actionType === "confirm_transfer" && "Confirmar Transferência PIX"}
             </DialogTitle>
             <DialogDescription>
-              {actionType === "approve"
-                ? "Ao aprovar, o pagamento será processado via Stripe para o CPF/CNPJ informado."
-                : "Informe o motivo da rejeição para o produtor."}
+              {actionType === "approve" && "Revise os dados e realize a transferência PIX manualmente."}
+              {actionType === "reject" && "Informe o motivo da rejeição para o produtor."}
+              {actionType === "confirm_transfer" && "Confirme que a transferência PIX foi realizada com sucesso."}
             </DialogDescription>
           </DialogHeader>
 
           {selectedRequest && (
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              {/* Request details */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
-                  <Label className="text-muted-foreground">Produtor</Label>
+                  <Label className="text-muted-foreground text-xs">Produtor</Label>
                   <p className="font-medium">{selectedRequest.producer_name}</p>
                 </div>
                 <div>
-                  <Label className="text-muted-foreground">Valor</Label>
-                  <p className="font-medium text-lg">
+                  <Label className="text-muted-foreground text-xs">Valor</Label>
+                  <p className="font-bold text-lg text-green-600">
                     R$ {Number(selectedRequest.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </p>
                 </div>
-                <div className="col-span-2">
-                  <Label className="text-muted-foreground">CPF/CNPJ</Label>
-                  <p className="font-medium">{selectedRequest.producer_document}</p>
-                </div>
               </div>
 
+              {/* PIX Instructions for approve and confirm_transfer */}
+              {(actionType === "approve" || actionType === "confirm_transfer") && (
+                <div className="space-y-3 p-4 border rounded-lg bg-background">
+                  <div className="flex items-center gap-2 text-sm font-medium">
+                    <Banknote className="h-4 w-4 text-primary" />
+                    Dados para transferência PIX
+                  </div>
+                  
+                  <div className="space-y-3">
+                    {/* CPF/CNPJ */}
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Chave PIX (CPF/CNPJ)</Label>
+                        <p className="font-mono font-medium">{formatCpfCnpj(selectedRequest.producer_document)}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(selectedRequest.producer_document.replace(/\D/g, ""), "CPF/CNPJ")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Amount */}
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Valor a transferir</Label>
+                        <p className="font-mono font-bold text-lg">
+                          R$ {Number(selectedRequest.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(Number(selectedRequest.amount).toFixed(2).replace(".", ","), "Valor")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Beneficiary name */}
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-md">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Nome do beneficiário</Label>
+                        <p className="font-medium">{selectedRequest.producer_name}</p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => copyToClipboard(selectedRequest.producer_name || "", "Nome")}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Rejection reason textarea */}
               {actionType === "reject" && (
                 <div className="space-y-2">
                   <Label htmlFor="reason">Motivo da Rejeição</Label>
@@ -587,11 +684,27 @@ const AdminWithdrawals = () => {
                 </div>
               )}
 
+              {/* Warning/Info messages */}
               {actionType === "approve" && (
-                <div className="flex items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
-                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                    O pagamento será processado via Stripe Payouts. Certifique-se de que sua conta Stripe tem saldo suficiente.
+                <div className="flex items-start gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <AlertCircle className="h-5 w-5 text-blue-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-blue-800 dark:text-blue-200">
+                    <p className="font-medium">Instruções:</p>
+                    <ol className="list-decimal ml-4 mt-1 space-y-1">
+                      <li>Copie os dados acima para realizar o PIX</li>
+                      <li>Realize a transferência no seu banco</li>
+                      <li>Clique em "Aprovar" para marcar como aguardando PIX</li>
+                      <li>Após confirmar o PIX no banco, volte aqui e confirme a transferência</li>
+                    </ol>
+                  </div>
+                </div>
+              )}
+
+              {actionType === "confirm_transfer" && (
+                <div className="flex items-start gap-2 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <CheckCircle className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
+                  <p className="text-sm text-green-800 dark:text-green-200">
+                    <strong>Confirme apenas se a transferência PIX já foi realizada com sucesso.</strong> O produtor será notificado de que o saque foi concluído.
                   </p>
                 </div>
               )}
@@ -603,12 +716,15 @@ const AdminWithdrawals = () => {
               Cancelar
             </Button>
             <Button
-              variant={actionType === "approve" ? "default" : "destructive"}
+              variant={actionType === "reject" ? "destructive" : "default"}
+              className={actionType === "confirm_transfer" ? "bg-green-600 hover:bg-green-700" : ""}
               onClick={handleAction}
               disabled={processing || (actionType === "reject" && !rejectionReason.trim())}
             >
               {processing && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {actionType === "approve" ? "Aprovar e Processar" : "Rejeitar"}
+              {actionType === "approve" && "Aprovar"}
+              {actionType === "reject" && "Rejeitar"}
+              {actionType === "confirm_transfer" && "Confirmar Transferência"}
             </Button>
           </DialogFooter>
         </DialogContent>

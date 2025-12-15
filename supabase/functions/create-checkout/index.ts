@@ -128,27 +128,52 @@ serve(async (req) => {
     // Check for producer custom fee
     const { data: producerCustomFee } = await supabaseClient
       .from("producer_custom_fees")
-      .select("platform_fee_percentage")
+      .select("fee_value, fee_type")
       .eq("producer_id", event.producer_id)
       .eq("is_active", true)
       .single();
 
-    // Use custom fee if available, otherwise use default
-    const platformFeePercentage = producerCustomFee?.platform_fee_percentage ?? feeConfig?.platform_fee_percentage ?? 10;
     const gatewayFeePercentage = feeConfig?.payment_gateway_fee_percentage || 3;
-    
-    logStep("Fee configuration", { 
-      hasCustomFee: !!producerCustomFee,
-      platformFeePercentage, 
-      gatewayFeePercentage 
-    });
 
     // Calculate amounts
     const ticketPrice = Number(ticket.price);
     const subtotal = ticketPrice * quantity;
-    const platformFee = subtotal * (platformFeePercentage / 100);
+    
+    // Calculate platform fee based on custom fee or default
+    let platformFee: number;
+    let platformFeePercentage: number | null = null;
+    
+    if (producerCustomFee) {
+      // Producer has custom fee - DO NOT use default system fee
+      if (producerCustomFee.fee_type === "percentage") {
+        platformFeePercentage = Number(producerCustomFee.fee_value);
+        platformFee = subtotal * (platformFeePercentage / 100);
+        logStep("Using custom percentage fee", { percentage: platformFeePercentage });
+      } else {
+        // Fixed fee per ticket
+        platformFee = Number(producerCustomFee.fee_value) * quantity;
+        logStep("Using custom fixed fee", { fixedPerTicket: producerCustomFee.fee_value, quantity, total: platformFee });
+      }
+    } else {
+      // No custom fee - use default system fee
+      const defaultPercentage = feeConfig?.platform_fee_percentage ?? 10;
+      platformFeePercentage = defaultPercentage;
+      platformFee = subtotal * (defaultPercentage / 100);
+      logStep("Using default system fee", { percentage: defaultPercentage });
+    }
+    
     const gatewayFee = subtotal * (gatewayFeePercentage / 100);
     const totalAmount = subtotal + platformFee + gatewayFee;
+
+    logStep("Amount calculation", { 
+      subtotal, 
+      platformFee,
+      platformFeePercentage,
+      hasCustomFee: !!producerCustomFee,
+      customFeeType: producerCustomFee?.fee_type,
+      gatewayFee, 
+      totalAmount 
+    });
 
     logStep("Amount calculation", { 
       subtotal, 
@@ -185,7 +210,9 @@ serve(async (req) => {
             currency: "brl",
             product_data: {
               name: "Taxa da plataforma",
-              description: `${platformFeePercentage}% sobre o valor do ingresso`,
+              description: platformFeePercentage 
+                ? `${platformFeePercentage}% sobre o valor do ingresso`
+                : `Taxa fixa por ingresso`,
             },
             unit_amount: Math.round(platformFee * 100),
           },

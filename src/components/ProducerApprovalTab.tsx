@@ -90,6 +90,7 @@ export const ProducerApprovalTab = () => {
     producer: null,
   });
   const [customFeeValue, setCustomFeeValue] = useState("");
+  const [customFeeType, setCustomFeeType] = useState<"percentage" | "fixed">("percentage");
   const [savingFee, setSavingFee] = useState(false);
   const [currentProducerFee, setCurrentProducerFee] = useState<number | null>(null);
 
@@ -170,7 +171,7 @@ export const ProducerApprovalTab = () => {
         // Get custom fees for producers
         const { data: customFeesData } = await supabase
           .from("producer_custom_fees")
-          .select("producer_id, platform_fee_percentage, is_active")
+          .select("producer_id, fee_value, fee_type, is_active")
           .eq("is_active", true);
 
         const producersWithData = roles.map(role => {
@@ -182,7 +183,10 @@ export const ProducerApprovalTab = () => {
             ...role,
             profile,
             eventCount,
-            customFee: customFee?.platform_fee_percentage || null
+            customFee: customFee ? {
+              value: customFee.fee_value,
+              type: customFee.fee_type as "percentage" | "fixed"
+            } : null
           };
         });
 
@@ -608,8 +612,10 @@ export const ProducerApprovalTab = () => {
                             <Badge variant="default">Ativo</Badge>
                             {producer.customFee && (
                               <Badge variant="outline" className="text-xs">
-                                <Percent className="h-3 w-3 mr-1" />
-                                {producer.customFee}%
+                                {producer.customFee.type === "percentage" 
+                                  ? <><Percent className="h-3 w-3 mr-1" />{producer.customFee.value}%</>
+                                  : <>R$ {Number(producer.customFee.value).toFixed(2)}</>
+                                }
                               </Badge>
                             )}
                           </div>
@@ -634,7 +640,8 @@ export const ProducerApprovalTab = () => {
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
-                                  setCustomFeeValue("");
+                                  setCustomFeeValue(producer.customFee?.value?.toString() || "");
+                                  setCustomFeeType(producer.customFee?.type || "percentage");
                                   setCustomFeeDialog({ open: true, producer });
                                 }}
                               >
@@ -811,6 +818,17 @@ export const ProducerApprovalTab = () => {
                   <Label className="text-muted-foreground text-xs">Total de Eventos</Label>
                   <p className="font-medium">{viewProfileDialog.producer.eventCount} eventos</p>
                 </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Taxa Personalizada</Label>
+                  <p className="font-medium">
+                    {viewProfileDialog.producer.customFee 
+                      ? viewProfileDialog.producer.customFee.type === "percentage"
+                        ? `${viewProfileDialog.producer.customFee.value}%`
+                        : `R$ ${Number(viewProfileDialog.producer.customFee.value).toFixed(2)}`
+                      : "Usando taxa padrão do sistema"
+                    }
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -833,23 +851,43 @@ export const ProducerApprovalTab = () => {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="customFee">Taxa da Plataforma (%)</Label>
+              <Label>Tipo de Taxa</Label>
+              <Select value={customFeeType} onValueChange={(v) => setCustomFeeType(v as "percentage" | "fixed")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                  <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="customFee">
+                {customFeeType === "percentage" ? "Taxa da Plataforma (%)" : "Valor Fixo (R$)"}
+              </Label>
               <Input
                 id="customFee"
                 type="number"
                 step="0.01"
                 min="0"
-                max="100"
-                placeholder="Ex: 8.5"
+                max={customFeeType === "percentage" ? 100 : undefined}
+                placeholder={customFeeType === "percentage" ? "Ex: 8.5" : "Ex: 5.00"}
                 value={customFeeValue}
                 onChange={(e) => setCustomFeeValue(e.target.value)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Deixe em branco ou 0 para remover a taxa personalizada e usar a padrão do sistema
+                {customFeeType === "percentage" 
+                  ? "Deixe em branco ou 0 para remover a taxa personalizada e usar a padrão do sistema"
+                  : "Valor fixo em reais que será cobrado por ingresso vendido"
+                }
               </p>
               {customFeeDialog.producer?.customFee && (
                 <p className="text-xs text-primary mt-1">
-                  Taxa atual: {customFeeDialog.producer.customFee}%
+                  Taxa atual: {customFeeDialog.producer.customFee.type === "percentage" 
+                    ? `${customFeeDialog.producer.customFee.value}%`
+                    : `R$ ${Number(customFeeDialog.producer.customFee.value).toFixed(2)}`
+                  }
                 </p>
               )}
             </div>
@@ -882,10 +920,21 @@ export const ProducerApprovalTab = () => {
                       description: "O produtor agora usará a taxa padrão do sistema.",
                     });
                   } else {
-                    if (feeValue < 0 || feeValue > 100) {
+                    // Validate value
+                    if (feeValue < 0) {
                       toast({
                         title: "Valor inválido",
-                        description: "A taxa deve estar entre 0 e 100%.",
+                        description: "A taxa não pode ser negativa.",
+                        variant: "destructive",
+                      });
+                      setSavingFee(false);
+                      return;
+                    }
+                    
+                    if (customFeeType === "percentage" && feeValue > 100) {
+                      toast({
+                        title: "Valor inválido",
+                        description: "A porcentagem deve estar entre 0 e 100%.",
                         variant: "destructive",
                       });
                       setSavingFee(false);
@@ -897,7 +946,8 @@ export const ProducerApprovalTab = () => {
                       .from("producer_custom_fees")
                       .upsert({
                         producer_id: producerId,
-                        platform_fee_percentage: feeValue,
+                        fee_value: feeValue,
+                        fee_type: customFeeType,
                         is_active: true,
                         created_by: (await supabase.auth.getUser()).data.user?.id,
                       }, {
@@ -908,7 +958,9 @@ export const ProducerApprovalTab = () => {
                     
                     toast({
                       title: "Taxa salva",
-                      description: `Taxa personalizada de ${feeValue}% configurada para este produtor.`,
+                      description: customFeeType === "percentage"
+                        ? `Taxa personalizada de ${feeValue}% configurada para este produtor.`
+                        : `Taxa fixa de R$ ${feeValue.toFixed(2)} configurada para este produtor.`,
                     });
                   }
                   

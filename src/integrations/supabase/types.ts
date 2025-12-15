@@ -192,27 +192,30 @@ export type Database = {
         Row: {
           created_at: string
           created_by: string | null
+          fee_type: string
+          fee_value: number
           id: string
           is_active: boolean
-          platform_fee_percentage: number
           producer_id: string
           updated_at: string
         }
         Insert: {
           created_at?: string
           created_by?: string | null
+          fee_type?: string
+          fee_value: number
           id?: string
           is_active?: boolean
-          platform_fee_percentage: number
           producer_id: string
           updated_at?: string
         }
         Update: {
           created_at?: string
           created_by?: string | null
+          fee_type?: string
+          fee_value?: number
           id?: string
           is_active?: boolean
-          platform_fee_percentage?: number
           producer_id?: string
           updated_at?: string
         }

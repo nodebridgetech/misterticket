@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Users, Calendar, Tag, DollarSign, User, ScanLine, Smartphone, FileText, Settings, LinkIcon } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, User, ScanLine, FileText, Settings, LinkIcon } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -31,8 +31,6 @@ export const AppSidebar = () => {
     { path: "/admin", label: "Dashboard", icon: LayoutDashboard, end: true },
     { path: "/admin/produtores", label: "Produtores", icon: Users, end: false },
     { path: "/admin/eventos", label: "Eventos", icon: Calendar, end: false },
-    { path: "/admin/categorias", label: "Categorias", icon: Tag, end: false },
-    { path: "/admin/taxas", label: "Taxas", icon: DollarSign, end: false },
     { path: "/admin/logs", label: "Logs", icon: FileText, end: false },
     { path: "/admin/configuracoes", label: "Configurações", icon: Settings, end: false },
   ];
@@ -43,7 +41,6 @@ export const AppSidebar = () => {
     { path: "/meus-eventos", label: "Meus Eventos", icon: Calendar, end: false },
     { path: "/links-utm", label: "Links UTM", icon: LinkIcon, end: false },
     { path: "/validar-ingressos", label: "Validar Ingressos", icon: ScanLine, end: false },
-    { path: "/instalar", label: "Instalar App", icon: Smartphone, end: false },
   ];
 
   const menuItems = userRole === "admin" ? adminMenuItems : producerMenuItems;

@@ -50,9 +50,7 @@ export const LocationMap = ({
   }
 
   const encodedAddress = encodeURIComponent(fullAddress);
-  const mapSrc = apiKey 
-    ? `https://www.google.com/maps/embed/v1/place?key=${apiKey}&q=${encodedAddress}`
-    : `https://maps.google.com/maps?q=${encodedAddress}&output=embed`;
+  const mapSrc = `https://maps.google.com/maps?q=${encodedAddress}&t=&z=16&ie=UTF8&iwloc=&output=embed`;
 
   return (
     <div className={`space-y-3 ${className}`}>

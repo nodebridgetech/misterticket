@@ -29,6 +29,7 @@ import UtmLinks from "./pages/UtmLinks";
 import UtmAnalytics from "./pages/UtmAnalytics";
 import WithdrawalRequests from "./pages/WithdrawalRequests";
 import AdminWithdrawals from "./pages/AdminWithdrawals";
+import FinancialDashboard from "./pages/FinancialDashboard";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
             <Route path="/links-utm" element={<UtmLinks />} />
             <Route path="/utm-analytics/:id" element={<UtmAnalytics />} />
             <Route path="/saques" element={<WithdrawalRequests />} />
+            <Route path="/financeiro" element={<FinancialDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/produtores" element={<ProducersManagement />} />
             <Route path="/admin/eventos" element={<EventsManagement />} />

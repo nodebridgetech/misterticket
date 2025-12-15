@@ -2,3 +2,6 @@ project_id = "txkwnrrhaahhhpmjjbyl"
 
 [functions.process-withdrawal]
 verify_jwt = false
+
+[functions.send-withdrawal-notification]
+verify_jwt = false

@@ -10,10 +10,14 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { DollarSign, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { DollarSign, Plus, AlertCircle, Clock, CheckCircle, XCircle, Loader2, CalendarIcon, ChevronLeft, ChevronRight, Filter } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface WithdrawalRequest {
   id: string;
@@ -25,10 +29,13 @@ interface WithdrawalRequest {
   approved_at: string | null;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const WithdrawalRequests = () => {
   const { user, isProducerApproved, loading } = useAuth();
   const navigate = useNavigate();
   const [requests, setRequests] = useState<WithdrawalRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<WithdrawalRequest[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [availableBalance, setAvailableBalance] = useState(0);
   const [withdrawnAmount, setWithdrawnAmount] = useState(0);
@@ -38,6 +45,14 @@ const WithdrawalRequests = () => {
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [minWithdrawal, setMinWithdrawal] = useState(50);
+  
+  // Filters
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     if (!loading && (!user || !isProducerApproved)) {
@@ -51,17 +66,39 @@ const WithdrawalRequests = () => {
     }
   }, [user, isProducerApproved]);
 
+  // Apply filters
+  useEffect(() => {
+    let filtered = [...requests];
+    
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(r => r.status === statusFilter);
+    }
+    
+    if (startDate) {
+      filtered = filtered.filter(r => new Date(r.created_at) >= startDate);
+    }
+    
+    if (endDate) {
+      const endOfDay = new Date(endDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(r => new Date(r.created_at) <= endOfDay);
+    }
+    
+    setFilteredRequests(filtered);
+    setCurrentPage(1);
+  }, [requests, statusFilter, startDate, endDate]);
+
   const fetchData = async () => {
     setLoadingData(true);
     try {
       // Fetch user profile document
       const { data: profile } = await supabase
         .from("profiles")
-        .select("document")
+        .select("document, cnpj")
         .eq("user_id", user?.id)
         .single();
 
-      setUserDocument(profile?.document || null);
+      setUserDocument(profile?.cnpj || profile?.document || null);
 
       // Fetch fee config for min withdrawal
       const { data: feeConfig } = await supabase
@@ -178,6 +215,19 @@ const WithdrawalRequests = () => {
     }
   };
 
+  const clearFilters = () => {
+    setStatusFilter("all");
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
+  // Pagination
+  const totalPages = Math.ceil(filteredRequests.length / ITEMS_PER_PAGE);
+  const paginatedRequests = filteredRequests.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
   if (loading || loadingData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -245,7 +295,7 @@ const WithdrawalRequests = () => {
           <AlertCircle className="h-4 w-4 text-yellow-600" />
           <AlertDescription>
             <strong>Atenção:</strong> Para solicitar saques, você precisa informar seu CPF ou CNPJ no seu cadastro.{" "}
-            <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/minha-conta?tab=dados")}>
+            <Button variant="link" className="p-0 h-auto" onClick={() => navigate("/minha-conta?tab=profile")}>
               Atualizar cadastro
             </Button>
           </AlertDescription>
@@ -253,7 +303,7 @@ const WithdrawalRequests = () => {
       )}
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-4">
           <div>
             <CardTitle>Histórico de Solicitações</CardTitle>
             <CardDescription>Acompanhe todas as suas solicitações de saque</CardDescription>
@@ -310,40 +360,124 @@ const WithdrawalRequests = () => {
           </Dialog>
         </CardHeader>
         <CardContent>
-          {requests.length === 0 ? (
+          {/* Filters */}
+          <div className="flex flex-wrap gap-4 mb-6 p-4 bg-muted/50 rounded-lg">
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filtros:</span>
+            </div>
+            
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os status</SelectItem>
+                <SelectItem value="pending">Pendente</SelectItem>
+                <SelectItem value="processing">Processando</SelectItem>
+                <SelectItem value="completed">Concluído</SelectItem>
+                <SelectItem value="rejected">Rejeitado</SelectItem>
+                <SelectItem value="failed">Falhou</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, "dd/MM/yyyy") : "Data inicial"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+              </PopoverContent>
+            </Popover>
+            
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className={cn("w-[160px] justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, "dd/MM/yyyy") : "Data final"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+              </PopoverContent>
+            </Popover>
+            
+            {(statusFilter !== "all" || startDate || endDate) && (
+              <Button variant="ghost" size="sm" onClick={clearFilters}>
+                Limpar filtros
+              </Button>
+            )}
+          </div>
+
+          {filteredRequests.length === 0 ? (
             <div className="text-center py-12">
               <DollarSign className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">Nenhuma solicitação de saque</p>
+              <p className="text-muted-foreground">Nenhuma solicitação de saque encontrada</p>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>CPF/CNPJ</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Observações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {requests.map((request) => (
-                  <TableRow key={request.id}>
-                    <TableCell>
-                      {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                    </TableCell>
-                    <TableCell className="font-medium">
-                      R$ {Number(request.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>{request.producer_document}</TableCell>
-                    <TableCell>{getStatusBadge(request.status)}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">
-                      {request.rejection_reason || (request.approved_at && `Aprovado em ${format(new Date(request.approved_at), "dd/MM/yyyy", { locale: ptBR })}`)}
-                    </TableCell>
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Data</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>CPF/CNPJ</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Observações</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {paginatedRequests.map((request) => (
+                    <TableRow key={request.id}>
+                      <TableCell>
+                        {format(new Date(request.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        R$ {Number(request.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell>{request.producer_document}</TableCell>
+                      <TableCell>{getStatusBadge(request.status)}</TableCell>
+                      <TableCell className="max-w-[200px] truncate">
+                        {request.rejection_reason || (request.approved_at && `Aprovado em ${format(new Date(request.approved_at), "dd/MM/yyyy", { locale: ptBR })}`)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-4">
+                  <p className="text-sm text-muted-foreground">
+                    Mostrando {((currentPage - 1) * ITEMS_PER_PAGE) + 1} a {Math.min(currentPage * ITEMS_PER_PAGE, filteredRequests.length)} de {filteredRequests.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm">
+                      Página {currentPage} de {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

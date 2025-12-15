@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Loader2, Phone, Calendar, User, FileText } from "lucide-react";
+import { Loader2, Phone, Calendar, User, FileText, Download, CalendarIcon } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -19,6 +20,10 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 interface ActivityLog {
   id: string;
@@ -41,6 +46,8 @@ const ActivityLogs = () => {
   const [activeTab, setActiveTab] = useState("events");
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const itemsPerPage = 15;
 
   useEffect(() => {
@@ -103,13 +110,31 @@ const ActivityLogs = () => {
     return labels[type] || type;
   };
 
+  const getActionLabel = (action: string) => {
+    switch (action) {
+      case "create":
+        return "Criação";
+      case "update":
+        return "Edição";
+      case "delete":
+        return "Exclusão";
+      default:
+        return action;
+    }
+  };
+
   const filteredLogs = logs.filter((log) => {
     const searchLower = searchTerm.toLowerCase();
-    return (
+    const matchesSearch =
       log.user_name?.toLowerCase().includes(searchLower) ||
       log.entity_name?.toLowerCase().includes(searchLower) ||
-      log.user_phone?.includes(searchTerm)
-    );
+      log.user_phone?.includes(searchTerm);
+
+    const logDate = new Date(log.created_at);
+    const matchesStartDate = !startDate || logDate >= new Date(startDate.setHours(0, 0, 0, 0));
+    const matchesEndDate = !endDate || logDate <= new Date(new Date(endDate).setHours(23, 59, 59, 999));
+
+    return matchesSearch && matchesStartDate && matchesEndDate;
   });
 
   const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
@@ -118,7 +143,53 @@ const ActivityLogs = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeTab]);
+  }, [searchTerm, activeTab, startDate, endDate]);
+
+  const clearDateFilters = () => {
+    setStartDate(undefined);
+    setEndDate(undefined);
+  };
+
+  const exportToCSV = () => {
+    if (filteredLogs.length === 0) {
+      toast({
+        title: "Nenhum log para exportar",
+        description: "Não há logs com os filtros atuais para exportar.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["Data/Hora", "Ação", "Tipo", "Usuário", "Telefone", "Entidade"];
+    const rows = filteredLogs.map((log) => [
+      format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
+      getActionLabel(log.action_type),
+      getEntityTypeLabel(log.entity_type),
+      log.user_name || "Desconhecido",
+      log.user_phone || "-",
+      log.entity_name || "-",
+    ]);
+
+    const csvContent = [
+      headers.join(";"),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(";")),
+    ].join("\n");
+
+    const blob = new Blob(["\ufeff" + csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `logs_${activeTab}_${format(new Date(), "yyyy-MM-dd_HH-mm")}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Exportação concluída",
+      description: `${filteredLogs.length} registros exportados com sucesso.`,
+    });
+  };
 
   if (!user || userRole !== "admin") {
     return null;
@@ -128,13 +199,21 @@ const ActivityLogs = () => {
     <div className="container mx-auto p-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Logs de Atividades
-          </CardTitle>
-          <CardDescription>
-            Histórico de todas as ações realizadas no sistema
-          </CardDescription>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Logs de Atividades
+              </CardTitle>
+              <CardDescription>
+                Histórico de todas as ações realizadas no sistema
+              </CardDescription>
+            </div>
+            <Button onClick={exportToCSV} variant="outline" className="gap-2">
+              <Download className="h-4 w-4" />
+              Exportar CSV
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -143,13 +222,73 @@ const ActivityLogs = () => {
               <TabsTrigger value="users">Usuários</TabsTrigger>
             </TabsList>
 
-            <div className="mb-4">
+            <div className="flex flex-col sm:flex-row gap-4 mb-4">
               <Input
                 placeholder="Buscar por nome do usuário, telefone ou entidade..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-md"
               />
+              
+              <div className="flex flex-wrap gap-2">
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal min-w-[140px]",
+                        !startDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {startDate ? format(startDate, "dd/MM/yyyy") : "Data início"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={startDate}
+                      onSelect={setStartDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "justify-start text-left font-normal min-w-[140px]",
+                        !endDate && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "dd/MM/yyyy") : "Data fim"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                      className="pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+
+                {(startDate || endDate) && (
+                  <Button variant="ghost" onClick={clearDateFilters} size="sm">
+                    Limpar datas
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="text-sm text-muted-foreground mb-2">
+              {filteredLogs.length} registro(s) encontrado(s)
             </div>
 
             <TabsContent value="events">

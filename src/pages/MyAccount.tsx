@@ -20,6 +20,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { TicketTransferDialog } from "@/components/TicketTransferDialog";
 import { RefundPolicyInfo } from "@/components/RefundPolicyInfo";
+import { logActivity } from "@/hooks/useActivityLog";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -330,6 +331,17 @@ const MyAccount = () => {
         .eq("user_id", user!.id);
 
       if (error) throw error;
+
+      // Log activity for profile update
+      await logActivity({
+        actionType: "update",
+        entityType: "user",
+        entityId: user!.id,
+        entityName: editForm.full_name.trim(),
+        details: {
+          updated_fields: Object.keys(updateData).filter(key => updateData[key] !== profile?.[key]),
+        },
+      });
 
       setProfile({
         ...profile,

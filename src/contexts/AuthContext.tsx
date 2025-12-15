@@ -3,6 +3,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { logActivity } from "@/hooks/useActivityLog";
 
 interface AuthContextType {
   user: User | null;
@@ -97,7 +98,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -105,6 +106,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (error) {
       toast.error(error.message);
       throw error;
+    }
+
+    // Log login activity
+    if (data.user) {
+      setTimeout(async () => {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("user_id", data.user!.id)
+          .single();
+        
+        await supabase.from("activity_logs").insert({
+          user_id: data.user!.id,
+          user_name: profile?.full_name || email,
+          action_type: "login",
+          entity_type: "user",
+          entity_id: data.user!.id,
+          entity_name: profile?.full_name || email,
+          details: { method: "password" },
+        });
+      }, 0);
     }
     
     toast.success("Login realizado com sucesso!");
@@ -132,6 +154,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    // Log logout activity before signing out
+    if (user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .single();
+      
+      await supabase.from("activity_logs").insert({
+        user_id: user.id,
+        user_name: profile?.full_name || user.email,
+        action_type: "logout",
+        entity_type: "user",
+        entity_id: user.id,
+        entity_name: profile?.full_name || user.email,
+        details: null,
+      });
+    }
+
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

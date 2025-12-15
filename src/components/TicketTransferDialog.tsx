@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { Loader2, Send, AlertTriangle } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 
 const emailSchema = z.string().email("E-mail inválido");
 
@@ -155,6 +156,21 @@ export function TicketTransferDialog({
         setError("Erro ao transferir o ingresso. Tente novamente.");
         return;
       }
+
+      // Log activity for ticket transfer
+      await logActivity({
+        actionType: "update",
+        entityType: "ticket",
+        entityId: sale.id,
+        entityName: `${sale.events.title} - ${sale.tickets.batch_name}`,
+        details: {
+          action: "transfer",
+          from_user: senderProfile?.full_name || user?.email,
+          to_user: recipientProfile.full_name,
+          to_email: recipientProfile.email,
+          quantity: sale.quantity,
+        },
+      });
 
       // Send notification emails via edge function
       try {

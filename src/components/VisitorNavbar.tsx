@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, User, Ticket } from "lucide-react";
+import { Search, User } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,8 +50,7 @@ export const VisitorNavbar = () => {
               Eventos
             </Link>
             {user && (
-              <Link to="/minha-conta?tab=tickets" className="text-foreground hover:text-primary transition-colors flex items-center gap-1">
-                <Ticket className="h-4 w-4" />
+              <Link to="/minha-conta?tab=tickets" className="text-foreground hover:text-primary transition-colors">
                 Meus Ingressos
               </Link>
             )}

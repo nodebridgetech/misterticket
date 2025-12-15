@@ -27,6 +27,8 @@ import EventAnalytics from "./pages/EventAnalytics";
 import SiteSettingsManagement from "./pages/SiteSettingsManagement";
 import UtmLinks from "./pages/UtmLinks";
 import UtmAnalytics from "./pages/UtmAnalytics";
+import WithdrawalRequests from "./pages/WithdrawalRequests";
+import AdminWithdrawals from "./pages/AdminWithdrawals";
 
 const queryClient = new QueryClient();
 
@@ -54,9 +56,11 @@ const App = () => (
             <Route path="/event-analytics/:id" element={<EventAnalytics />} />
             <Route path="/links-utm" element={<UtmLinks />} />
             <Route path="/utm-analytics/:id" element={<UtmAnalytics />} />
+            <Route path="/saques" element={<WithdrawalRequests />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/produtores" element={<ProducersManagement />} />
             <Route path="/admin/eventos" element={<EventsManagement />} />
+            <Route path="/admin/saques" element={<AdminWithdrawals />} />
             <Route path="/admin/logs" element={<ActivityLogs />} />
             <Route path="/admin/configuracoes" element={<SiteSettingsManagement />} />
             <Route path="/validar-ingressos" element={<ValidateTickets />} />

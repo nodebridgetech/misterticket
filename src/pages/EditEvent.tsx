@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Trash2, Plus, Copy, Eye, Code2 } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 import { ImageUpload } from "@/components/ImageUpload";
 import { DatePicker } from "@/components/DatePicker";
 import { Badge } from "@/components/ui/badge";
@@ -376,6 +377,13 @@ const EditEvent = () => {
           if (updateError) throw updateError;
         }
       }
+
+      await logActivity({
+        actionType: "update",
+        entityType: "event",
+        entityId: id,
+        entityName: title,
+      });
 
       toast({
         title: "Evento atualizado!",

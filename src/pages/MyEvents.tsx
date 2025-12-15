@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CalendarDays, Plus, Trash2, Copy, Edit, Power, Eye, BarChart3 } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -117,10 +118,19 @@ const MyEvents = () => {
   const handleDeleteEvent = async (eventId: string) => {
     setDeleting(eventId);
     try {
+      const eventToRemove = myEvents.find(e => e.id === eventId);
+      
       await supabase.from("tickets").delete().eq("event_id", eventId);
       const { error } = await supabase.from("events").delete().eq("id", eventId);
 
       if (error) throw error;
+
+      await logActivity({
+        actionType: "delete",
+        entityType: "event",
+        entityId: eventId,
+        entityName: eventToRemove?.title || "Evento",
+      });
 
       toast({
         title: "Evento excluído",

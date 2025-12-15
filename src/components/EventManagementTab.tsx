@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, Eye, Star, Filter, ArrowUpDown, Edit, BarChart3 } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
@@ -137,12 +138,21 @@ export const EventManagementTab = () => {
   const handleDelete = async (eventId: string) => {
     setDeleting(eventId);
     try {
+      const eventToRemove = events.find(e => e.id === eventId);
+      
       const { error } = await supabase
         .from("events")
         .delete()
         .eq("id", eventId);
 
       if (error) throw error;
+
+      await logActivity({
+        actionType: "delete",
+        entityType: "event",
+        entityId: eventId,
+        entityName: eventToRemove?.title || "Evento",
+      });
 
       toast({
         title: "Evento excluído",

@@ -18,6 +18,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavLink } from "./NavLink";
+import { NotificationBell } from "./NotificationBell";
 
 export const AppSidebar = () => {
   const { userRole } = useAuth();
@@ -87,6 +88,16 @@ export const AppSidebar = () => {
                   <ThemeToggle />
                 </div>
               </SidebarMenuItem>
+
+              {/* Notifications - Only for producers */}
+              {userRole === "producer" && (
+                <SidebarMenuItem>
+                  <div className="flex items-center justify-between px-2 py-2">
+                    <span className="text-sm text-muted-foreground">Notificações</span>
+                    <NotificationBell />
+                  </div>
+                </SidebarMenuItem>
+              )}
               
               {/* Minha Conta */}
               <SidebarMenuItem>

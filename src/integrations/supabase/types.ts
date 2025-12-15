@@ -265,6 +265,11 @@ export type Database = {
       }
       profiles: {
         Row: {
+          address: string | null
+          address_complement: string | null
+          address_number: string | null
+          birth_date: string | null
+          cep: string | null
           created_at: string
           document: string | null
           email: string | null
@@ -275,6 +280,11 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          birth_date?: string | null
+          cep?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
@@ -285,6 +295,11 @@ export type Database = {
           user_id: string
         }
         Update: {
+          address?: string | null
+          address_complement?: string | null
+          address_number?: string | null
+          birth_date?: string | null
+          cep?: string | null
           created_at?: string
           document?: string | null
           email?: string | null

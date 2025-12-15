@@ -18,6 +18,7 @@ import { DatePicker } from "@/components/DatePicker";
 import { Badge } from "@/components/ui/badge";
 import { EventPreview } from "@/components/EventPreview";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { LocationMap } from "@/components/LocationMap";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -492,6 +493,18 @@ const EditEvent = () => {
                   onComplementChange={setAddressComplement}
                   required
                 />
+
+                {address && (
+                  <div className="space-y-2">
+                    <Label>Preview da Localização</Label>
+                    <LocationMap 
+                      address={address}
+                      addressNumber={addressNumber}
+                      venue={venue}
+                      showOpenButtons={false}
+                    />
+                  </div>
+                )}
 
                 <div>
                   <Label htmlFor="description">Descrição</Label>

@@ -109,10 +109,10 @@ export function TicketTransferDialog({
     setError(null);
 
     try {
-      // Get recipient's user_id
+      // Get recipient's user_id and name
       const { data: recipientProfile, error: recipientError } = await supabase
         .from("profiles")
-        .select("user_id")
+        .select("user_id, full_name, email")
         .eq("email", email.trim().toLowerCase())
         .single();
 
@@ -120,6 +120,13 @@ export function TicketTransferDialog({
         setError("Erro ao encontrar o destinatário. Tente novamente.");
         return;
       }
+
+      // Get sender profile info
+      const { data: senderProfile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("user_id", user!.id)
+        .single();
 
       // Create transfer record
       const { error: transferError } = await supabase
@@ -147,6 +154,25 @@ export function TicketTransferDialog({
         console.error("Update sale error:", updateError);
         setError("Erro ao transferir o ingresso. Tente novamente.");
         return;
+      }
+
+      // Send notification emails via edge function
+      try {
+        await supabase.functions.invoke("send-transfer-notification", {
+          body: {
+            senderName: senderProfile?.full_name || "Usuário",
+            senderEmail: senderProfile?.email || user?.email,
+            recipientName: recipientProfile.full_name,
+            recipientEmail: recipientProfile.email,
+            eventTitle: sale.events.title,
+            ticketBatch: sale.tickets.batch_name,
+            quantity: sale.quantity,
+          },
+        });
+        console.log("Transfer notification emails sent");
+      } catch (emailError) {
+        console.error("Failed to send notification emails:", emailError);
+        // Don't block the transfer if email fails
       }
 
       toast.success("Ingresso transferido com sucesso!");

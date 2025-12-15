@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MapPin, Navigation, ExternalLink } from "lucide-react";
+import { MapPin, Navigation, Copy, Check } from "lucide-react";
+import { toast } from "sonner";
 
 interface LocationMapProps {
   address: string;
@@ -9,6 +10,64 @@ interface LocationMapProps {
   className?: string;
   showOpenButtons?: boolean;
 }
+
+// Global flag to track script loading
+let googleMapsLoading = false;
+let googleMapsLoaded = false;
+const loadCallbacks: (() => void)[] = [];
+
+const loadGoogleMapsScript = (apiKey: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    // Already loaded
+    if (googleMapsLoaded && window.google?.maps?.Map) {
+      resolve();
+      return;
+    }
+
+    // Currently loading - add to callback queue
+    if (googleMapsLoading) {
+      loadCallbacks.push(() => resolve());
+      return;
+    }
+
+    // Check if script already exists in DOM
+    const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
+    if (existingScript) {
+      if (window.google?.maps?.Map) {
+        googleMapsLoaded = true;
+        resolve();
+      } else {
+        existingScript.addEventListener('load', () => {
+          googleMapsLoaded = true;
+          resolve();
+        });
+      }
+      return;
+    }
+
+    googleMapsLoading = true;
+
+    const script = document.createElement("script");
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker`;
+    script.async = true;
+    script.defer = true;
+
+    script.onload = () => {
+      googleMapsLoaded = true;
+      googleMapsLoading = false;
+      resolve();
+      loadCallbacks.forEach(cb => cb());
+      loadCallbacks.length = 0;
+    };
+
+    script.onerror = () => {
+      googleMapsLoading = false;
+      reject(new Error("Failed to load Google Maps"));
+    };
+
+    document.head.appendChild(script);
+  });
+};
 
 export const LocationMap = ({
   address,
@@ -20,6 +79,7 @@ export const LocationMap = ({
   const mapRef = useRef<HTMLDivElement>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const markerInstance = useRef<google.maps.marker.AdvancedMarkerElement | null>(null);
 
@@ -34,42 +94,19 @@ export const LocationMap = ({
       return;
     }
 
-    const loadGoogleMaps = async () => {
-      try {
-        // Check if already loaded
-        if (window.google?.maps?.Map) {
-          initMap();
-          return;
-        }
-
-        // Load Google Maps script
-        const script = document.createElement("script");
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker`;
-        script.async = true;
-        script.defer = true;
-
-        script.onload = () => {
-          initMap();
-        };
-
-        script.onerror = () => {
-          setError("Erro ao carregar Google Maps");
-        };
-
-        document.head.appendChild(script);
-      } catch (err) {
-        console.error("Error loading Google Maps:", err);
-        setError("Erro ao carregar mapa");
-      }
-    };
+    let isMounted = true;
 
     const initMap = async () => {
-      if (!mapRef.current || !window.google?.maps) return;
-
       try {
+        await loadGoogleMapsScript(apiKey);
+        
+        if (!isMounted || !mapRef.current || !window.google?.maps) return;
+
         const geocoder = new window.google.maps.Geocoder();
         
         geocoder.geocode({ address: fullAddress }, (results, status) => {
+          if (!isMounted) return;
+          
           if (status === "OK" && results && results[0]) {
             const location = results[0].geometry.location;
             
@@ -77,7 +114,7 @@ export const LocationMap = ({
             mapInstance.current = new window.google.maps.Map(mapRef.current!, {
               center: location,
               zoom: 16,
-              mapId: "location-map",
+              mapId: "location-map-" + Math.random().toString(36).substr(2, 9),
               disableDefaultUI: false,
               zoomControl: true,
               mapTypeControl: false,
@@ -87,11 +124,11 @@ export const LocationMap = ({
               fullscreenControl: true,
             });
 
-            // Create marker
+            // Create marker content
             const markerContent = document.createElement("div");
             markerContent.innerHTML = `
               <div style="
-                background: hsl(var(--primary));
+                background: #8B5CF6;
                 padding: 8px 12px;
                 border-radius: 8px;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.3);
@@ -107,7 +144,7 @@ export const LocationMap = ({
                 height: 0;
                 border-left: 8px solid transparent;
                 border-right: 8px solid transparent;
-                border-top: 8px solid hsl(var(--primary));
+                border-top: 8px solid #8B5CF6;
                 margin: 0 auto;
               "></div>
             `;
@@ -128,19 +165,32 @@ export const LocationMap = ({
         });
       } catch (err) {
         console.error("Error initializing map:", err);
-        setError("Erro ao inicializar mapa");
+        if (isMounted) {
+          setError("Erro ao carregar mapa");
+        }
       }
     };
 
-    loadGoogleMaps();
+    initMap();
 
     return () => {
-      // Cleanup
+      isMounted = false;
       if (markerInstance.current) {
         markerInstance.current.map = null;
       }
     };
   }, [address, addressNumber, venue, fullAddress]);
+
+  const copyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(fullAddress);
+      setCopied(true);
+      toast.success("Endereço copiado!");
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      toast.error("Erro ao copiar endereço");
+    }
+  };
 
   const openGoogleMaps = () => {
     const query = encodeURIComponent(fullAddress);
@@ -150,12 +200,6 @@ export const LocationMap = ({
   const openWaze = () => {
     const query = encodeURIComponent(fullAddress);
     window.open(`https://waze.com/ul?q=${query}`, "_blank");
-  };
-
-  const openNativeMaps = () => {
-    const query = encodeURIComponent(fullAddress);
-    // This will open the default maps app on mobile devices
-    window.open(`geo:0,0?q=${query}`, "_blank");
   };
 
   if (!address) {
@@ -179,7 +223,7 @@ export const LocationMap = ({
             <p className="text-sm text-muted-foreground text-center">{error}</p>
             {showOpenButtons && (
               <Button variant="outline" size="sm" onClick={openGoogleMaps}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+                <MapPin className="h-4 w-4 mr-2" />
                 Abrir no Google Maps
               </Button>
             )}
@@ -187,11 +231,19 @@ export const LocationMap = ({
         )}
       </div>
 
-      {showOpenButtons && isLoaded && (
+      {showOpenButtons && (
         <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={copyAddress} className="flex-1">
+            {copied ? (
+              <Check className="h-4 w-4 mr-2" />
+            ) : (
+              <Copy className="h-4 w-4 mr-2" />
+            )}
+            {copied ? "Copiado!" : "Copiar"}
+          </Button>
           <Button variant="outline" size="sm" onClick={openGoogleMaps} className="flex-1">
             <MapPin className="h-4 w-4 mr-2" />
-            Google Maps
+            Maps
           </Button>
           <Button variant="outline" size="sm" onClick={openWaze} className="flex-1">
             <Navigation className="h-4 w-4 mr-2" />

@@ -117,7 +117,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq("user_id", data.user.id)
           .single();
         
-        await supabase.from("activity_logs").insert({
+        const { error: logError } = await supabase.from("activity_logs").insert({
           user_id: data.user.id,
           user_name: profile?.full_name || email,
           user_phone: profile?.phone || null,
@@ -127,6 +127,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           entity_name: profile?.full_name || email,
           details: { method: "password" },
         });
+        
+        if (logError) {
+          console.error("Error inserting login log:", logError);
+        }
       } catch (logError) {
         console.error("Error logging login activity:", logError);
       }
@@ -159,21 +163,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     // Log logout activity before signing out
     if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("user_id", user.id)
-        .single();
-      
-      await supabase.from("activity_logs").insert({
-        user_id: user.id,
-        user_name: profile?.full_name || user.email,
-        action_type: "logout",
-        entity_type: "user",
-        entity_id: user.id,
-        entity_name: profile?.full_name || user.email,
-        details: null,
-      });
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("full_name, phone")
+          .eq("user_id", user.id)
+          .single();
+        
+        const { error: logError } = await supabase.from("activity_logs").insert({
+          user_id: user.id,
+          user_name: profile?.full_name || user.email,
+          user_phone: profile?.phone || null,
+          action_type: "logout",
+          entity_type: "user",
+          entity_id: user.id,
+          entity_name: profile?.full_name || user.email,
+          details: null,
+        });
+        
+        if (logError) {
+          console.error("Error inserting logout log:", logError);
+        }
+      } catch (logError) {
+        console.error("Error logging logout activity:", logError);
+      }
     }
 
     await supabase.auth.signOut();

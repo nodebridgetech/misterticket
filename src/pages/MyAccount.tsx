@@ -14,6 +14,19 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
 import { formatCPF, formatPhone, isValidCPF } from "@/lib/format-utils";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+
+interface ViaCepResponse {
+  cep: string;
+  logradouro: string;
+  complemento: string;
+  bairro: string;
+  localidade: string;
+  uf: string;
+  erro?: boolean;
+}
 
 interface Sale {
   id: string;
@@ -44,6 +57,7 @@ const MyAccount = () => {
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
+  const [loadingCep, setLoadingCep] = useState(false);
   
   // Estados para edição
   const [isEditing, setIsEditing] = useState(false);
@@ -51,7 +65,12 @@ const MyAccount = () => {
   const [editForm, setEditForm] = useState({
     full_name: "",
     phone: "",
-    document: ""
+    document: "",
+    cep: "",
+    address: "",
+    address_number: "",
+    address_complement: "",
+    birth_date: undefined as Date | undefined
   });
 
   useEffect(() => {
@@ -72,7 +91,12 @@ const MyAccount = () => {
         setEditForm({
           full_name: data.full_name || "",
           phone: data.phone || "",
-          document: data.document || ""
+          document: data.document || "",
+          cep: data.cep || "",
+          address: data.address || "",
+          address_number: data.address_number || "",
+          address_complement: data.address_complement || "",
+          birth_date: data.birth_date ? new Date(data.birth_date) : undefined
         });
       }
       setLoading(false);
@@ -136,8 +160,60 @@ const MyAccount = () => {
     setEditForm({
       full_name: profile?.full_name || "",
       phone: profile?.phone || "",
-      document: profile?.document || ""
+      document: profile?.document || "",
+      cep: profile?.cep || "",
+      address: profile?.address || "",
+      address_number: profile?.address_number || "",
+      address_complement: profile?.address_complement || "",
+      birth_date: profile?.birth_date ? new Date(profile.birth_date) : undefined
     });
+  };
+
+  const formatCep = (value: string): string => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 5) return numbers;
+    return `${numbers.slice(0, 5)}-${numbers.slice(5, 8)}`;
+  };
+
+  const handleCepChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedCep = formatCep(e.target.value);
+    setEditForm({ ...editForm, cep: formattedCep });
+    
+    const cepNumbers = formattedCep.replace(/\D/g, "");
+    if (cepNumbers.length === 8) {
+      await fetchAddress(cepNumbers);
+    }
+  };
+
+  const fetchAddress = async (cepValue: string) => {
+    setLoadingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cepValue}/json/`);
+      const data: ViaCepResponse = await response.json();
+      
+      if (data.erro) {
+        toast.error("CEP não encontrado");
+        return;
+      }
+      
+      const fullAddress = [
+        data.logradouro,
+        data.bairro,
+        `${data.localidade} - ${data.uf}`
+      ].filter(Boolean).join(", ");
+      
+      setEditForm(prev => ({
+        ...prev,
+        address: fullAddress
+      }));
+      
+      toast.success("Endereço encontrado!");
+    } catch (error) {
+      console.error("Erro ao buscar CEP:", error);
+      toast.error("Erro ao buscar endereço");
+    } finally {
+      setLoadingCep(false);
+    }
   };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -168,7 +244,12 @@ const MyAccount = () => {
         .update({
           full_name: editForm.full_name.trim(),
           phone: editForm.phone.trim() || null,
-          document: editForm.document.trim() || null
+          document: editForm.document.trim() || null,
+          cep: editForm.cep.trim() || null,
+          address: editForm.address.trim() || null,
+          address_number: editForm.address_number.trim() || null,
+          address_complement: editForm.address_complement.trim() || null,
+          birth_date: editForm.birth_date ? format(editForm.birth_date, "yyyy-MM-dd") : null
         })
         .eq("user_id", user!.id);
 
@@ -178,7 +259,12 @@ const MyAccount = () => {
         ...profile,
         full_name: editForm.full_name.trim(),
         phone: editForm.phone.trim() || null,
-        document: editForm.document.trim() || null
+        document: editForm.document.trim() || null,
+        cep: editForm.cep.trim() || null,
+        address: editForm.address.trim() || null,
+        address_number: editForm.address_number.trim() || null,
+        address_complement: editForm.address_complement.trim() || null,
+        birth_date: editForm.birth_date ? format(editForm.birth_date, "yyyy-MM-dd") : null
       });
       setIsEditing(false);
       toast.success("Perfil atualizado com sucesso!");
@@ -306,6 +392,120 @@ const MyAccount = () => {
                       disabled 
                     />
                   )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Data de Nascimento</Label>
+                  {isEditing ? (
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full justify-start text-left font-normal",
+                            !editForm.birth_date && "text-muted-foreground"
+                          )}
+                        >
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {editForm.birth_date 
+                            ? format(editForm.birth_date, "dd/MM/yyyy") 
+                            : "Selecione a data"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={editForm.birth_date}
+                          onSelect={(date) => setEditForm({ ...editForm, birth_date: date })}
+                          disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          initialFocus
+                          className="pointer-events-auto"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  ) : (
+                    <Input 
+                      placeholder="Não informado" 
+                      value={profile?.birth_date ? format(new Date(profile.birth_date), "dd/MM/yyyy") : ""} 
+                      disabled 
+                    />
+                  )}
+                </div>
+
+                <div className="pt-4 border-t">
+                  <h4 className="font-medium mb-4">Endereço</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label>CEP</Label>
+                      {isEditing ? (
+                        <div className="relative">
+                          <Input 
+                            value={editForm.cep} 
+                            onChange={handleCepChange}
+                            placeholder="00000-000"
+                            maxLength={9}
+                          />
+                          {loadingCep && (
+                            <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                          )}
+                        </div>
+                      ) : (
+                        <Input 
+                          placeholder="Não informado" 
+                          value={profile?.cep || ""} 
+                          disabled 
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Endereço</Label>
+                      {isEditing ? (
+                        <Input 
+                          value={editForm.address} 
+                          onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                          placeholder="Rua, Bairro, Cidade - UF"
+                        />
+                      ) : (
+                        <Input 
+                          placeholder="Não informado" 
+                          value={profile?.address || ""} 
+                          disabled 
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Número</Label>
+                      {isEditing ? (
+                        <Input 
+                          value={editForm.address_number} 
+                          onChange={(e) => setEditForm({ ...editForm, address_number: e.target.value })}
+                          placeholder="Número"
+                        />
+                      ) : (
+                        <Input 
+                          placeholder="Não informado" 
+                          value={profile?.address_number || ""} 
+                          disabled 
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label>Complemento</Label>
+                      {isEditing ? (
+                        <Input 
+                          value={editForm.address_complement} 
+                          onChange={(e) => setEditForm({ ...editForm, address_complement: e.target.value })}
+                          placeholder="Apartamento, bloco, etc."
+                        />
+                      ) : (
+                        <Input 
+                          placeholder="Não informado" 
+                          value={profile?.address_complement || ""} 
+                          disabled 
+                        />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

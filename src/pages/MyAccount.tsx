@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,6 +61,8 @@ interface Sale {
 const MyAccount = () => {
   const { user, signOut, userRole, requestProducerRole, isProducerApproved, hasPendingProducerRequest } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const defaultTab = searchParams.get("tab") === "tickets" ? "tickets" : "profile";
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -346,7 +348,7 @@ const MyAccount = () => {
       <main className="container mx-auto px-4 py-8">
         <h1 className="text-4xl font-bold mb-8">Minha Conta</h1>
 
-        <Tabs defaultValue="profile" className="space-y-6">
+        <Tabs defaultValue={defaultTab} className="space-y-6">
           <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />

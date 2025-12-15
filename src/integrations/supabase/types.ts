@@ -358,6 +358,7 @@ export type Database = {
           address_number: string | null
           birth_date: string | null
           cep: string | null
+          cnpj: string | null
           created_at: string
           document: string | null
           email: string | null
@@ -373,6 +374,7 @@ export type Database = {
           address_number?: string | null
           birth_date?: string | null
           cep?: string | null
+          cnpj?: string | null
           created_at?: string
           document?: string | null
           email?: string | null
@@ -388,6 +390,7 @@ export type Database = {
           address_number?: string | null
           birth_date?: string | null
           cep?: string | null
+          cnpj?: string | null
           created_at?: string
           document?: string | null
           email?: string | null

@@ -50,9 +50,10 @@ serve(async (req) => {
     logStep("Admin verified", { userId: user.id });
 
     // Get request body
-    const { withdrawalId } = await req.json();
+    const { withdrawalId, action, rejectionReason } = await req.json();
     if (!withdrawalId) throw new Error("Withdrawal ID is required");
-    logStep("Processing withdrawal", { withdrawalId });
+    if (!action) throw new Error("Action is required (approve or reject)");
+    logStep("Processing withdrawal", { withdrawalId, action });
 
     // Fetch withdrawal request
     const { data: withdrawal, error: withdrawalError } = await supabaseAdmin
@@ -71,6 +72,41 @@ serve(async (req) => {
 
     logStep("Withdrawal found", { amount: withdrawal.amount, document: withdrawal.producer_document });
 
+    if (action === "reject") {
+      // Reject the request
+      const { error: updateError } = await supabaseAdmin
+        .from("withdrawal_requests")
+        .update({
+          status: "rejected",
+          rejection_reason: rejectionReason || "Solicitação rejeitada pelo administrador",
+          approved_by: user.id,
+          approved_at: new Date().toISOString(),
+        })
+        .eq("id", withdrawalId);
+
+      if (updateError) throw updateError;
+
+      // Send rejection notification email
+      try {
+        await supabaseAdmin.functions.invoke("send-withdrawal-notification", {
+          body: { withdrawalId, status: "rejected", rejectionReason },
+        });
+      } catch (emailError) {
+        logStep("Warning: Failed to send rejection email", { error: emailError });
+      }
+
+      logStep("Withdrawal rejected");
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Solicitação rejeitada com sucesso" }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        }
+      );
+    }
+
+    // Approve and process the withdrawal
     // Update status to processing
     await supabaseAdmin
       .from("withdrawal_requests")
@@ -100,7 +136,7 @@ serve(async (req) => {
       // For now, we'll simulate a successful payout and mark it complete
       // In production, you would integrate with Stripe Connect or Global Payouts
       
-      const payoutId = `manual_payout_${Date.now()}`;
+      const payoutId = `payout_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       
       // Update withdrawal request with success
       const { error: updateError } = await supabaseAdmin
@@ -114,6 +150,15 @@ serve(async (req) => {
         .eq("id", withdrawalId);
 
       if (updateError) throw updateError;
+
+      // Send approval notification email
+      try {
+        await supabaseAdmin.functions.invoke("send-withdrawal-notification", {
+          body: { withdrawalId, status: "completed" },
+        });
+      } catch (emailError) {
+        logStep("Warning: Failed to send approval email", { error: emailError });
+      }
 
       logStep("Withdrawal completed", { payoutId });
 

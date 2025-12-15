@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
-import { formatCPF, formatPhone, isValidCPF } from "@/lib/format-utils";
+import { formatCPF, formatPhone, isValidCPF, formatCNPJ, isValidCNPJ } from "@/lib/format-utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -84,6 +84,7 @@ const MyAccount = () => {
     full_name: "",
     phone: "",
     document: "",
+    cnpj: "",
     cep: "",
     address: "",
     address_number: "",
@@ -110,6 +111,7 @@ const MyAccount = () => {
           full_name: data.full_name || "",
           phone: data.phone || "",
           document: data.document || "",
+          cnpj: (data as any).cnpj || "",
           cep: data.cep || "",
           address: data.address || "",
           address_number: data.address_number || "",
@@ -220,6 +222,7 @@ const MyAccount = () => {
       full_name: profile?.full_name || "",
       phone: profile?.phone || "",
       document: profile?.document || "",
+      cnpj: profile?.cnpj || "",
       cep: profile?.cep || "",
       address: profile?.address || "",
       address_number: profile?.address_number || "",
@@ -296,20 +299,34 @@ const MyAccount = () => {
       return;
     }
 
+    // Validar CNPJ se preenchido (apenas para produtores)
+    const cnpjNumbers = editForm.cnpj.replace(/\D/g, "");
+    if (cnpjNumbers.length > 0 && !isValidCNPJ(editForm.cnpj)) {
+      toast.error("CNPJ inválido");
+      return;
+    }
+
     setIsSaving(true);
     try {
+      const updateData: any = {
+        full_name: editForm.full_name.trim(),
+        phone: editForm.phone.trim() || null,
+        document: editForm.document.trim() || null,
+        cep: editForm.cep.trim() || null,
+        address: editForm.address.trim() || null,
+        address_number: editForm.address_number.trim() || null,
+        address_complement: editForm.address_complement.trim() || null,
+        birth_date: editForm.birth_date ? format(editForm.birth_date, "yyyy-MM-dd") : null
+      };
+
+      // Apenas produtores podem ter CNPJ
+      if (userRole === "producer") {
+        updateData.cnpj = editForm.cnpj.trim() || null;
+      }
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          full_name: editForm.full_name.trim(),
-          phone: editForm.phone.trim() || null,
-          document: editForm.document.trim() || null,
-          cep: editForm.cep.trim() || null,
-          address: editForm.address.trim() || null,
-          address_number: editForm.address_number.trim() || null,
-          address_complement: editForm.address_complement.trim() || null,
-          birth_date: editForm.birth_date ? format(editForm.birth_date, "yyyy-MM-dd") : null
-        })
+        .update(updateData)
         .eq("user_id", user!.id);
 
       if (error) throw error;
@@ -319,6 +336,7 @@ const MyAccount = () => {
         full_name: editForm.full_name.trim(),
         phone: editForm.phone.trim() || null,
         document: editForm.document.trim() || null,
+        cnpj: editForm.cnpj.trim() || null,
         cep: editForm.cep.trim() || null,
         address: editForm.address.trim() || null,
         address_number: editForm.address_number.trim() || null,
@@ -448,6 +466,29 @@ const MyAccount = () => {
                     />
                   )}
                 </div>
+
+                {/* Campo CNPJ - apenas para produtores */}
+                {userRole === "producer" && (
+                  <div className="space-y-2">
+                    <Label>CNPJ (para saques)</Label>
+                    {isEditing ? (
+                      <Input 
+                        value={editForm.cnpj} 
+                        onChange={(e) => setEditForm({ ...editForm, cnpj: formatCNPJ(e.target.value) })}
+                        placeholder="00.000.000/0000-00"
+                      />
+                    ) : (
+                      <Input 
+                        placeholder="Não informado" 
+                        value={profile?.cnpj || ""} 
+                        disabled 
+                      />
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      O CNPJ é utilizado para receber saques via PIX
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label>CPF</Label>
                   {isEditing ? (

@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2, Send } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2, Send, UserPlus, Smartphone, Download, CheckCircle, Share, MoreVertical, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -19,6 +20,11 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import { TicketTransferDialog } from "@/components/TicketTransferDialog";
 import { RefundPolicyInfo } from "@/components/RefundPolicyInfo";
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
 
 interface ViaCepResponse {
   cep: string;
@@ -53,7 +59,7 @@ interface Sale {
 }
 
 const MyAccount = () => {
-  const { user, signOut, requestProducerRole, isProducerApproved, hasPendingProducerRequest } = useAuth();
+  const { user, signOut, userRole, requestProducerRole, isProducerApproved, hasPendingProducerRequest } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -62,6 +68,12 @@ const MyAccount = () => {
   const [loadingCep, setLoadingCep] = useState(false);
   const [transferDialogOpen, setTransferDialogOpen] = useState(false);
   const [selectedSaleForTransfer, setSelectedSaleForTransfer] = useState<Sale | null>(null);
+  
+  // Estados para Install App (PWA)
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
   
   // Estados para edição
   const [isEditing, setIsEditing] = useState(false);
@@ -146,6 +158,47 @@ const MyAccount = () => {
     fetchProfile();
     fetchSales();
   }, [user, navigate]);
+
+  // PWA Install detection
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+
+    const iOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    setIsIOS(iOS);
+
+    const android = /Android/.test(navigator.userAgent);
+    setIsAndroid(android);
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast.error("Instalação não disponível neste navegador");
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+
+    if (outcome === "accepted") {
+      toast.success("App instalado com sucesso!");
+      setIsInstalled(true);
+    }
+
+    setDeferredPrompt(null);
+  };
 
   const handleBecomeProducer = async () => {
     try {
@@ -294,7 +347,7 @@ const MyAccount = () => {
         <h1 className="text-4xl font-bold mb-8">Minha Conta</h1>
 
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList>
+          <TabsList className="flex-wrap h-auto gap-1">
             <TabsTrigger value="profile">
               <User className="h-4 w-4 mr-2" />
               Perfil
@@ -303,6 +356,18 @@ const MyAccount = () => {
               <Ticket className="h-4 w-4 mr-2" />
               Meus Ingressos
             </TabsTrigger>
+            {!isProducerApproved && (
+              <TabsTrigger value="become-producer">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Tornar-se Produtor
+              </TabsTrigger>
+            )}
+            {userRole === "producer" && (
+              <TabsTrigger value="install">
+                <Smartphone className="h-4 w-4 mr-2" />
+                Instalar App
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile" className="space-y-6">
@@ -516,61 +581,6 @@ const MyAccount = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Tornar-se Produtor</CardTitle>
-                <CardDescription>
-                  Crie e gerencie seus próprios eventos
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {isProducerApproved ? (
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Você já é um produtor aprovado! Acesse o painel de produtor para gerenciar seus eventos.
-                    </p>
-                    <Button onClick={() => navigate("/painel")}>
-                      Ir para o Painel
-                    </Button>
-                  </div>
-                ) : hasPendingProducerRequest ? (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium mb-1 text-yellow-900 dark:text-yellow-100">
-                          Solicitação em análise
-                        </p>
-                        <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                          Sua solicitação para se tornar produtor está aguardando aprovação do administrador.
-                        </p>
-                      </div>
-                    </div>
-                    <Button disabled variant="secondary">
-                      Solicitação Pendente
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
-                      <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium mb-1">
-                          Solicite acesso de produtor
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Após aprovação do administrador, você poderá criar e gerenciar eventos.
-                        </p>
-                      </div>
-                    </div>
-                    <Button onClick={handleBecomeProducer} variant="default">
-                      Solicitar acesso de produtor
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
                 <CardTitle>Ações da Conta</CardTitle>
               </CardHeader>
               <CardContent>
@@ -715,6 +725,222 @@ const MyAccount = () => {
               )}
             </div>
           </TabsContent>
+
+          {/* Tornar-se Produtor Tab */}
+          {!isProducerApproved && (
+            <TabsContent value="become-producer">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="h-5 w-5" />
+                    Tornar-se Produtor
+                  </CardTitle>
+                  <CardDescription>
+                    Crie e gerencie seus próprios eventos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {hasPendingProducerRequest ? (
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium mb-1 text-yellow-900 dark:text-yellow-100">
+                            Solicitação em análise
+                          </p>
+                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                            Sua solicitação para se tornar produtor está aguardando aprovação do administrador.
+                          </p>
+                        </div>
+                      </div>
+                      <Button disabled variant="secondary">
+                        Solicitação Pendente
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
+                        <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium mb-1">
+                            Solicite acesso de produtor
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Após aprovação do administrador, você poderá criar e gerenciar eventos.
+                          </p>
+                        </div>
+                      </div>
+                      <Button onClick={handleBecomeProducer} variant="default">
+                        Solicitar acesso de produtor
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* Instalar App Tab - Only for Producers */}
+          {userRole === "producer" && (
+            <TabsContent value="install">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-2xl">
+                    <Smartphone className="h-6 w-6 text-primary" />
+                    Instalar Mister Ticket
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    Tenha acesso rápido ao Mister Ticket direto da tela inicial do seu dispositivo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {isInstalled ? (
+                    <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+                      <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                      <AlertDescription className="text-base font-medium">
+                        O app já está instalado no seu dispositivo!
+                      </AlertDescription>
+                    </Alert>
+                  ) : (
+                    <>
+                      {deferredPrompt && (
+                        <div className="space-y-4">
+                          <Button 
+                            onClick={handleInstallClick} 
+                            size="lg" 
+                            className="w-full"
+                          >
+                            <Download className="mr-2 h-5 w-5" />
+                            Instalar Aplicativo
+                          </Button>
+                          <p className="text-sm text-muted-foreground text-center">
+                            Clique no botão acima para instalar o app diretamente
+                          </p>
+                        </div>
+                      )}
+
+                      {isIOS && !deferredPrompt && (
+                        <div className="space-y-4">
+                          <Alert>
+                            <Smartphone className="h-5 w-5" />
+                            <AlertDescription className="text-base">
+                              No iOS/iPhone, use o Safari para instalar
+                            </AlertDescription>
+                          </Alert>
+                          
+                          <div className="space-y-4 p-4 bg-muted rounded-lg">
+                            <h3 className="font-semibold text-lg">Como instalar no iPhone/iPad:</h3>
+                            <ol className="space-y-3 list-decimal list-inside text-sm md:text-base">
+                              <li className="flex items-start gap-2">
+                                <Share className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Toque no botão de <strong>Compartilhar</strong></span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Download className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Role para baixo e toque em <strong>"Adicionar à Tela de Início"</strong></span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Toque em <strong>"Adicionar"</strong></span>
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+
+                      {isAndroid && !deferredPrompt && (
+                        <div className="space-y-4">
+                          <Alert>
+                            <Smartphone className="h-5 w-5" />
+                            <AlertDescription className="text-base">
+                              No Android, use o Chrome para instalar
+                            </AlertDescription>
+                          </Alert>
+                          
+                          <div className="space-y-4 p-4 bg-muted rounded-lg">
+                            <h3 className="font-semibold text-lg">Como instalar no Android:</h3>
+                            <ol className="space-y-3 list-decimal list-inside text-sm md:text-base">
+                              <li className="flex items-start gap-2">
+                                <MoreVertical className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Toque no menu <strong>(⋮)</strong></span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <Download className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Toque em <strong>"Instalar aplicativo"</strong></span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Confirme tocando em <strong>"Instalar"</strong></span>
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+
+                      {!isIOS && !isAndroid && !deferredPrompt && (
+                        <div className="space-y-4">
+                          <Alert>
+                            <Monitor className="h-5 w-5" />
+                            <AlertDescription className="text-base">
+                              No computador, use Chrome, Edge ou outro navegador compatível
+                            </AlertDescription>
+                          </Alert>
+                          
+                          <div className="space-y-4 p-4 bg-muted rounded-lg">
+                            <h3 className="font-semibold text-lg">Como instalar no Desktop:</h3>
+                            <ol className="space-y-3 list-decimal list-inside text-sm md:text-base">
+                              <li className="flex items-start gap-2">
+                                <Download className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Procure pelo ícone de <strong>instalação</strong> na barra de endereços</span>
+                              </li>
+                              <li className="flex items-start gap-2">
+                                <CheckCircle className="h-5 w-5 shrink-0 mt-0.5 text-primary" />
+                                <span>Clique em <strong>"Instalar"</strong></span>
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="space-y-4 pt-6 border-t border-border">
+                    <h3 className="font-semibold text-lg">Benefícios do App:</h3>
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Acesso Rápido</p>
+                          <p className="text-sm text-muted-foreground">Abra direto da tela inicial</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Scanner de QR Code</p>
+                          <p className="text-sm text-muted-foreground">Use a câmera para validar ingressos</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Funciona Offline</p>
+                          <p className="text-sm text-muted-foreground">Acesse mesmo sem internet</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3 p-3 bg-muted rounded-lg">
+                        <CheckCircle className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium">Notificações</p>
+                          <p className="text-sm text-muted-foreground">Receba atualizações importantes</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
         </Tabs>
       </main>
 

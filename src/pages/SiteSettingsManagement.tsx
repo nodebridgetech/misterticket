@@ -9,8 +9,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, MessageCircle, Plus, Pencil, Trash2, GripVertical, FileText } from "lucide-react";
+import { Loader2, MessageCircle, Plus, Pencil, Trash2, GripVertical, FileText, Tag, DollarSign } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CategoryManager } from "@/components/CategoryManager";
+import { FeeConfigTab } from "@/components/FeeConfigTab";
 import {
   Dialog,
   DialogContent,
@@ -406,10 +408,18 @@ const SiteSettingsManagement = () => {
       <h1 className="text-2xl md:text-3xl font-bold mb-6">Configurações do Site</h1>
 
       <Tabs defaultValue="whatsapp" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="faq">FAQ</TabsTrigger>
           <TabsTrigger value="refund">Reembolso</TabsTrigger>
+          <TabsTrigger value="categories">
+            <Tag className="h-4 w-4 mr-1" />
+            Categorias
+          </TabsTrigger>
+          <TabsTrigger value="fees">
+            <DollarSign className="h-4 w-4 mr-1" />
+            Taxas
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="whatsapp">
@@ -592,6 +602,14 @@ const SiteSettingsManagement = () => {
               </Button>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="categories">
+          <CategoryManager />
+        </TabsContent>
+
+        <TabsContent value="fees">
+          <FeeConfigTab />
         </TabsContent>
       </Tabs>
 

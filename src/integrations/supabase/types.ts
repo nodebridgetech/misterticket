@@ -91,6 +91,7 @@ export type Database = {
           id: string
           ticket_id: string | null
           user_id: string | null
+          utm_link_id: string | null
         }
         Insert: {
           created_at?: string
@@ -99,6 +100,7 @@ export type Database = {
           id?: string
           ticket_id?: string | null
           user_id?: string | null
+          utm_link_id?: string | null
         }
         Update: {
           created_at?: string
@@ -107,6 +109,7 @@ export type Database = {
           id?: string
           ticket_id?: string | null
           user_id?: string | null
+          utm_link_id?: string | null
         }
         Relationships: [
           {
@@ -121,6 +124,13 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_analytics_utm_link_id_fkey"
+            columns: ["utm_link_id"]
+            isOneToOne: false
+            referencedRelation: "utm_links"
             referencedColumns: ["id"]
           },
         ]
@@ -553,6 +563,75 @@ export type Database = {
           requested_at?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      utm_link_events: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          utm_link_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          utm_link_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          utm_link_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "utm_link_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "utm_link_events_utm_link_id_fkey"
+            columns: ["utm_link_id"]
+            isOneToOne: false
+            referencedRelation: "utm_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      utm_links: {
+        Row: {
+          applies_to_all_events: boolean
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          producer_id: string
+          updated_at: string
+          utm_code: string
+        }
+        Insert: {
+          applies_to_all_events?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          producer_id: string
+          updated_at?: string
+          utm_code: string
+        }
+        Update: {
+          applies_to_all_events?: boolean
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          producer_id?: string
+          updated_at?: string
+          utm_code?: string
         }
         Relationships: []
       }

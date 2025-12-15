@@ -28,6 +28,8 @@ import Install from "./pages/Install";
 import NotFound from "./pages/NotFound";
 import EventAnalytics from "./pages/EventAnalytics";
 import SiteSettingsManagement from "./pages/SiteSettingsManagement";
+import UtmLinks from "./pages/UtmLinks";
+import UtmAnalytics from "./pages/UtmAnalytics";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +55,8 @@ const App = () => (
             <Route path="/criar-evento" element={<CreateEvent />} />
             <Route path="/editar-evento/:id" element={<EditEvent />} />
             <Route path="/event-analytics/:id" element={<EventAnalytics />} />
+            <Route path="/links-utm" element={<UtmLinks />} />
+            <Route path="/utm-analytics/:id" element={<UtmAnalytics />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/produtores" element={<ProducersManagement />} />
             <Route path="/admin/eventos" element={<EventsManagement />} />

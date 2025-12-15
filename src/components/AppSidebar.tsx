@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { LayoutDashboard, Users, Calendar, Tag, DollarSign, User, ScanLine, Smartphone, FileText, Settings } from "lucide-react";
+import { LayoutDashboard, Users, Calendar, Tag, DollarSign, User, ScanLine, Smartphone, FileText, Settings, LinkIcon } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "./ThemeToggle";
@@ -41,6 +41,7 @@ export const AppSidebar = () => {
   const producerMenuItems = [
     { path: "/painel", label: "Dashboard", icon: LayoutDashboard, end: true },
     { path: "/meus-eventos", label: "Meus Eventos", icon: Calendar, end: false },
+    { path: "/links-utm", label: "Links UTM", icon: LinkIcon, end: false },
     { path: "/validar-ingressos", label: "Validar Ingressos", icon: ScanLine, end: false },
     { path: "/instalar", label: "Instalar App", icon: Smartphone, end: false },
   ];

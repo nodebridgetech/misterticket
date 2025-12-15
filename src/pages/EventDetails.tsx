@@ -4,16 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Calendar, MapPin, Clock, Users, Share2 } from "lucide-react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { injectSanitizedPixel, removeInjectedPixels } from "@/lib/sanitize-pixels";
 
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const utmCode = searchParams.get("utm");
   const [event, setEvent] = useState<any>(null);
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [utmLinkId, setUtmLinkId] = useState<string | null>(null);
   const hasTrackedView = useRef(false);
   const pixelsInjected = useRef(false);
 
@@ -23,6 +26,45 @@ const EventDetails = () => {
     }
   }, [id]);
 
+  // Fetch UTM link ID if utm code is present
+  useEffect(() => {
+    const fetchUtmLink = async () => {
+      if (!utmCode) return;
+      
+      try {
+        const { data } = await supabase
+          .from("utm_links")
+          .select("id, applies_to_all_events")
+          .eq("utm_code", utmCode)
+          .eq("is_active", true)
+          .single();
+
+        if (data) {
+          // Check if link applies to this event
+          if (data.applies_to_all_events) {
+            setUtmLinkId(data.id);
+          } else {
+            // Check if event is in link's selected events
+            const { data: linkEvent } = await supabase
+              .from("utm_link_events")
+              .select("id")
+              .eq("utm_link_id", data.id)
+              .eq("event_id", id)
+              .single();
+
+            if (linkEvent) {
+              setUtmLinkId(data.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching UTM link:", error);
+      }
+    };
+
+    fetchUtmLink();
+  }, [utmCode, id]);
+
   const trackPageView = async () => {
     if (hasTrackedView.current) return;
     
@@ -31,6 +73,7 @@ const EventDetails = () => {
       await supabase.from("event_analytics").insert({
         event_id: id,
         event_type: "page_view",
+        utm_link_id: utmLinkId,
       });
     } catch (error) {
       console.error("Error tracking page view:", error);
@@ -57,6 +100,15 @@ const EventDetails = () => {
     };
   }, [event]);
 
+  // Track page view after event is loaded and UTM link is resolved
+  useEffect(() => {
+    if (event && !hasTrackedView.current) {
+      // If there's a utm code but utmLinkId isn't resolved yet, wait
+      if (utmCode && !utmLinkId) return;
+      trackPageView();
+    }
+  }, [event, utmLinkId, utmCode]);
+
   const fetchEventDetails = async () => {
     try {
       const { data: eventData, error: eventError } = await supabase
@@ -73,9 +125,6 @@ const EventDetails = () => {
       }
 
       setEvent(eventData);
-      
-      // Track page view only after successfully loading event
-      trackPageView();
 
       const { data: ticketsData } = await supabase
         .from("tickets")
@@ -305,11 +354,15 @@ const EventDetails = () => {
                                     event_id: id,
                                     event_type: "ticket_click",
                                     ticket_id: ticket.id,
+                                    utm_link_id: utmLinkId,
                                   });
                                 } catch (error) {
                                   console.error("Error tracking ticket click:", error);
                                 }
-                                navigate(`/checkout/${id}?ticket=${ticket.id}`);
+                                const checkoutUrl = utmCode 
+                                  ? `/checkout/${id}?ticket=${ticket.id}&utm=${utmCode}`
+                                  : `/checkout/${id}?ticket=${ticket.id}`;
+                                navigate(checkoutUrl);
                               }
                             }}
                           >

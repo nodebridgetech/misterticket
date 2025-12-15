@@ -156,10 +156,17 @@ serve(async (req) => {
       }
     } else {
       // No custom fee - use default system fee
-      const defaultPercentage = feeConfig?.platform_fee_percentage ?? 10;
-      platformFeePercentage = defaultPercentage;
-      platformFee = subtotal * (defaultPercentage / 100);
-      logStep("Using default system fee", { percentage: defaultPercentage });
+      if (feeConfig?.platform_fee_type === "fixed") {
+        // Fixed fee per ticket
+        platformFee = Number(feeConfig.platform_fee_value ?? 0) * quantity;
+        logStep("Using default fixed fee", { fixedPerTicket: feeConfig.platform_fee_value, quantity, total: platformFee });
+      } else {
+        // Percentage fee (default)
+        const defaultPercentage = feeConfig?.platform_fee_value ?? 10;
+        platformFeePercentage = defaultPercentage;
+        platformFee = subtotal * (defaultPercentage / 100);
+        logStep("Using default percentage fee", { percentage: defaultPercentage });
+      }
     }
     
     const gatewayFee = subtotal * (gatewayFeePercentage / 100);

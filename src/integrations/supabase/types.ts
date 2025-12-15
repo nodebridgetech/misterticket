@@ -399,6 +399,30 @@ export type Database = {
         }
         Relationships: []
       }
+      refund_policy_config: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          policy_text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          policy_text?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          policy_text?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       sales: {
         Row: {
           buyer_id: string
@@ -482,6 +506,41 @@ export type Database = {
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_transfers: {
+        Row: {
+          from_user_id: string
+          id: string
+          sale_id: string
+          to_user_id: string
+          transferred_at: string
+          transferred_by: string
+        }
+        Insert: {
+          from_user_id: string
+          id?: string
+          sale_id: string
+          to_user_id: string
+          transferred_at?: string
+          transferred_by: string
+        }
+        Update: {
+          from_user_id?: string
+          id?: string
+          sale_id?: string
+          to_user_id?: string
+          transferred_at?: string
+          transferred_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_transfers_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
             referencedColumns: ["id"]
           },
         ]

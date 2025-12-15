@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2 } from "lucide-react";
+import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2, Send } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -17,6 +17,8 @@ import { formatCPF, formatPhone, isValidCPF } from "@/lib/format-utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
+import { TicketTransferDialog } from "@/components/TicketTransferDialog";
+import { RefundPolicyInfo } from "@/components/RefundPolicyInfo";
 
 interface ViaCepResponse {
   cep: string;
@@ -58,6 +60,8 @@ const MyAccount = () => {
   const [sales, setSales] = useState<Sale[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
   const [loadingCep, setLoadingCep] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [selectedSaleForTransfer, setSelectedSaleForTransfer] = useState<Sale | null>(null);
   
   // Estados para edição
   const [isEditing, setIsEditing] = useState(false);
@@ -579,6 +583,9 @@ const MyAccount = () => {
 
           <TabsContent value="tickets">
             <div className="space-y-4">
+              {/* Refund Policy Info */}
+              <RefundPolicyInfo />
+
               {loadingSales ? (
                 <Card>
                   <CardContent className="py-12">
@@ -609,86 +616,151 @@ const MyAccount = () => {
                   </CardContent>
                 </Card>
               ) : (
-                sales.map((sale) => (
-                  <Card key={sale.id}>
-                    <CardContent className="p-6">
-                      <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-1 space-y-4">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="text-xl font-semibold mb-2">{sale.events.title}</h3>
-                              <div className="space-y-1 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-2">
-                                  <Calendar className="h-4 w-4" />
-                                  <span>
-                                    {format(new Date(sale.events.event_date), "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <MapPin className="h-4 w-4" />
-                                  <span>{sale.events.venue} - {sale.events.address}</span>
+                sales.map((sale) => {
+                  const eventDate = new Date(sale.events.event_date);
+                  const isPastEvent = eventDate < new Date();
+                  const canTransfer = sale.payment_status === "paid" && !isPastEvent;
+                  
+                  return (
+                    <Card key={sale.id}>
+                      <CardContent className="p-6">
+                        <div className="flex flex-col md:flex-row gap-6">
+                          <div className="flex-1 space-y-4">
+                            <div className="flex items-start justify-between flex-wrap gap-2">
+                              <div>
+                                <h3 className="text-xl font-semibold mb-2">{sale.events.title}</h3>
+                                <div className="space-y-1 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4" />
+                                    <span>
+                                      {format(eventDate, "dd 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="h-4 w-4" />
+                                    <span>{sale.events.venue} - {sale.events.address}</span>
+                                  </div>
                                 </div>
                               </div>
+                              <div className="flex items-center gap-2">
+                                {canTransfer && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedSaleForTransfer(sale);
+                                      setTransferDialogOpen(true);
+                                    }}
+                                  >
+                                    <Send className="h-4 w-4 mr-1" />
+                                    Transferir
+                                  </Button>
+                                )}
+                                <Badge variant={sale.payment_status === "paid" ? "default" : "secondary"}>
+                                  {sale.payment_status === "paid" ? "Pago" : "Pendente"}
+                                </Badge>
+                              </div>
                             </div>
-                            <Badge variant={sale.payment_status === "paid" ? "default" : "secondary"}>
-                              {sale.payment_status === "paid" ? "Pago" : "Pendente"}
-                            </Badge>
-                          </div>
 
-                          <div className="border-t pt-4 space-y-2">
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Lote:</span>
-                              <span className="font-medium">{sale.tickets.batch_name}</span>
-                            </div>
-                            {sale.tickets.sector && (
+                            <div className="border-t pt-4 space-y-2">
                               <div className="flex justify-between text-sm">
-                                <span className="text-muted-foreground">Setor:</span>
-                                <span className="font-medium">{sale.tickets.sector}</span>
+                                <span className="text-muted-foreground">Lote:</span>
+                                <span className="font-medium">{sale.tickets.batch_name}</span>
                               </div>
-                            )}
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Quantidade:</span>
-                              <span className="font-medium">{sale.quantity} ingresso(s)</span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Total:</span>
-                              <span className="font-semibold">
-                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.total_price)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-muted-foreground">Data da compra:</span>
-                              <span className="font-medium">
-                                {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                              </span>
+                              {sale.tickets.sector && (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Setor:</span>
+                                  <span className="font-medium">{sale.tickets.sector}</span>
+                                </div>
+                              )}
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Quantidade:</span>
+                                <span className="font-medium">{sale.quantity} ingresso(s)</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Total:</span>
+                                <span className="font-semibold">
+                                  {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(sale.total_price)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Data da compra:</span>
+                                <span className="font-medium">
+                                  {format(new Date(sale.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        {sale.qr_code && sale.payment_status === "paid" && (
-                          <div className="flex flex-col items-center justify-center gap-3 md:border-l md:pl-6">
-                            <div className="bg-white p-4 rounded-lg">
-                              <img 
-                                src={sale.qr_code} 
-                                alt="QR Code do ingresso" 
-                                className="w-48 h-48"
-                              />
+                          {sale.qr_code && sale.payment_status === "paid" && (
+                            <div className="flex flex-col items-center justify-center gap-3 md:border-l md:pl-6">
+                              <div className="bg-white p-4 rounded-lg">
+                                <img 
+                                  src={sale.qr_code} 
+                                  alt="QR Code do ingresso" 
+                                  className="w-48 h-48"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <QrCode className="h-4 w-4" />
+                                <span>Apresente na entrada</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <QrCode className="h-4 w-4" />
-                              <span>Apresente na entrada</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })
               )}
             </div>
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Ticket Transfer Dialog */}
+      {selectedSaleForTransfer && (
+        <TicketTransferDialog
+          open={transferDialogOpen}
+          onOpenChange={setTransferDialogOpen}
+          sale={selectedSaleForTransfer}
+          onTransferComplete={() => {
+            // Reload sales after transfer
+            const fetchSales = async () => {
+              setLoadingSales(true);
+              const { data } = await supabase
+                .from("sales")
+                .select(`
+                  id,
+                  quantity,
+                  total_price,
+                  payment_status,
+                  qr_code,
+                  created_at,
+                  event_id,
+                  ticket_id,
+                  events (
+                    title,
+                    event_date,
+                    venue,
+                    address,
+                    image_url
+                  ),
+                  tickets (
+                    batch_name,
+                    sector
+                  )
+                `)
+                .eq("buyer_id", user!.id)
+                .order("created_at", { ascending: false });
+              if (data) setSales(data as Sale[]);
+              setLoadingSales(false);
+            };
+            fetchSales();
+            setSelectedSaleForTransfer(null);
+          }}
+        />
+      )}
 
       <Footer />
     </>

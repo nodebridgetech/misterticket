@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
-import { Loader2, MessageCircle, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
+import { Loader2, MessageCircle, Plus, Pencil, Trash2, GripVertical, FileText } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
@@ -59,6 +59,12 @@ interface FAQItem {
   question: string;
   answer: string;
   position: number;
+  is_active: boolean;
+}
+
+interface RefundPolicyConfig {
+  id: string;
+  policy_text: string;
   is_active: boolean;
 }
 
@@ -137,6 +143,12 @@ const SiteSettingsManagement = () => {
   const [faqToDelete, setFaqToDelete] = useState<FAQItem | null>(null);
   const [faqForm, setFaqForm] = useState({ question: "", answer: "" });
 
+  // Refund policy state
+  const [refundPolicy, setRefundPolicy] = useState<RefundPolicyConfig | null>(null);
+  const [refundForm, setRefundForm] = useState({
+    policy_text: "",
+    is_active: true,
+  });
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, {
@@ -183,6 +195,21 @@ const SiteSettingsManagement = () => {
 
     if (faq) {
       setFaqItems(faq);
+    }
+
+    // Fetch refund policy
+    const { data: refund } = await supabase
+      .from("refund_policy_config")
+      .select("*")
+      .limit(1)
+      .maybeSingle();
+
+    if (refund) {
+      setRefundPolicy(refund);
+      setRefundForm({
+        policy_text: refund.policy_text,
+        is_active: refund.is_active,
+      });
     }
 
     setLoading(false);
@@ -382,6 +409,7 @@ const SiteSettingsManagement = () => {
         <TabsList>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="faq">FAQ</TabsTrigger>
+          <TabsTrigger value="refund">Reembolso</TabsTrigger>
         </TabsList>
 
         <TabsContent value="whatsapp">
@@ -490,6 +518,78 @@ const SiteSettingsManagement = () => {
                   </SortableContext>
                 </DndContext>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="refund">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Política de Cancelamento e Reembolso
+              </CardTitle>
+              <CardDescription>
+                Configure o texto informativo sobre cancelamentos e reembolsos exibido na aba de ingressos dos usuários
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="refund-active">Exibir informativo</Label>
+                <Switch
+                  id="refund-active"
+                  checked={refundForm.is_active}
+                  onCheckedChange={(checked) =>
+                    setRefundForm((prev) => ({ ...prev, is_active: checked }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="refund-text">Texto da política</Label>
+                <Textarea
+                  id="refund-text"
+                  placeholder="Ex: Para solicitar reembolso, entre em contato pelo WhatsApp..."
+                  value={refundForm.policy_text}
+                  onChange={(e) =>
+                    setRefundForm((prev) => ({ ...prev, policy_text: e.target.value }))
+                  }
+                  rows={4}
+                />
+              </div>
+
+              <Button 
+                onClick={async () => {
+                  if (!refundForm.policy_text.trim()) {
+                    toast({ title: "Erro", description: "Informe o texto da política", variant: "destructive" });
+                    return;
+                  }
+                  setSaving(true);
+                  try {
+                    if (refundPolicy) {
+                      await supabase.from("refund_policy_config").update({
+                        policy_text: refundForm.policy_text,
+                        is_active: refundForm.is_active,
+                      }).eq("id", refundPolicy.id);
+                    } else {
+                      await supabase.from("refund_policy_config").insert({
+                        policy_text: refundForm.policy_text,
+                        is_active: refundForm.is_active,
+                      });
+                    }
+                    toast({ title: "Sucesso", description: "Política de reembolso salva" });
+                    fetchData();
+                  } catch (error: any) {
+                    toast({ title: "Erro", description: error.message, variant: "destructive" });
+                  } finally {
+                    setSaving(false);
+                  }
+                }} 
+                disabled={saving}
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Salvar política
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

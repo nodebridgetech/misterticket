@@ -90,6 +90,8 @@ export const ProducerApprovalTab = () => {
     producer: null,
   });
   const [customFeeValue, setCustomFeeValue] = useState("");
+  const [savingFee, setSavingFee] = useState(false);
+  const [currentProducerFee, setCurrentProducerFee] = useState<number | null>(null);
 
   // Fetch producer requests
   const fetchProducerRequests = async () => {
@@ -164,15 +166,23 @@ export const ProducerApprovalTab = () => {
         const { data: eventsData } = await supabase
           .from("events")
           .select("producer_id");
+        
+        // Get custom fees for producers
+        const { data: customFeesData } = await supabase
+          .from("producer_custom_fees")
+          .select("producer_id, platform_fee_percentage, is_active")
+          .eq("is_active", true);
 
         const producersWithData = roles.map(role => {
           const profile = profilesData?.find(p => p.user_id === role.user_id);
           const eventCount = eventsData?.filter(e => e.producer_id === role.user_id).length || 0;
+          const customFee = customFeesData?.find(f => f.producer_id === role.user_id);
           
           return {
             ...role,
             profile,
-            eventCount
+            eventCount,
+            customFee: customFee?.platform_fee_percentage || null
           };
         });
 
@@ -594,7 +604,15 @@ export const ProducerApprovalTab = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="default">Ativo</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default">Ativo</Badge>
+                            {producer.customFee && (
+                              <Badge variant="outline" className="text-xs">
+                                <Percent className="h-3 w-3 mr-1" />
+                                {producer.customFee}%
+                              </Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-right">
                           <DropdownMenu>
@@ -827,8 +845,13 @@ export const ProducerApprovalTab = () => {
                 onChange={(e) => setCustomFeeValue(e.target.value)}
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Deixe em branco para usar a taxa padrão do sistema
+                Deixe em branco ou 0 para remover a taxa personalizada e usar a padrão do sistema
               </p>
+              {customFeeDialog.producer?.customFee && (
+                <p className="text-xs text-primary mt-1">
+                  Taxa atual: {customFeeDialog.producer.customFee}%
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -836,16 +859,74 @@ export const ProducerApprovalTab = () => {
               Cancelar
             </Button>
             <Button 
-              onClick={() => {
-                // TODO: Implement custom fee saving logic
-                toast({
-                  title: "Funcionalidade em desenvolvimento",
-                  description: "A configuração de taxa personalizada será implementada em breve.",
-                });
-                setCustomFeeDialog({ open: false, producer: null });
+              disabled={savingFee}
+              onClick={async () => {
+                if (!customFeeDialog.producer) return;
+                
+                setSavingFee(true);
+                try {
+                  const producerId = customFeeDialog.producer.user_id;
+                  const feeValue = parseFloat(customFeeValue);
+                  
+                  if (!customFeeValue || feeValue === 0) {
+                    // Remove custom fee
+                    const { error } = await supabase
+                      .from("producer_custom_fees")
+                      .delete()
+                      .eq("producer_id", producerId);
+                    
+                    if (error) throw error;
+                    
+                    toast({
+                      title: "Taxa removida",
+                      description: "O produtor agora usará a taxa padrão do sistema.",
+                    });
+                  } else {
+                    if (feeValue < 0 || feeValue > 100) {
+                      toast({
+                        title: "Valor inválido",
+                        description: "A taxa deve estar entre 0 e 100%.",
+                        variant: "destructive",
+                      });
+                      setSavingFee(false);
+                      return;
+                    }
+                    
+                    // Upsert custom fee
+                    const { error } = await supabase
+                      .from("producer_custom_fees")
+                      .upsert({
+                        producer_id: producerId,
+                        platform_fee_percentage: feeValue,
+                        is_active: true,
+                        created_by: (await supabase.auth.getUser()).data.user?.id,
+                      }, {
+                        onConflict: 'producer_id'
+                      });
+                    
+                    if (error) throw error;
+                    
+                    toast({
+                      title: "Taxa salva",
+                      description: `Taxa personalizada de ${feeValue}% configurada para este produtor.`,
+                    });
+                  }
+                  
+                  setCustomFeeDialog({ open: false, producer: null });
+                  fetchActiveProducers();
+                } catch (error) {
+                  console.error("Error saving custom fee:", error);
+                  toast({
+                    title: "Erro ao salvar",
+                    description: "Não foi possível salvar a taxa personalizada.",
+                    variant: "destructive",
+                  });
+                } finally {
+                  setSavingFee(false);
+                }
               }}
             >
-              Salvar Taxa
+              {savingFee ? "Salvando..." : "Salvar Taxa"}
             </Button>
           </DialogFooter>
         </DialogContent>

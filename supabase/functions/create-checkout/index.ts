@@ -125,8 +125,23 @@ serve(async (req) => {
       .eq("is_active", true)
       .single();
 
-    const platformFeePercentage = feeConfig?.platform_fee_percentage || 10;
+    // Check for producer custom fee
+    const { data: producerCustomFee } = await supabaseClient
+      .from("producer_custom_fees")
+      .select("platform_fee_percentage")
+      .eq("producer_id", event.producer_id)
+      .eq("is_active", true)
+      .single();
+
+    // Use custom fee if available, otherwise use default
+    const platformFeePercentage = producerCustomFee?.platform_fee_percentage ?? feeConfig?.platform_fee_percentage ?? 10;
     const gatewayFeePercentage = feeConfig?.payment_gateway_fee_percentage || 3;
+    
+    logStep("Fee configuration", { 
+      hasCustomFee: !!producerCustomFee,
+      platformFeePercentage, 
+      gatewayFeePercentage 
+    });
 
     // Calculate amounts
     const ticketPrice = Number(ticket.price);

@@ -299,6 +299,15 @@ export const ProducerApprovalTab = () => {
 
       if (error) throw error;
 
+      const producer = activeProducers.find(p => p.user_id === producerId);
+      await logActivity({
+        actionType: "update",
+        entityType: "producer",
+        entityId: producerId,
+        entityName: producer?.profile?.full_name || "Produtor",
+        details: { action: "deactivated" },
+      });
+
       toast({
         title: "Produtor inativado",
         description: "O produtor foi inativado e voltou a ser visitante.",
@@ -933,6 +942,14 @@ export const ProducerApprovalTab = () => {
                     
                     if (error) throw error;
                     
+                    await logActivity({
+                      actionType: "update",
+                      entityType: "producer",
+                      entityId: producerId,
+                      entityName: customFeeDialog.producer.profile?.full_name || "Produtor",
+                      details: { action: "custom_fee_removed" },
+                    });
+                    
                     toast({
                       title: "Taxa removida",
                       description: "O produtor agora usará a taxa padrão do sistema.",
@@ -973,6 +990,18 @@ export const ProducerApprovalTab = () => {
                       });
                     
                     if (error) throw error;
+                    
+                    await logActivity({
+                      actionType: "update",
+                      entityType: "producer",
+                      entityId: producerId,
+                      entityName: customFeeDialog.producer.profile?.full_name || "Produtor",
+                      details: { 
+                        action: "custom_fee_set",
+                        fee_value: feeValue,
+                        fee_type: customFeeType,
+                      },
+                    });
                     
                     toast({
                       title: "Taxa salva",

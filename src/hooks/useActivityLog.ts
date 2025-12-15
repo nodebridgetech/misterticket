@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-type ActionType = "create" | "update" | "delete";
+type ActionType = "create" | "update" | "delete" | "login" | "logout" | "transfer";
 type EntityType = "event" | "user" | "category" | "ticket" | "fee_config" | "producer";
 
 interface LogActivityParams {

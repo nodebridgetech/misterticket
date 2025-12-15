@@ -32,7 +32,7 @@ interface ActivityLog {
   user_id: string;
   user_name: string | null;
   user_phone: string | null;
-  action_type: "create" | "update" | "delete";
+  action_type: "create" | "update" | "delete" | "login" | "logout" | "transfer";
   entity_type: string;
   entity_id: string | null;
   entity_name: string | null;
@@ -95,6 +95,12 @@ const ActivityLogs = () => {
         return <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black">Edição</Badge>;
       case "delete":
         return <Badge className="bg-red-500 hover:bg-red-600">Exclusão</Badge>;
+      case "login":
+        return <Badge className="bg-blue-500 hover:bg-blue-600">Login</Badge>;
+      case "logout":
+        return <Badge className="bg-slate-500 hover:bg-slate-600">Logout</Badge>;
+      case "transfer":
+        return <Badge className="bg-purple-500 hover:bg-purple-600">Transferência</Badge>;
       default:
         return <Badge variant="secondary">{action}</Badge>;
     }
@@ -120,6 +126,12 @@ const ActivityLogs = () => {
         return "Edição";
       case "delete":
         return "Exclusão";
+      case "login":
+        return "Login";
+      case "logout":
+        return "Logout";
+      case "transfer":
+        return "Transferência";
       default:
         return action;
     }
@@ -289,7 +301,7 @@ const ActivityLogs = () => {
                 </Popover>
 
                 <Select value={actionFilter} onValueChange={setActionFilter}>
-                  <SelectTrigger className="w-[140px]">
+                  <SelectTrigger className="w-[160px]">
                     <SelectValue placeholder="Tipo de ação" />
                   </SelectTrigger>
                   <SelectContent>
@@ -297,6 +309,9 @@ const ActivityLogs = () => {
                     <SelectItem value="create">Criação</SelectItem>
                     <SelectItem value="update">Edição</SelectItem>
                     <SelectItem value="delete">Exclusão</SelectItem>
+                    <SelectItem value="login">Login</SelectItem>
+                    <SelectItem value="logout">Logout</SelectItem>
+                    <SelectItem value="transfer">Transferência</SelectItem>
                   </SelectContent>
                 </Select>
 

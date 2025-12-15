@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { logActivity } from "@/hooks/useActivityLog";
 import {
   Select,
   SelectContent,
@@ -103,6 +104,18 @@ export const FeeConfigTab = () => {
         });
 
       if (error) throw error;
+
+      await logActivity({
+        actionType: "update",
+        entityType: "fee_config",
+        entityName: "Configuração de Taxas",
+        details: {
+          platform_fee_value: feeValue,
+          platform_fee_type: config.platform_fee_type,
+          payment_gateway_fee_percentage: parseFloat(config.payment_gateway_fee_percentage),
+          min_withdrawal_amount: parseFloat(config.min_withdrawal_amount),
+        },
+      });
 
       toast({
         title: "Sucesso!",

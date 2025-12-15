@@ -12,6 +12,7 @@ const Checkout = () => {
   const { id: eventId } = useParams();
   const [searchParams] = useSearchParams();
   const ticketId = searchParams.get("ticket");
+  const utmCode = searchParams.get("utm");
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -21,6 +22,7 @@ const Checkout = () => {
   const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
+  const [utmLinkId, setUtmLinkId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -37,6 +39,43 @@ const Checkout = () => {
       fetchCheckoutDetails();
     }
   }, [eventId, ticketId, user]);
+
+  // Fetch UTM link ID if utm code is present
+  useEffect(() => {
+    const fetchUtmLink = async () => {
+      if (!utmCode || !eventId) return;
+      
+      try {
+        const { data } = await supabase
+          .from("utm_links")
+          .select("id, applies_to_all_events")
+          .eq("utm_code", utmCode)
+          .eq("is_active", true)
+          .single();
+
+        if (data) {
+          if (data.applies_to_all_events) {
+            setUtmLinkId(data.id);
+          } else {
+            const { data: linkEvent } = await supabase
+              .from("utm_link_events")
+              .select("id")
+              .eq("utm_link_id", data.id)
+              .eq("event_id", eventId)
+              .single();
+
+            if (linkEvent) {
+              setUtmLinkId(data.id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching UTM link:", error);
+      }
+    };
+
+    fetchUtmLink();
+  }, [utmCode, eventId]);
 
   const fetchCheckoutDetails = async () => {
     try {
@@ -80,11 +119,12 @@ const Checkout = () => {
 
     setProcessing(true);
     try {
-      // Track checkout click
+      // Track checkout click with UTM
       await supabase.from("event_analytics").insert({
         event_id: event.id,
         event_type: "checkout_click",
         ticket_id: ticket.id,
+        utm_link_id: utmLinkId,
       });
 
       toast({

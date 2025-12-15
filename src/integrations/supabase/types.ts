@@ -605,6 +605,8 @@ export type Database = {
       utm_links: {
         Row: {
           applies_to_all_events: boolean
+          commission_type: string
+          commission_value: number
           created_at: string
           id: string
           is_active: boolean
@@ -615,6 +617,8 @@ export type Database = {
         }
         Insert: {
           applies_to_all_events?: boolean
+          commission_type?: string
+          commission_value?: number
           created_at?: string
           id?: string
           is_active?: boolean
@@ -625,6 +629,8 @@ export type Database = {
         }
         Update: {
           applies_to_all_events?: boolean
+          commission_type?: string
+          commission_value?: number
           created_at?: string
           id?: string
           is_active?: boolean

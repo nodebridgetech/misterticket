@@ -35,6 +35,8 @@ interface UtmLink {
   utm_code: string;
   applies_to_all_events: boolean;
   is_active: boolean;
+  commission_type: string;
+  commission_value: number;
 }
 
 const UtmAnalytics = () => {
@@ -201,6 +203,19 @@ const UtmAnalytics = () => {
     return null;
   }
 
+  // Calculate commission
+  const calculateCommission = () => {
+    if (!utmLink.commission_value || utmLink.commission_value === 0) return 0;
+    
+    if (utmLink.commission_type === 'percentage') {
+      return (analytics.totalRevenue * utmLink.commission_value) / 100;
+    } else {
+      return analytics.totalSold * utmLink.commission_value;
+    }
+  };
+
+  const totalCommission = calculateCommission();
+
   return (
     <div className="container mx-auto p-4 md:p-6">
       <div className="mb-6">
@@ -223,6 +238,14 @@ const UtmAnalytics = () => {
                 <Badge>Ativo</Badge>
               ) : (
                 <Badge variant="secondary">Inativo</Badge>
+              )}
+              {utmLink.commission_value > 0 && (
+                <Badge>
+                  Comissão: {utmLink.commission_type === 'percentage' 
+                    ? `${utmLink.commission_value}%`
+                    : `R$ ${Number(utmLink.commission_value).toFixed(2).replace('.', ',')} por ingresso`
+                  }
+                </Badge>
               )}
             </div>
           </div>
@@ -277,7 +300,7 @@ const UtmAnalytics = () => {
       </div>
 
       {/* Revenue Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Faturamento Total</CardTitle>
@@ -301,6 +324,25 @@ const UtmAnalytics = () => {
               R$ {analytics.totalNetRevenue.toFixed(2).replace('.', ',')}
             </div>
             <p className="text-xs text-muted-foreground">Após taxas da plataforma</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-2 border-primary/20 bg-primary/5">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Comissão a Pagar</CardTitle>
+            <DollarSign className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-primary">
+              R$ {totalCommission.toFixed(2).replace('.', ',')}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {utmLink.commission_value > 0 
+                ? (utmLink.commission_type === 'percentage' 
+                    ? `${utmLink.commission_value}% do faturamento`
+                    : `R$ ${Number(utmLink.commission_value).toFixed(2).replace('.', ',')} × ${analytics.totalSold} ingressos`)
+                : 'Nenhuma comissão configurada'}
+            </p>
           </CardContent>
         </Card>
       </div>

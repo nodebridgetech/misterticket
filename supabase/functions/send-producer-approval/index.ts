@@ -13,6 +13,21 @@ interface ProducerApprovalRequest {
   userName: string;
 }
 
+// Escape HTML to prevent XSS in email content
+const escapeHtml = (str: string): string => {
+  if (!str) return '';
+  return str.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    };
+    return entities[char];
+  });
+};
+
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -21,6 +36,9 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, userName }: ProducerApprovalRequest = await req.json();
 
+    // Sanitize user input
+    const sanitizedUserName = escapeHtml(userName);
+    
     console.log("Sending producer approval notification to:", email);
 
     const emailResponse = await resend.emails.send({
@@ -40,7 +58,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
             
             <div style="background: white; padding: 30px; border-radius: 0 0 10px 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-              <p style="font-size: 16px; margin-bottom: 20px;">Olá <strong>${userName}</strong>,</p>
+              <p style="font-size: 16px; margin-bottom: 20px;">Olá <strong>${sanitizedUserName}</strong>,</p>
               
               <p style="font-size: 16px; margin-bottom: 20px;">
                 Temos uma ótima notícia! Sua solicitação para se tornar um produtor no <strong>Mister Ticket</strong> foi aprovada! 🎊

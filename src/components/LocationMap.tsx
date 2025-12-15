@@ -22,7 +22,6 @@ export const LocationMap = ({
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
   const fullAddress = addressNumber ? `${address}, ${addressNumber}` : address;
-  const apiKey = import.meta.env.VITE_GOOGLE_PLACES_API_KEY;
 
   const copyAddress = async () => {
     try {

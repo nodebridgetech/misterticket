@@ -230,14 +230,16 @@ export const AppSidebar = () => {
                   <Popover open={isNotificationsOpen} onOpenChange={handleNotificationsOpenChange}>
                     <PopoverTrigger asChild>
                       <SidebarMenuButton asChild>
-                        <button className="flex items-center gap-2 w-full hover:bg-accent relative">
-                          <Bell className="h-4 w-4 shrink-0" />
+                        <button className="flex items-center gap-2 w-full hover:bg-accent">
+                          <span className="relative">
+                            <Bell className="h-4 w-4 shrink-0" />
+                            {unreadCount > 0 && (
+                              <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[16px] h-[16px] px-0.5 text-[9px] font-bold text-primary-foreground bg-primary rounded-full">
+                                {unreadCount > 99 ? '99+' : unreadCount}
+                              </span>
+                            )}
+                          </span>
                           <span>Notificações</span>
-                          {unreadCount > 0 && (
-                            <span className="absolute right-2 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-primary-foreground bg-primary rounded-full">
-                              {unreadCount > 99 ? '99+' : unreadCount}
-                            </span>
-                          )}
                         </button>
                       </SidebarMenuButton>
                     </PopoverTrigger>

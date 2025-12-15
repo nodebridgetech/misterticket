@@ -106,7 +106,7 @@ const EventAnalytics = () => {
         .eq("is_active", true)
         .single();
 
-      const platformFee = feeConfig?.platform_fee_percentage || 10;
+      const platformFee = feeConfig?.platform_fee_value || 10;
       const gatewayFee = feeConfig?.payment_gateway_fee_percentage || 3;
 
       // Calculate stats per ticket

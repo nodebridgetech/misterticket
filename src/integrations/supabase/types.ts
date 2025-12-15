@@ -165,7 +165,8 @@ export type Database = {
           is_active: boolean
           min_withdrawal_amount: number
           payment_gateway_fee_percentage: number
-          platform_fee_percentage: number
+          platform_fee_type: string
+          platform_fee_value: number
           updated_at: string
         }
         Insert: {
@@ -174,7 +175,8 @@ export type Database = {
           is_active?: boolean
           min_withdrawal_amount?: number
           payment_gateway_fee_percentage?: number
-          platform_fee_percentage?: number
+          platform_fee_type?: string
+          platform_fee_value?: number
           updated_at?: string
         }
         Update: {
@@ -183,7 +185,8 @@ export type Database = {
           is_active?: boolean
           min_withdrawal_amount?: number
           payment_gateway_fee_percentage?: number
-          platform_fee_percentage?: number
+          platform_fee_type?: string
+          platform_fee_value?: number
           updated_at?: string
         }
         Relationships: []

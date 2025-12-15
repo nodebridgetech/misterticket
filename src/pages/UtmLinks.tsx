@@ -23,6 +23,8 @@ interface UtmLink {
   applies_to_all_events: boolean;
   is_active: boolean;
   created_at: string;
+  commission_type: string;
+  commission_value: number;
   events?: { id: string; title: string }[];
 }
 
@@ -48,6 +50,8 @@ const UtmLinks = () => {
   const [utmCode, setUtmCode] = useState("");
   const [appliesToAll, setAppliesToAll] = useState(true);
   const [selectedEvents, setSelectedEvents] = useState<string[]>([]);
+  const [commissionType, setCommissionType] = useState<string>('percentage');
+  const [commissionValue, setCommissionValue] = useState("");
   
   // Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -148,6 +152,8 @@ const UtmLinks = () => {
     setUtmCode("");
     setAppliesToAll(true);
     setSelectedEvents([]);
+    setCommissionType('percentage');
+    setCommissionValue("");
     setEditingLink(null);
   };
 
@@ -157,6 +163,8 @@ const UtmLinks = () => {
     setUtmCode(link.utm_code);
     setAppliesToAll(link.applies_to_all_events);
     setSelectedEvents(link.events?.map(e => e.id) || []);
+    setCommissionType(link.commission_type || 'percentage');
+    setCommissionValue(String(link.commission_value || 0));
     setIsDialogOpen(true);
   };
 
@@ -197,6 +205,8 @@ const UtmLinks = () => {
             name,
             utm_code: utmCode,
             applies_to_all_events: appliesToAll,
+            commission_type: commissionType,
+            commission_value: parseFloat(commissionValue) || 0,
           })
           .eq("id", editingLink.id);
 
@@ -235,6 +245,8 @@ const UtmLinks = () => {
             utm_code: utmCode,
             applies_to_all_events: appliesToAll,
             producer_id: user?.id,
+            commission_type: commissionType,
+            commission_value: parseFloat(commissionValue) || 0,
           })
           .select()
           .single();
@@ -304,8 +316,7 @@ const UtmLinks = () => {
   };
 
   const copyLink = (utmCode: string) => {
-    const baseUrl = window.location.origin;
-    const link = `${baseUrl}/eventos?utm=${utmCode}`;
+    const link = `https://misterticket.com.br/eventos?utm=${utmCode}`;
     navigator.clipboard.writeText(link);
     toast({
       title: "Link copiado!",
@@ -452,6 +463,41 @@ const UtmLinks = () => {
                 </div>
               )}
 
+              {/* Commission Section */}
+              <div className="space-y-3 border-t pt-4">
+                <Label className="font-semibold">Comissão do Promotor</Label>
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <Label className="text-xs text-muted-foreground">Tipo</Label>
+                    <Select value={commissionType} onValueChange={setCommissionType}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percentage">Porcentagem (%)</SelectItem>
+                        <SelectItem value="fixed">Valor Fixo (R$)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-1">
+                    <Label className="text-xs text-muted-foreground">Valor</Label>
+                    <Input
+                      type="number"
+                      min="0"
+                      step={commissionType === 'percentage' ? '0.1' : '0.01'}
+                      placeholder={commissionType === 'percentage' ? 'Ex: 10' : 'Ex: 5.00'}
+                      value={commissionValue}
+                      onChange={(e) => setCommissionValue(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {commissionType === 'percentage' 
+                    ? 'Porcentagem sobre o valor de cada ingresso vendido' 
+                    : 'Valor fixo por ingresso vendido'}
+                </p>
+              </div>
+
               <div className="flex gap-2 justify-end pt-4">
                 <Button variant="outline" onClick={() => {
                   setIsDialogOpen(false);
@@ -515,6 +561,7 @@ const UtmLinks = () => {
                 <TableRow>
                   <TableHead>Nome</TableHead>
                   <TableHead>Código</TableHead>
+                  <TableHead>Comissão</TableHead>
                   <TableHead>Eventos</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
@@ -523,7 +570,7 @@ const UtmLinks = () => {
               <TableBody>
                 {paginatedLinks.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       {searchTerm || filterStatus !== "all" 
                         ? "Nenhum link encontrado com os filtros aplicados."
                         : "Nenhum link UTM criado ainda."}
@@ -547,6 +594,18 @@ const UtmLinks = () => {
                             <Copy className="h-4 w-4" />
                           </Button>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {link.commission_value > 0 ? (
+                          <Badge variant="outline">
+                            {link.commission_type === 'percentage' 
+                              ? `${link.commission_value}%`
+                              : `R$ ${Number(link.commission_value).toFixed(2).replace('.', ',')}`
+                            }
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         {link.applies_to_all_events ? (

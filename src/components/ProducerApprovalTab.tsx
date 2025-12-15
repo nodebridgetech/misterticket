@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, X, UserCheck, Mail, Calendar, UserX, Trash2 } from "lucide-react";
+import { Check, X, UserCheck, Phone, Calendar, UserX, Trash2, Eye, Percent } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -39,8 +39,17 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MoreVertical } from "lucide-react";
 
 export const ProducerApprovalTab = () => {
@@ -68,6 +77,19 @@ export const ProducerApprovalTab = () => {
     open: false,
     producerId: null,
   });
+  
+  // View profile dialog state
+  const [viewProfileDialog, setViewProfileDialog] = useState<{ open: boolean; producer: any | null }>({
+    open: false,
+    producer: null,
+  });
+  
+  // Custom fee dialog state
+  const [customFeeDialog, setCustomFeeDialog] = useState<{ open: boolean; producer: any | null }>({
+    open: false,
+    producer: null,
+  });
+  const [customFeeValue, setCustomFeeValue] = useState("");
 
   // Fetch producer requests
   const fetchProducerRequests = async () => {
@@ -133,7 +155,7 @@ export const ProducerApprovalTab = () => {
         const userIds = roles.map(r => r.user_id);
         const { data: profilesData, error: profilesError } = await supabase
           .from("profiles")
-          .select("user_id, full_name, email, created_at")
+          .select("user_id, full_name, email, phone, document, created_at")
           .in("user_id", userIds);
 
         if (profilesError) throw profilesError;
@@ -481,8 +503,8 @@ export const ProducerApprovalTab = () => {
                             </h3>
                           </div>
                           <p className="text-xs text-muted-foreground flex items-center gap-1 truncate">
-                            <Mail className="h-3 w-3 flex-shrink-0" />
-                            {producer.profile?.email || "Email não disponível"}
+                            <Phone className="h-3 w-3 flex-shrink-0" />
+                            {producer.profile?.phone || "Telefone não informado"}
                           </p>
                         </div>
                         <Badge variant="default" className="flex-shrink-0">Ativo</Badge>
@@ -537,7 +559,7 @@ export const ProducerApprovalTab = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
+                      <TableHead>WhatsApp</TableHead>
                       <TableHead>Eventos Criados</TableHead>
                       <TableHead>Data de Aprovação</TableHead>
                       <TableHead>Status</TableHead>
@@ -555,8 +577,8 @@ export const ProducerApprovalTab = () => {
                         </TableCell>
                         <TableCell className="text-muted-foreground">
                           <div className="flex items-center gap-2">
-                            <Mail className="h-4 w-4" />
-                            {producer.profile?.email || "Email não disponível"}
+                            <Phone className="h-4 w-4" />
+                            {producer.profile?.phone || "Não informado"}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -586,6 +608,22 @@ export const ProducerApprovalTab = () => {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={() => setViewProfileDialog({ open: true, producer })}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                Ver Dados Cadastrais
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setCustomFeeValue("");
+                                  setCustomFeeDialog({ open: true, producer });
+                                }}
+                              >
+                                <Percent className="h-4 w-4 mr-2" />
+                                Taxa Personalizada
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 onClick={() => setDeactivateDialog({ open: true, producerId: producer.user_id })}
                                 className="text-orange-600"
@@ -704,6 +742,114 @@ export const ProducerApprovalTab = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* View Profile Dialog */}
+      <Dialog open={viewProfileDialog.open} onOpenChange={(open) => setViewProfileDialog({ open, producer: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Dados Cadastrais do Produtor</DialogTitle>
+            <DialogDescription>
+              Informações completas do perfil
+            </DialogDescription>
+          </DialogHeader>
+          {viewProfileDialog.producer && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <Label className="text-muted-foreground text-xs">Nome Completo</Label>
+                  <p className="font-medium">{viewProfileDialog.producer.profile?.full_name || "Não informado"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Email</Label>
+                  <p className="font-medium">{viewProfileDialog.producer.profile?.email || "Não informado"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Telefone/WhatsApp</Label>
+                  <p className="font-medium">{viewProfileDialog.producer.profile?.phone || "Não informado"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">CPF/CNPJ</Label>
+                  <p className="font-medium">{viewProfileDialog.producer.profile?.document || "Não informado"}</p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Data de Cadastro</Label>
+                  <p className="font-medium">
+                    {viewProfileDialog.producer.profile?.created_at 
+                      ? format(new Date(viewProfileDialog.producer.profile.created_at), "dd/MM/yyyy HH:mm")
+                      : "Não disponível"
+                    }
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Data de Aprovação como Produtor</Label>
+                  <p className="font-medium">
+                    {viewProfileDialog.producer.approved_at 
+                      ? format(new Date(viewProfileDialog.producer.approved_at), "dd/MM/yyyy HH:mm")
+                      : "Não disponível"
+                    }
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">Total de Eventos</Label>
+                  <p className="font-medium">{viewProfileDialog.producer.eventCount} eventos</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewProfileDialog({ open: false, producer: null })}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Fee Dialog */}
+      <Dialog open={customFeeDialog.open} onOpenChange={(open) => setCustomFeeDialog({ open, producer: null })}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Taxa Personalizada</DialogTitle>
+            <DialogDescription>
+              Configure uma taxa personalizada para {customFeeDialog.producer?.profile?.full_name || "este produtor"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="customFee">Taxa da Plataforma (%)</Label>
+              <Input
+                id="customFee"
+                type="number"
+                step="0.01"
+                min="0"
+                max="100"
+                placeholder="Ex: 8.5"
+                value={customFeeValue}
+                onChange={(e) => setCustomFeeValue(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Deixe em branco para usar a taxa padrão do sistema
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCustomFeeDialog({ open: false, producer: null })}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => {
+                // TODO: Implement custom fee saving logic
+                toast({
+                  title: "Funcionalidade em desenvolvimento",
+                  description: "A configuração de taxa personalizada será implementada em breve.",
+                });
+                setCustomFeeDialog({ open: false, producer: null });
+              }}
+            >
+              Salvar Taxa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

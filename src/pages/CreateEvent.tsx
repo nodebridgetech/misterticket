@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import { LocationMap } from "@/components/LocationMap";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { PageLoader } from "@/components/PageLoader";
 import {
   DndContext,
   closestCenter,
@@ -163,6 +164,7 @@ const CreateEvent = () => {
   const duplicateFrom = location.state?.duplicateFrom;
   const [categories, setCategories] = useState<Category[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPageReady, setIsPageReady] = useState(false);
   
   // Event form state
   const [title, setTitle] = useState("");
@@ -208,8 +210,12 @@ const CreateEvent = () => {
   );
 
   useEffect(() => {
-    if (!loading && (!user || !isProducerApproved)) {
-      navigate("/minha-conta");
+    if (!loading) {
+      if (!user || !isProducerApproved) {
+        navigate("/minha-conta");
+      } else {
+        setIsPageReady(true);
+      }
     }
   }, [user, isProducerApproved, loading, navigate]);
 
@@ -502,11 +508,13 @@ const CreateEvent = () => {
     }
   };
 
-  if (loading) {
+  // Show loading skeleton while checking auth
+  if (loading || !isPageReady) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p>Carregando...</p>
-      </div>
+      <>
+        <PageLoader variant="form" />
+        <Footer />
+      </>
     );
   }
 

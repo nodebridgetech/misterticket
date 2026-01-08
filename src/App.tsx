@@ -4,6 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AppLayout } from "@/components/AppLayout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import Index from "./pages/Index";
 import EventDetails from "./pages/EventDetails";
 import Auth from "./pages/Auth";
@@ -34,13 +36,15 @@ import FinancialDashboard from "./pages/FinancialDashboard";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <Toaster />
-    <Sonner />
-    <BrowserRouter>
-      <AuthProvider>
-        <AppLayout>
-          <Routes>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <Toaster />
+      <Sonner />
+      <PWAUpdatePrompt />
+      <BrowserRouter>
+        <AuthProvider>
+          <AppLayout>
+            <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/eventos" element={<Events />} />
             <Route path="/event/:id" element={<EventDetails />} />
@@ -66,13 +70,14 @@ const App = () => (
             <Route path="/admin/logs" element={<ActivityLogs />} />
             <Route path="/admin/configuracoes" element={<SiteSettingsManagement />} />
             <Route path="/validar-ingressos" element={<ValidateTickets />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AppLayout>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
+              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AppLayout>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

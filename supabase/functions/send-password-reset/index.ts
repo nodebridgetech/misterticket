@@ -28,7 +28,18 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email }: PasswordResetRequest = await req.json();
 
-    console.log("Generating password reset link for:", email);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+      // Don't reveal if email is invalid - always return success
+      console.log("Invalid email format received, returning success anyway");
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
+    }
+
+    console.log("Generating password reset link");
 
     // Generate the reset link using Supabase Admin API
     const { data, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -40,12 +51,21 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     if (linkError) {
-      console.error("Error generating reset link:", linkError);
-      throw linkError;
+      // Don't reveal if user doesn't exist - always return success
+      console.log("Error generating reset link (user may not exist), returning success anyway");
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     if (!data?.properties?.action_link) {
-      throw new Error("Failed to generate reset link");
+      // Don't reveal failure - always return success
+      console.log("Failed to generate reset link, returning success anyway");
+      return new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     const resetLink = data.properties.action_link;

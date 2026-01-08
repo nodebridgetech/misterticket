@@ -182,13 +182,6 @@ serve(async (req) => {
       totalAmount 
     });
 
-    logStep("Amount calculation", { 
-      subtotal, 
-      platformFee, 
-      gatewayFee, 
-      totalAmount 
-    });
-
     // Stripe requires minimum of R$ 0.50 for BRL
     const STRIPE_MIN_AMOUNT_BRL = 0.50;
     if (totalAmount < STRIPE_MIN_AMOUNT_BRL) {

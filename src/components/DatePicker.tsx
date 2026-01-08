@@ -48,6 +48,8 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={onDateChange}
+          fromYear={new Date().getFullYear()}
+          toYear={new Date().getFullYear() + 5}
           initialFocus
         />
         {date && (

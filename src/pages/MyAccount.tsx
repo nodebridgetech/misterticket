@@ -117,7 +117,11 @@ const MyAccount = () => {
           address: data.address || "",
           address_number: data.address_number || "",
           address_complement: data.address_complement || "",
-          birth_date: data.birth_date ? new Date(data.birth_date) : undefined
+          birth_date: data.birth_date ? (() => {
+            // Parse como data local para evitar problemas de timezone
+            const [year, month, day] = data.birth_date.split('-').map(Number);
+            return new Date(year, month - 1, day);
+          })() : undefined
         });
       }
       setLoading(false);
@@ -228,7 +232,10 @@ const MyAccount = () => {
       address: profile?.address || "",
       address_number: profile?.address_number || "",
       address_complement: profile?.address_complement || "",
-      birth_date: profile?.birth_date ? new Date(profile.birth_date) : undefined
+      birth_date: profile?.birth_date ? (() => {
+        const [year, month, day] = profile.birth_date.split('-').map(Number);
+        return new Date(year, month - 1, day);
+      })() : undefined
     });
   };
 
@@ -540,8 +547,16 @@ const MyAccount = () => {
                         <CalendarComponent
                           mode="single"
                           selected={editForm.birth_date}
-                          onSelect={(date) => setEditForm({ ...editForm, birth_date: date })}
+                          onSelect={(date) => {
+                            if (date) {
+                              // Normalizar para meia-noite local
+                              const normalizedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                              setEditForm({ ...editForm, birth_date: normalizedDate });
+                            }
+                          }}
                           disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                          fromYear={1900}
+                          toYear={new Date().getFullYear()}
                           initialFocus
                           className="pointer-events-auto"
                         />

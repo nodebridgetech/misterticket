@@ -142,9 +142,14 @@ export const EventPreview = ({
                 <div className="space-y-4">
                   {ticketBatches.map((ticket) => {
                     const now = new Date();
-                    const saleStart = new Date(ticket.sale_start_date);
-                    const saleEnd = new Date(ticket.sale_end_date);
-                    const isSaleActive = now >= saleStart && now <= saleEnd;
+                    const hasSaleDates = ticket.sale_start_date && ticket.sale_end_date;
+                    let isSaleActive = true;
+                    
+                    if (hasSaleDates) {
+                      const saleStart = new Date(ticket.sale_start_date);
+                      const saleEnd = new Date(ticket.sale_end_date);
+                      isSaleActive = now >= saleStart && now <= saleEnd;
+                    }
 
                     return (
                       <div

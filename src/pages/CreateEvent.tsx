@@ -944,6 +944,7 @@ const CreateEvent = () => {
                   address={address}
                   imageUrl={imageUrl}
                   ticketBatches={ticketBatches}
+                  autoAdvanceBatches={autoAdvanceBatches}
                 />
               </DialogContent>
             </Dialog>

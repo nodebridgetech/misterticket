@@ -6,11 +6,14 @@ import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { formatPhone, formatCPF, isValidCPF } from "@/lib/format-utils";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { toast } from "sonner";
 import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
@@ -21,6 +24,8 @@ const loginSchema = z.object({
 const signUpSchema = z.object({
   fullName: z.string().trim().min(2, "Nome muito curto").max(100, "Nome muito longo"),
   email: z.string().trim().email("E-mail inválido").max(255, "E-mail muito longo"),
+  phone: z.string().min(14, "Telefone inválido"),
+  document: z.string().min(14, "CPF inválido").refine((val) => isValidCPF(val), "CPF inválido"),
   password: z
     .string()
     .min(8, "Senha deve ter no mínimo 8 caracteres")
@@ -37,12 +42,17 @@ type LoginForm = z.infer<typeof loginSchema>;
 type SignUpForm = z.infer<typeof signUpSchema>;
 
 const Auth = () => {
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Address fields
+  const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -71,22 +81,63 @@ const Auth = () => {
   const handleSignUp = async (data: SignUpForm) => {
     setIsLoading(true);
     try {
-      await signUp(data.email, data.password, data.fullName);
-      
-      // Send welcome email after successful signup
-      try {
-        await supabase.functions.invoke('send-welcome-email', {
-          body: {
-            email: data.email,
-            name: data.fullName,
+      // Create user with Supabase Auth
+      const { data: newUser, error: signUpError } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: {
+          data: {
+            full_name: data.fullName,
           },
-        });
-      } catch (emailError) {
-        console.error("Error sending welcome email:", emailError);
-        // Don't throw error - signup was successful
+          emailRedirectTo: `${window.location.origin}/`,
+        },
+      });
+
+      if (signUpError) {
+        if (signUpError.message.includes("already registered")) {
+          toast.error("Este e-mail já está cadastrado. Tente fazer login.");
+        } else {
+          toast.error(signUpError.message);
+        }
+        throw signUpError;
       }
-      
-      signUpForm.reset();
+
+      if (newUser?.user) {
+        // Update profile with additional data including address
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: data.fullName,
+            phone: data.phone,
+            document: data.document,
+            address: address || null,
+            address_number: addressNumber || null,
+            address_complement: addressComplement || null,
+          })
+          .eq("user_id", newUser.user.id);
+
+        if (profileError) {
+          console.error("Error updating profile:", profileError);
+        }
+
+        // Send welcome email
+        try {
+          await supabase.functions.invoke('send-welcome-email', {
+            body: {
+              email: data.email,
+              name: data.fullName,
+            },
+          });
+        } catch (emailError) {
+          console.error("Error sending welcome email:", emailError);
+        }
+
+        toast.success("Cadastro realizado! Você já pode fazer login.");
+        signUpForm.reset();
+        setAddress("");
+        setAddressNumber("");
+        setAddressComplement("");
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -221,7 +272,10 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nome completo</Label>
+                  <Label htmlFor="signup-name">
+                    Nome completo
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
                   <Input
                     id="signup-name"
                     placeholder="Seu nome"
@@ -234,7 +288,10 @@ const Auth = () => {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-email">E-mail</Label>
+                  <Label htmlFor="signup-email">
+                    E-mail
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
                   <Input
                     id="signup-email"
                     type="email"
@@ -248,7 +305,58 @@ const Auth = () => {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha</Label>
+                  <Label htmlFor="signup-phone">
+                    Telefone
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="signup-phone"
+                    placeholder="(00) 00000-0000"
+                    {...signUpForm.register("phone")}
+                    onChange={(e) => {
+                      signUpForm.setValue("phone", formatPhone(e.target.value));
+                    }}
+                  />
+                  {signUpForm.formState.errors.phone && (
+                    <p className="text-sm text-destructive mt-1">
+                      {signUpForm.formState.errors.phone.message}
+                    </p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-document">
+                    CPF
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
+                  <Input
+                    id="signup-document"
+                    placeholder="000.000.000-00"
+                    {...signUpForm.register("document")}
+                    onChange={(e) => {
+                      signUpForm.setValue("document", formatCPF(e.target.value));
+                    }}
+                  />
+                  {signUpForm.formState.errors.document && (
+                    <p className="text-sm text-destructive mt-1">
+                      {signUpForm.formState.errors.document.message}
+                    </p>
+                  )}
+                </div>
+
+                <AddressAutocomplete
+                  address={address}
+                  number={addressNumber}
+                  complement={addressComplement}
+                  onAddressChange={setAddress}
+                  onNumberChange={setAddressNumber}
+                  onComplementChange={setAddressComplement}
+                />
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">
+                    Senha
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       id="signup-password"
@@ -271,7 +379,10 @@ const Auth = () => {
                   )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirmar senha</Label>
+                  <Label htmlFor="signup-confirm">
+                    Confirmar senha
+                    <span className="text-destructive ml-1">*</span>
+                  </Label>
                   <div className="relative">
                     <Input
                       id="signup-confirm"

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Clock, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Clock, AlertCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCPF, formatPhone, isValidCPF, formatCNPJ, isValidCNPJ } from "@/lib/format-utils";
 import { AddressAutocomplete } from "@/components/AddressAutocomplete";
+import { SignupStepIndicator } from "@/components/SignupStepIndicator";
 import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
@@ -21,12 +22,20 @@ const loginSchema = z.object({
   password: z.string().min(1, "Senha é obrigatória"),
 });
 
-const signUpSchema = z.object({
+// Step 1: Personal data
+const step1Schema = z.object({
   fullName: z.string().trim().min(2, "Nome muito curto").max(100, "Nome muito longo"),
   email: z.string().trim().email("E-mail inválido").max(255, "E-mail muito longo"),
   phone: z.string().min(14, "Telefone inválido"),
   document: z.string().min(14, "CPF inválido").refine((val) => isValidCPF(val), "CPF inválido"),
   cnpj: z.string().optional(),
+}).refine((data) => !data.cnpj || data.cnpj.length === 0 || isValidCNPJ(data.cnpj), {
+  message: "CNPJ inválido",
+  path: ["cnpj"],
+});
+
+// Step 3: Password
+const step3Schema = z.object({
   password: z
     .string()
     .min(8, "Senha deve ter no mínimo 8 caracteres")
@@ -37,13 +46,13 @@ const signUpSchema = z.object({
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não coincidem",
   path: ["confirmPassword"],
-}).refine((data) => !data.cnpj || data.cnpj.length === 0 || isValidCNPJ(data.cnpj), {
-  message: "CNPJ inválido",
-  path: ["cnpj"],
 });
 
 type LoginForm = z.infer<typeof loginSchema>;
-type SignUpForm = z.infer<typeof signUpSchema>;
+type Step1Form = z.infer<typeof step1Schema>;
+type Step3Form = z.infer<typeof step3Schema>;
+
+const STEP_LABELS = ["Dados Pessoais", "Endereço", "Senha"];
 
 const ProducerAuth = () => {
   const navigate = useNavigate();
@@ -54,7 +63,13 @@ const ProducerAuth = () => {
   const [pendingProducerData, setPendingProducerData] = useState<any>(null);
   const [isEditingPendingData, setIsEditingPendingData] = useState(false);
   
-  // Address fields for signup
+  // Multi-step state
+  const [signupStep, setSignupStep] = useState(1);
+  
+  // Step 1 data
+  const [step1Data, setStep1Data] = useState<Step1Form | null>(null);
+  
+  // Address fields (Step 2)
   const [address, setAddress] = useState("");
   const [addressNumber, setAddressNumber] = useState("");
   const [addressComplement, setAddressComplement] = useState("");
@@ -62,8 +77,13 @@ const ProducerAuth = () => {
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
-  const signUpForm = useForm<SignUpForm>({
-    resolver: zodResolver(signUpSchema),
+  
+  const step1Form = useForm<Step1Form>({
+    resolver: zodResolver(step1Schema),
+  });
+  
+  const step3Form = useForm<Step3Form>({
+    resolver: zodResolver(step3Schema),
   });
 
   // Check if user is already logged in and is an approved producer
@@ -146,12 +166,23 @@ const ProducerAuth = () => {
     }
   };
 
-  const handleSignUp = async (data: SignUpForm) => {
+  const handleStep1Submit = (data: Step1Form) => {
+    setStep1Data(data);
+    setSignupStep(2);
+  };
+
+  const handleStep2Next = () => {
+    setSignupStep(3);
+  };
+
+  const handleStep3Submit = async (data: Step3Form) => {
+    if (!step1Data) return;
+    
     setIsLoading(true);
     try {
       // First, check if email already exists as producer
       const { data: existingAuth } = await supabase.auth.signInWithPassword({
-        email: data.email,
+        email: step1Data.email,
         password: data.password,
       });
 
@@ -190,11 +221,11 @@ const ProducerAuth = () => {
 
       // Create new user
       const { data: newUser, error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
+        email: step1Data.email,
         password: data.password,
         options: {
           data: {
-            full_name: data.fullName,
+            full_name: step1Data.fullName,
           },
           emailRedirectTo: `${window.location.origin}/produtor`,
         },
@@ -214,10 +245,10 @@ const ProducerAuth = () => {
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
-            full_name: data.fullName,
-            phone: data.phone,
-            document: data.document,
-            cnpj: data.cnpj || null,
+            full_name: step1Data.fullName,
+            phone: step1Data.phone,
+            document: step1Data.document,
+            cnpj: step1Data.cnpj || null,
             address: address || null,
             address_number: addressNumber || null,
             address_complement: addressComplement || null,
@@ -245,8 +276,8 @@ const ProducerAuth = () => {
         try {
           await supabase.functions.invoke('send-welcome-email', {
             body: {
-              email: data.email,
-              name: data.fullName,
+              email: step1Data.email,
+              name: step1Data.fullName,
             },
           });
         } catch (emailError) {
@@ -258,25 +289,32 @@ const ProducerAuth = () => {
         
         toast.success("Cadastro realizado! Aguarde a aprovação do administrador.");
         setPendingProducerData({
-          full_name: data.fullName,
-          email: data.email,
-          phone: data.phone,
-          document: data.document,
-          cnpj: data.cnpj || null,
+          full_name: step1Data.fullName,
+          email: step1Data.email,
+          phone: step1Data.phone,
+          document: step1Data.document,
+          cnpj: step1Data.cnpj || null,
           address: address || null,
           address_number: addressNumber || null,
           address_complement: addressComplement || null,
         });
-        signUpForm.reset();
-        setAddress("");
-        setAddressNumber("");
-        setAddressComplement("");
+        resetSignupForm();
       }
     } catch (error) {
       console.error(error);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetSignupForm = () => {
+    setSignupStep(1);
+    setStep1Data(null);
+    setAddress("");
+    setAddressNumber("");
+    setAddressComplement("");
+    step1Form.reset();
+    step3Form.reset();
   };
 
   const handleUpdatePendingData = async () => {
@@ -468,6 +506,224 @@ const ProducerAuth = () => {
     );
   }
 
+  const renderSignupStep = () => {
+    switch (signupStep) {
+      case 1:
+        return (
+          <form onSubmit={step1Form.handleSubmit(handleStep1Submit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signup-name">
+                Nome completo
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Input
+                id="signup-name"
+                placeholder="Seu nome"
+                {...step1Form.register("fullName")}
+              />
+              {step1Form.formState.errors.fullName && (
+                <p className="text-sm text-destructive mt-1">
+                  {step1Form.formState.errors.fullName.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-email">
+                E-mail
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Input
+                id="signup-email"
+                type="email"
+                placeholder="seu@email.com"
+                {...step1Form.register("email")}
+              />
+              {step1Form.formState.errors.email && (
+                <p className="text-sm text-destructive mt-1">
+                  {step1Form.formState.errors.email.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-phone">
+                Telefone
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Input
+                id="signup-phone"
+                placeholder="(00) 00000-0000"
+                {...step1Form.register("phone")}
+                onChange={(e) => {
+                  step1Form.setValue("phone", formatPhone(e.target.value));
+                }}
+              />
+              {step1Form.formState.errors.phone && (
+                <p className="text-sm text-destructive mt-1">
+                  {step1Form.formState.errors.phone.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-document">
+                CPF
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <Input
+                id="signup-document"
+                placeholder="000.000.000-00"
+                {...step1Form.register("document")}
+                onChange={(e) => {
+                  step1Form.setValue("document", formatCPF(e.target.value));
+                }}
+              />
+              {step1Form.formState.errors.document && (
+                <p className="text-sm text-destructive mt-1">
+                  {step1Form.formState.errors.document.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-cnpj">CNPJ (opcional)</Label>
+              <Input
+                id="signup-cnpj"
+                placeholder="00.000.000/0000-00"
+                {...step1Form.register("cnpj")}
+                onChange={(e) => {
+                  step1Form.setValue("cnpj", formatCNPJ(e.target.value));
+                }}
+              />
+              {step1Form.formState.errors.cnpj && (
+                <p className="text-sm text-destructive mt-1">
+                  {step1Form.formState.errors.cnpj.message}
+                </p>
+              )}
+            </div>
+            <Button type="submit" className="w-full">
+              Continuar
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </form>
+        );
+      
+      case 2:
+        return (
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Informe seu endereço (opcional)
+            </p>
+            <AddressAutocomplete
+              address={address}
+              number={addressNumber}
+              complement={addressComplement}
+              onAddressChange={setAddress}
+              onNumberChange={setAddressNumber}
+              onComplementChange={setAddressComplement}
+            />
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSignupStep(1)}
+                className="flex-1"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <Button
+                type="button"
+                onClick={handleStep2Next}
+                className="flex-1"
+              >
+                Continuar
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        );
+      
+      case 3:
+        return (
+          <form onSubmit={step3Form.handleSubmit(handleStep3Submit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="signup-password">
+                Senha
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="signup-password"
+                  type={showSignupPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  {...step3Form.register("password")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowSignupPassword(!showSignupPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showSignupPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Mínimo 8 caracteres, 1 maiúscula e 1 número
+              </p>
+              {step3Form.formState.errors.password && (
+                <p className="text-sm text-destructive mt-1">
+                  {step3Form.formState.errors.password.message}
+                </p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="signup-confirm">
+                Confirmar senha
+                <span className="text-destructive ml-1">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  id="signup-confirm"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  {...step3Form.register("confirmPassword")}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+              {step3Form.formState.errors.confirmPassword && (
+                <p className="text-sm text-destructive">
+                  {step3Form.formState.errors.confirmPassword.message}
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSignupStep(2)}
+                className="flex-1"
+              >
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Voltar
+              </Button>
+              <Button type="submit" className="flex-1" disabled={isLoading}>
+                {isLoading ? "Cadastrando..." : "Solicitar Cadastro"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground text-center">
+              Após o cadastro, sua conta será analisada pelo administrador.
+            </p>
+          </form>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <Card className="w-full max-w-md">
@@ -479,7 +735,7 @@ const ProducerAuth = () => {
           <CardDescription>Gerencie seus eventos e vendas de ingressos</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs defaultValue="login" className="w-full" onValueChange={() => resetSignupForm()}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Entrar</TabsTrigger>
               <TabsTrigger value="signup">Cadastrar</TabsTrigger>
@@ -539,145 +795,12 @@ const ProducerAuth = () => {
             </TabsContent>
 
             <TabsContent value="signup">
-              <form onSubmit={signUpForm.handleSubmit(handleSignUp)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nome completo *</Label>
-                  <Input
-                    id="signup-name"
-                    placeholder="Seu nome"
-                    {...signUpForm.register("fullName")}
-                  />
-                  {signUpForm.formState.errors.fullName && (
-                    <p className="text-sm text-destructive mt-1">
-                      {signUpForm.formState.errors.fullName.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">E-mail *</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="seu@email.com"
-                    {...signUpForm.register("email")}
-                  />
-                  {signUpForm.formState.errors.email && (
-                    <p className="text-sm text-destructive mt-1">
-                      {signUpForm.formState.errors.email.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-phone">Telefone *</Label>
-                  <Input
-                    id="signup-phone"
-                    placeholder="(00) 00000-0000"
-                    {...signUpForm.register("phone")}
-                    onChange={(e) => {
-                      signUpForm.setValue("phone", formatPhone(e.target.value));
-                    }}
-                  />
-                  {signUpForm.formState.errors.phone && (
-                    <p className="text-sm text-destructive mt-1">
-                      {signUpForm.formState.errors.phone.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-document">CPF *</Label>
-                  <Input
-                    id="signup-document"
-                    placeholder="000.000.000-00"
-                    {...signUpForm.register("document")}
-                    onChange={(e) => {
-                      signUpForm.setValue("document", formatCPF(e.target.value));
-                    }}
-                  />
-                  {signUpForm.formState.errors.document && (
-                    <p className="text-sm text-destructive mt-1">
-                      {signUpForm.formState.errors.document.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-cnpj">CNPJ (opcional)</Label>
-                  <Input
-                    id="signup-cnpj"
-                    placeholder="00.000.000/0000-00"
-                    {...signUpForm.register("cnpj")}
-                    onChange={(e) => {
-                      signUpForm.setValue("cnpj", formatCNPJ(e.target.value));
-                    }}
-                  />
-                  {signUpForm.formState.errors.cnpj && (
-                    <p className="text-sm text-destructive mt-1">
-                      {signUpForm.formState.errors.cnpj.message}
-                    </p>
-                  )}
-                </div>
-
-                <AddressAutocomplete
-                  address={address}
-                  number={addressNumber}
-                  complement={addressComplement}
-                  onAddressChange={setAddress}
-                  onNumberChange={setAddressNumber}
-                  onComplementChange={setAddressComplement}
-                />
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Senha *</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-password"
-                      type={showSignupPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      {...signUpForm.register("password")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowSignupPassword(!showSignupPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showSignupPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  {signUpForm.formState.errors.password && (
-                    <p className="text-sm text-destructive mt-1">
-                      {signUpForm.formState.errors.password.message}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirmar senha *</Label>
-                  <div className="relative">
-                    <Input
-                      id="signup-confirm"
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      {...signUpForm.register("confirmPassword")}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </div>
-                  {signUpForm.formState.errors.confirmPassword && (
-                    <p className="text-sm text-destructive">
-                      {signUpForm.formState.errors.confirmPassword.message}
-                    </p>
-                  )}
-                </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Cadastrando..." : "Solicitar Cadastro"}
-                </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Após o cadastro, sua conta será analisada pelo administrador.
-                </p>
-              </form>
+              <SignupStepIndicator
+                currentStep={signupStep}
+                totalSteps={3}
+                labels={STEP_LABELS}
+              />
+              {renderSignupStep()}
             </TabsContent>
           </Tabs>
 

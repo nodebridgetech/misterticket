@@ -507,221 +507,232 @@ const ProducerAuth = () => {
   }
 
   const renderSignupStep = () => {
-    switch (signupStep) {
-      case 1:
-        return (
-          <form onSubmit={step1Form.handleSubmit(handleStep1Submit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="signup-name">
-                Nome completo
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <Input
-                id="signup-name"
-                placeholder="Seu nome"
-                {...step1Form.register("fullName")}
-              />
-              {step1Form.formState.errors.fullName && (
-                <p className="text-sm text-destructive mt-1">
-                  {step1Form.formState.errors.fullName.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signup-email">
-                E-mail
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <Input
-                id="signup-email"
-                type="email"
-                placeholder="seu@email.com"
-                {...step1Form.register("email")}
-              />
-              {step1Form.formState.errors.email && (
-                <p className="text-sm text-destructive mt-1">
-                  {step1Form.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signup-phone">
-                Telefone
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <Input
-                id="signup-phone"
-                placeholder="(00) 00000-0000"
-                {...step1Form.register("phone")}
-                onChange={(e) => {
-                  step1Form.setValue("phone", formatPhone(e.target.value));
-                }}
-              />
-              {step1Form.formState.errors.phone && (
-                <p className="text-sm text-destructive mt-1">
-                  {step1Form.formState.errors.phone.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signup-document">
-                CPF
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <Input
-                id="signup-document"
-                placeholder="000.000.000-00"
-                {...step1Form.register("document")}
-                onChange={(e) => {
-                  step1Form.setValue("document", formatCPF(e.target.value));
-                }}
-              />
-              {step1Form.formState.errors.document && (
-                <p className="text-sm text-destructive mt-1">
-                  {step1Form.formState.errors.document.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signup-cnpj">CNPJ (opcional)</Label>
-              <Input
-                id="signup-cnpj"
-                placeholder="00.000.000/0000-00"
-                {...step1Form.register("cnpj")}
-                onChange={(e) => {
-                  step1Form.setValue("cnpj", formatCNPJ(e.target.value));
-                }}
-              />
-              {step1Form.formState.errors.cnpj && (
-                <p className="text-sm text-destructive mt-1">
-                  {step1Form.formState.errors.cnpj.message}
-                </p>
-              )}
-            </div>
-            <Button type="submit" className="w-full">
-              Continuar
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
-          </form>
-        );
-      
-      case 2:
-        return (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              Informe seu endereço (opcional)
-            </p>
-            <AddressAutocomplete
-              address={address}
-              number={addressNumber}
-              complement={addressComplement}
-              onAddressChange={setAddress}
-              onNumberChange={setAddressNumber}
-              onComplementChange={setAddressComplement}
-            />
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSignupStep(1)}
-                className="flex-1"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-              </Button>
-              <Button
-                type="button"
-                onClick={handleStep2Next}
-                className="flex-1"
-              >
+    const stepContent = (() => {
+      switch (signupStep) {
+        case 1:
+          return (
+            <form onSubmit={step1Form.handleSubmit(handleStep1Submit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-name">
+                  Nome completo
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
+                <Input
+                  id="signup-name"
+                  placeholder="Seu nome"
+                  {...step1Form.register("fullName")}
+                />
+                {step1Form.formState.errors.fullName && (
+                  <p className="text-sm text-destructive mt-1">
+                    {step1Form.formState.errors.fullName.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-email">
+                  E-mail
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
+                <Input
+                  id="signup-email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  {...step1Form.register("email")}
+                />
+                {step1Form.formState.errors.email && (
+                  <p className="text-sm text-destructive mt-1">
+                    {step1Form.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-phone">
+                  Telefone
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
+                <Input
+                  id="signup-phone"
+                  placeholder="(00) 00000-0000"
+                  {...step1Form.register("phone")}
+                  onChange={(e) => {
+                    step1Form.setValue("phone", formatPhone(e.target.value));
+                  }}
+                />
+                {step1Form.formState.errors.phone && (
+                  <p className="text-sm text-destructive mt-1">
+                    {step1Form.formState.errors.phone.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-document">
+                  CPF
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
+                <Input
+                  id="signup-document"
+                  placeholder="000.000.000-00"
+                  {...step1Form.register("document")}
+                  onChange={(e) => {
+                    step1Form.setValue("document", formatCPF(e.target.value));
+                  }}
+                />
+                {step1Form.formState.errors.document && (
+                  <p className="text-sm text-destructive mt-1">
+                    {step1Form.formState.errors.document.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-cnpj">CNPJ (opcional)</Label>
+                <Input
+                  id="signup-cnpj"
+                  placeholder="00.000.000/0000-00"
+                  {...step1Form.register("cnpj")}
+                  onChange={(e) => {
+                    step1Form.setValue("cnpj", formatCNPJ(e.target.value));
+                  }}
+                />
+                {step1Form.formState.errors.cnpj && (
+                  <p className="text-sm text-destructive mt-1">
+                    {step1Form.formState.errors.cnpj.message}
+                  </p>
+                )}
+              </div>
+              <Button type="submit" className="w-full">
                 Continuar
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
-            </div>
-          </div>
-        );
-      
-      case 3:
-        return (
-          <form onSubmit={step3Form.handleSubmit(handleStep3Submit)} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="signup-password">
-                Senha
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="signup-password"
-                  type={showSignupPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  {...step3Form.register("password")}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowSignupPassword(!showSignupPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showSignupPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Mínimo 8 caracteres, 1 maiúscula e 1 número
+            </form>
+          );
+        
+        case 2:
+          return (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Informe seu endereço (opcional)
               </p>
-              {step3Form.formState.errors.password && (
-                <p className="text-sm text-destructive mt-1">
-                  {step3Form.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="signup-confirm">
-                Confirmar senha
-                <span className="text-destructive ml-1">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="signup-confirm"
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  {...step3Form.register("confirmPassword")}
-                />
-                <button
+              <AddressAutocomplete
+                address={address}
+                number={addressNumber}
+                complement={addressComplement}
+                onAddressChange={setAddress}
+                onNumberChange={setAddressNumber}
+                onComplementChange={setAddressComplement}
+              />
+              <div className="flex gap-2">
+                <Button
                   type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  variant="outline"
+                  onClick={() => setSignupStep(1)}
+                  className="flex-1"
                 >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleStep2Next}
+                  className="flex-1"
+                >
+                  Continuar
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </div>
-              {step3Form.formState.errors.confirmPassword && (
-                <p className="text-sm text-destructive">
-                  {step3Form.formState.errors.confirmPassword.message}
+            </div>
+          );
+        
+        case 3:
+          return (
+            <form onSubmit={step3Form.handleSubmit(handleStep3Submit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="signup-password">
+                  Senha
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="signup-password"
+                    type={showSignupPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    {...step3Form.register("password")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignupPassword(!showSignupPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showSignupPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 8 caracteres, 1 maiúscula e 1 número
                 </p>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setSignupStep(2)}
-                className="flex-1"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar
-              </Button>
-              <Button type="submit" className="flex-1" disabled={isLoading}>
-                {isLoading ? "Cadastrando..." : "Solicitar Cadastro"}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground text-center">
-              Após o cadastro, sua conta será analisada pelo administrador.
-            </p>
-          </form>
-        );
-      
-      default:
-        return null;
-    }
+                {step3Form.formState.errors.password && (
+                  <p className="text-sm text-destructive mt-1">
+                    {step3Form.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="signup-confirm">
+                  Confirmar senha
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="signup-confirm"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    {...step3Form.register("confirmPassword")}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {step3Form.formState.errors.confirmPassword && (
+                  <p className="text-sm text-destructive">
+                    {step3Form.formState.errors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSignupStep(2)}
+                  className="flex-1"
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Voltar
+                </Button>
+                <Button type="submit" className="flex-1" disabled={isLoading}>
+                  {isLoading ? "Cadastrando..." : "Solicitar Cadastro"}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Após o cadastro, sua conta será analisada pelo administrador.
+              </p>
+            </form>
+          );
+        
+        default:
+          return null;
+      }
+    })();
+
+    return (
+      <div 
+        key={signupStep}
+        className="animate-fade-in"
+      >
+        {stepContent}
+      </div>
+    );
   };
 
   return (

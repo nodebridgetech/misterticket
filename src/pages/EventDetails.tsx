@@ -18,6 +18,7 @@ const EventDetails = () => {
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [utmLinkId, setUtmLinkId] = useState<string | null>(null);
+  const [autoAdvanceBatches, setAutoAdvanceBatches] = useState(true);
   const hasTrackedView = useRef(false);
   const pixelsInjected = useRef(false);
 
@@ -126,6 +127,7 @@ const EventDetails = () => {
       }
 
       setEvent(eventData);
+      setAutoAdvanceBatches(eventData.auto_advance_batches ?? true);
 
       const { data: ticketsData } = await supabase
         .from("tickets")
@@ -320,19 +322,44 @@ const EventDetails = () => {
                   <p className="text-muted-foreground">Nenhum lote de ingressos disponível no momento.</p>
                 ) : (
                   <div className="space-y-4">
-                    {tickets.map((ticket) => {
+                    {tickets.map((ticket, ticketIndex) => {
                       const available = ticket.quantity_total - ticket.quantity_sold;
                       const isAvailable = available > 0;
                       const now = new Date();
                       
-                      // If no dates set, ticket follows automatic batch switching (always active if available)
+                      // Check if ticket has sale dates defined
                       const hasSaleDates = ticket.sale_start_date && ticket.sale_end_date;
-                      let isSaleActive = true;
+                      let isSaleActive = false;
                       
                       if (hasSaleDates) {
+                        // If dates are defined, check if current time is within the period
                         const saleStart = new Date(ticket.sale_start_date);
                         const saleEnd = new Date(ticket.sale_end_date);
                         isSaleActive = now >= saleStart && now <= saleEnd;
+                      } else {
+                        // If no dates are defined, use auto-advance logic
+                        if (autoAdvanceBatches) {
+                          // Auto-advance enabled: batch is active if:
+                          // 1. It's the first batch OR
+                          // 2. The previous batch of the same sector is sold out
+                          const sectorName = ticket.sector || "";
+                          const previousBatchSameSector = tickets
+                            .slice(0, ticketIndex)
+                            .filter(t => (t.sector || "") === sectorName)
+                            .pop();
+                          
+                          if (!previousBatchSameSector) {
+                            // No previous batch in same sector, this is the first
+                            isSaleActive = true;
+                          } else {
+                            // Check if previous batch is sold out
+                            const prevAvailable = previousBatchSameSector.quantity_total - previousBatchSameSector.quantity_sold;
+                            isSaleActive = prevAvailable <= 0;
+                          }
+                        } else {
+                          // Auto-advance disabled: all batches without dates are always active
+                          isSaleActive = true;
+                        }
                       }
 
                       return (
@@ -353,7 +380,7 @@ const EventDetails = () => {
                               </p>
                             </div>
                             {!isSaleActive ? (
-                              <Badge variant="secondary">Fora do período</Badge>
+                              <Badge variant="secondary">Aguardando</Badge>
                             ) : !isAvailable ? (
                               <Badge variant="secondary">Esgotado</Badge>
                             ) : (

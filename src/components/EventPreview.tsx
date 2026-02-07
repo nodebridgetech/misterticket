@@ -22,6 +22,7 @@ interface EventPreviewProps {
   address: string;
   imageUrl: string;
   ticketBatches: TicketBatch[];
+  autoAdvanceBatches?: boolean;
 }
 
 export const EventPreview = ({
@@ -33,6 +34,7 @@ export const EventPreview = ({
   address,
   imageUrl,
   ticketBatches,
+  autoAdvanceBatches = true,
 }: EventPreviewProps) => {
   return (
     <div className="max-h-[80vh] overflow-y-auto">
@@ -140,15 +142,27 @@ export const EventPreview = ({
                 <p className="text-muted-foreground">Nenhum lote de ingressos adicionado.</p>
               ) : (
                 <div className="space-y-4">
-                  {ticketBatches.map((ticket) => {
+                  {ticketBatches.map((ticket, ticketIndex) => {
                     const now = new Date();
                     const hasSaleDates = ticket.sale_start_date && ticket.sale_end_date;
-                    let isSaleActive = true;
+                    let isSaleActive = false;
                     
                     if (hasSaleDates) {
                       const saleStart = new Date(ticket.sale_start_date);
                       const saleEnd = new Date(ticket.sale_end_date);
                       isSaleActive = now >= saleStart && now <= saleEnd;
+                    } else {
+                      if (autoAdvanceBatches) {
+                        const sectorName = ticket.sector || "";
+                        const previousBatchSameSector = ticketBatches
+                          .slice(0, ticketIndex)
+                          .filter(t => (t.sector || "") === sectorName)
+                          .pop();
+                        
+                        isSaleActive = !previousBatchSameSector;
+                      } else {
+                        isSaleActive = true;
+                      }
                     }
 
                     return (

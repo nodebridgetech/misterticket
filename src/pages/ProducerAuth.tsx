@@ -52,7 +52,7 @@ type LoginForm = z.infer<typeof loginSchema>;
 type Step1Form = z.infer<typeof step1Schema>;
 type Step3Form = z.infer<typeof step3Schema>;
 
-const STEP_LABELS = ["Dados Pessoais", "Endereço", "Senha"];
+const STEP_LABELS = ["Principal", "Endereço", "Senha"];
 
 const ProducerAuth = () => {
   const navigate = useNavigate();

@@ -14,9 +14,9 @@ export const SignupStepIndicator = ({
 }: SignupStepIndicatorProps) => {
   return (
     <div className="w-full mb-6">
-      <div className="flex items-center justify-center">
+      <div className="flex items-start justify-center">
         {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step, index) => (
-          <div key={step} className="flex items-center">
+          <div key={step} className="flex items-start">
             <div className="flex flex-col items-center">
               <div
                 className={cn(
@@ -36,7 +36,7 @@ export const SignupStepIndicator = ({
               </div>
               <span
                 className={cn(
-                  "text-xs mt-1 text-center w-16 transition-colors duration-300",
+                  "text-xs mt-1 text-center w-16 h-8 flex items-center justify-center transition-colors duration-300",
                   step <= currentStep ? "text-foreground font-medium" : "text-muted-foreground"
                 )}
               >
@@ -46,7 +46,7 @@ export const SignupStepIndicator = ({
             {index < totalSteps - 1 && (
               <div
                 className={cn(
-                  "w-12 h-0.5 mx-1 transition-all duration-500",
+                  "w-12 h-0.5 mx-1 mt-4 transition-all duration-500",
                   step < currentStep ? "bg-primary" : "bg-muted"
                 )}
               />

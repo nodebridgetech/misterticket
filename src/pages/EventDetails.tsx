@@ -324,9 +324,16 @@ const EventDetails = () => {
                       const available = ticket.quantity_total - ticket.quantity_sold;
                       const isAvailable = available > 0;
                       const now = new Date();
-                      const saleStart = new Date(ticket.sale_start_date);
-                      const saleEnd = new Date(ticket.sale_end_date);
-                      const isSaleActive = now >= saleStart && now <= saleEnd;
+                      
+                      // If no dates set, ticket follows automatic batch switching (always active if available)
+                      const hasSaleDates = ticket.sale_start_date && ticket.sale_end_date;
+                      let isSaleActive = true;
+                      
+                      if (hasSaleDates) {
+                        const saleStart = new Date(ticket.sale_start_date);
+                        const saleEnd = new Date(ticket.sale_end_date);
+                        isSaleActive = now >= saleStart && now <= saleEnd;
+                      }
 
                       return (
                         <div

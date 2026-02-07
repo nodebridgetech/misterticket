@@ -118,8 +118,12 @@ const SortableTicketBatch = ({ batch, index, isNextBatch, onEdit, onDuplicate, o
         <div>
           <p className="text-sm text-muted-foreground">Período de Vendas</p>
           <p className="text-xs">
-            {batch.sale_start_date ? new Date(batch.sale_start_date).toLocaleDateString("pt-BR") : "Não definido"} -{" "}
-            {batch.sale_end_date ? new Date(batch.sale_end_date).toLocaleDateString("pt-BR") : "Não definido"}
+            {batch.sale_start_date 
+              ? `${new Date(batch.sale_start_date).toLocaleDateString("pt-BR")} ${new Date(batch.sale_start_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` 
+              : "Automático"} -{" "}
+            {batch.sale_end_date 
+              ? `${new Date(batch.sale_end_date).toLocaleDateString("pt-BR")} ${new Date(batch.sale_end_date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`
+              : "Automático"}
           </p>
         </div>
       </div>
@@ -818,21 +822,27 @@ const CreateEvent = () => {
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Início das Vendas</Label>
+                        <Label>Início das Vendas (opcional)</Label>
                         <DatePicker
                           date={currentBatch.sale_start_date}
                           onDateChange={(date) => setCurrentBatch({ ...currentBatch, sale_start_date: date })}
-                          placeholder="Selecione o início das vendas"
+                          placeholder="Automático (virada de lotes)"
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Se não definido, segue a lógica de virada automática
+                        </p>
                       </div>
 
                       <div className="space-y-2">
-                        <Label>Fim das Vendas</Label>
+                        <Label>Fim das Vendas (opcional)</Label>
                         <DatePicker
                           date={currentBatch.sale_end_date}
                           onDateChange={(date) => setCurrentBatch({ ...currentBatch, sale_end_date: date })}
-                          placeholder="Selecione o fim das vendas"
+                          placeholder="Automático (virada de lotes)"
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Se não definido, segue a lógica de virada automática
+                        </p>
                       </div>
                     </div>
 

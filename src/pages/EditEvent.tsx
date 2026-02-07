@@ -154,8 +154,8 @@ const EditEvent = () => {
             price: Number(t.price),
             quantity_total: t.quantity_total,
             quantity_sold: t.quantity_sold,
-            sale_start_date: new Date(t.sale_start_date).toISOString().slice(0, 16),
-            sale_end_date: new Date(t.sale_end_date).toISOString().slice(0, 16),
+            sale_start_date: t.sale_start_date || "",
+            sale_end_date: t.sale_end_date || "",
           }))
         );
       }
@@ -172,10 +172,10 @@ const EditEvent = () => {
   };
 
   const handleAddBatch = () => {
-    if (!newBatchName || !newBatchPrice || !newBatchQuantity || !newBatchStartDate || !newBatchEndDate) {
+    if (!newBatchName || !newBatchPrice || !newBatchQuantity) {
       toast({
         title: "Campos obrigatórios",
-        description: "Preencha todos os campos do lote",
+        description: "Preencha nome, preço e quantidade do lote",
         variant: "destructive",
       });
       return;
@@ -357,8 +357,8 @@ const EditEvent = () => {
             price: batch.price,
             quantity_total: batch.quantity_total,
             quantity_sold: 0,
-            sale_start_date: new Date(batch.sale_start_date).toISOString(),
-            sale_end_date: new Date(batch.sale_end_date).toISOString(),
+            sale_start_date: batch.sale_start_date ? new Date(batch.sale_start_date).toISOString() : null,
+            sale_end_date: batch.sale_end_date ? new Date(batch.sale_end_date).toISOString() : null,
           });
 
           if (insertError) throw insertError;
@@ -370,8 +370,8 @@ const EditEvent = () => {
               sector: batch.sector || null,
               price: batch.price,
               quantity_total: batch.quantity_total,
-              sale_start_date: new Date(batch.sale_start_date).toISOString(),
-              sale_end_date: new Date(batch.sale_end_date).toISOString(),
+              sale_start_date: batch.sale_start_date ? new Date(batch.sale_start_date).toISOString() : null,
+              sale_end_date: batch.sale_end_date ? new Date(batch.sale_end_date).toISOString() : null,
             })
             .eq("id", batch.id);
 
@@ -649,20 +649,26 @@ const EditEvent = () => {
                               )}
                             </div>
                             <div>
-                              <Label>Início das Vendas</Label>
+                              <Label>Início das Vendas (opcional)</Label>
                               <DatePicker
-                                date={new Date(batch.sale_start_date)}
-                                onDateChange={(date) => handleUpdateBatch(batch.id, 'sale_start_date', date?.toISOString() || batch.sale_start_date)}
-                                placeholder="Selecione o início das vendas"
+                                date={batch.sale_start_date ? new Date(batch.sale_start_date) : undefined}
+                                onDateChange={(date) => handleUpdateBatch(batch.id, 'sale_start_date', date?.toISOString() || null)}
+                                placeholder="Automático (virada de lotes)"
                               />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Se não definido, segue a virada automática
+                              </p>
                             </div>
                             <div>
-                              <Label>Fim das Vendas</Label>
+                              <Label>Fim das Vendas (opcional)</Label>
                               <DatePicker
-                                date={new Date(batch.sale_end_date)}
-                                onDateChange={(date) => handleUpdateBatch(batch.id, 'sale_end_date', date?.toISOString() || batch.sale_end_date)}
-                                placeholder="Selecione o fim das vendas"
+                                date={batch.sale_end_date ? new Date(batch.sale_end_date) : undefined}
+                                onDateChange={(date) => handleUpdateBatch(batch.id, 'sale_end_date', date?.toISOString() || null)}
+                                placeholder="Automático (virada de lotes)"
                               />
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Se não definido, segue a virada automática
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -714,20 +720,26 @@ const EditEvent = () => {
                       />
                     </div>
                     <div>
-                      <Label>Início das Vendas</Label>
+                      <Label>Início das Vendas (opcional)</Label>
                       <DatePicker
                         date={newBatchStartDate}
                         onDateChange={setNewBatchStartDate}
-                        placeholder="Selecione o início das vendas"
+                        placeholder="Automático (virada de lotes)"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Se não definido, segue a virada automática
+                      </p>
                     </div>
                     <div>
-                      <Label>Fim das Vendas</Label>
+                      <Label>Fim das Vendas (opcional)</Label>
                       <DatePicker
                         date={newBatchEndDate}
                         onDateChange={setNewBatchEndDate}
-                        placeholder="Selecione o fim das vendas"
+                        placeholder="Automático (virada de lotes)"
                       />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Se não definido, segue a virada automática
+                      </p>
                     </div>
                   </div>
                   <Button type="button" variant="outline" className="mt-4" onClick={handleAddBatch}>

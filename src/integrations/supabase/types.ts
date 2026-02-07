@@ -557,8 +557,8 @@ export type Database = {
           price: number
           quantity_sold: number
           quantity_total: number
-          sale_end_date: string
-          sale_start_date: string
+          sale_end_date: string | null
+          sale_start_date: string | null
           sector: string | null
           updated_at: string
         }
@@ -570,8 +570,8 @@ export type Database = {
           price: number
           quantity_sold?: number
           quantity_total: number
-          sale_end_date: string
-          sale_start_date: string
+          sale_end_date?: string | null
+          sale_start_date?: string | null
           sector?: string | null
           updated_at?: string
         }
@@ -583,8 +583,8 @@ export type Database = {
           price?: number
           quantity_sold?: number
           quantity_total?: number
-          sale_end_date?: string
-          sale_start_date?: string
+          sale_end_date?: string | null
+          sale_start_date?: string | null
           sector?: string | null
           updated_at?: string
         }

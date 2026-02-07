@@ -117,7 +117,7 @@ const Auth = () => {
           <CardTitle className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
             Mister Ticket
           </CardTitle>
-          <CardDescription>Acesse sua conta ou crie uma nova</CardDescription>
+          <CardDescription>Entre para comprar ingressos e acessar seus eventos</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">
@@ -335,6 +335,15 @@ const Auth = () => {
               </form>
             </TabsContent>
           </Tabs>
+
+          <div className="mt-6 pt-4 border-t text-center">
+            <p className="text-sm text-muted-foreground mb-2">Quer criar e gerenciar eventos?</p>
+            <Link to="/produtor">
+              <Button variant="outline" className="w-full">
+                Acessar Área do Produtor
+              </Button>
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

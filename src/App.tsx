@@ -9,6 +9,7 @@ import { PWAUpdatePrompt } from "@/components/PWAUpdatePrompt";
 import Index from "./pages/Index";
 import EventDetails from "./pages/EventDetails";
 import Auth from "./pages/Auth";
+import ProducerAuth from "./pages/ProducerAuth";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Events from "./pages/Events";
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/checkout/:id" element={<Checkout />} />
             <Route path="/payment-success" element={<PaymentSuccess />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/produtor" element={<ProducerAuth />} />
           <Route path="/esqueci-senha" element={<ForgotPassword />} />
           <Route path="/redefinir-senha" element={<ResetPassword />} />
             <Route path="/minha-conta" element={<MyAccount />} />

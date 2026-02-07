@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2, Send, UserPlus, Smartphone, Download, CheckCircle, Share, MoreVertical, Monitor } from "lucide-react";
+import { User, Ticket, AlertCircle, Calendar, MapPin, QrCode, Pencil, Save, X, Loader2, Send, Smartphone, Download, CheckCircle, Share, MoreVertical, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -60,7 +60,7 @@ interface Sale {
 }
 
 const MyAccount = () => {
-  const { user, signOut, userRole, requestProducerRole, isProducerApproved, hasPendingProducerRequest } = useAuth();
+  const { user, signOut, userRole } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("tab") === "tickets" ? "tickets" : "profile";
@@ -209,13 +209,6 @@ const MyAccount = () => {
     setDeferredPrompt(null);
   };
 
-  const handleBecomeProducer = async () => {
-    try {
-      await requestProducerRole();
-    } catch (error) {
-      console.error(error);
-    }
-  };
 
   const handleEditClick = () => {
     setIsEditing(true);
@@ -395,12 +388,6 @@ const MyAccount = () => {
               <Ticket className="h-4 w-4 mr-2" />
               Meus Ingressos
             </TabsTrigger>
-            {!isProducerApproved && (
-              <TabsTrigger value="become-producer">
-                <UserPlus className="h-4 w-4 mr-2" />
-                Tornar-se Produtor
-              </TabsTrigger>
-            )}
             {userRole === "producer" && (
               <TabsTrigger value="install">
                 <Smartphone className="h-4 w-4 mr-2" />
@@ -797,58 +784,6 @@ const MyAccount = () => {
           </TabsContent>
 
           {/* Tornar-se Produtor Tab */}
-          {!isProducerApproved && (
-            <TabsContent value="become-producer">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <UserPlus className="h-5 w-5" />
-                    Tornar-se Produtor
-                  </CardTitle>
-                  <CardDescription>
-                    Crie e gerencie seus próprios eventos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {hasPendingProducerRequest ? (
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                        <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium mb-1 text-yellow-900 dark:text-yellow-100">
-                            Solicitação em análise
-                          </p>
-                          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                            Sua solicitação para se tornar produtor está aguardando aprovação do administrador.
-                          </p>
-                        </div>
-                      </div>
-                      <Button disabled variant="secondary">
-                        Solicitação Pendente
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      <div className="flex items-start gap-3 p-4 bg-muted rounded-lg">
-                        <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm font-medium mb-1">
-                            Solicite acesso de produtor
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Após aprovação do administrador, você poderá criar e gerenciar eventos.
-                          </p>
-                        </div>
-                      </div>
-                      <Button onClick={handleBecomeProducer} variant="default">
-                        Solicitar acesso de produtor
-                      </Button>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-          )}
 
           {/* Instalar App Tab - Only for Producers */}
           {userRole === "producer" && (

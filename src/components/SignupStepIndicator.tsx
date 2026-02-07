@@ -13,7 +13,7 @@ export const SignupStepIndicator = ({
   labels,
 }: SignupStepIndicatorProps) => {
   return (
-    <div className="w-full mb-6">
+    <div className="w-full mb-6 pt-4">
       <div className="flex items-start justify-center">
         {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step, index) => (
           <div key={step} className="flex items-start">

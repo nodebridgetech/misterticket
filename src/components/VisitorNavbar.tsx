@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search, User } from "lucide-react";
+import { Search, User, Building2 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,13 +71,47 @@ export const VisitorNavbar = () => {
                 <User className="h-5 w-5" />
               </Button>
             ) : (
-              <Button 
-                variant="ghost" 
-                onClick={() => navigate("/auth")}
-                className="shrink-0 text-sm md:text-base"
-              >
-                Entrar
-              </Button>
+              <>
+                {/* Desktop: Show both buttons */}
+                <div className="hidden md:flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate("/produtor")}
+                    className="shrink-0 gap-1.5"
+                  >
+                    <Building2 className="h-4 w-4" />
+                    Área do Produtor
+                  </Button>
+                  <Button 
+                    onClick={() => navigate("/auth")}
+                    className="shrink-0"
+                    size="sm"
+                  >
+                    Entrar
+                  </Button>
+                </div>
+                {/* Mobile: Compact buttons */}
+                <div className="flex md:hidden items-center gap-1">
+                  <Button 
+                    variant="ghost" 
+                    size="icon"
+                    onClick={() => navigate("/produtor")}
+                    className="shrink-0"
+                    aria-label="Área do Produtor"
+                  >
+                    <Building2 className="h-5 w-5" />
+                  </Button>
+                  <Button 
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate("/auth")}
+                    className="shrink-0"
+                  >
+                    Entrar
+                  </Button>
+                </div>
+              </>
             )}
           </div>
         </div>

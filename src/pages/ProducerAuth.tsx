@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Eye, EyeOff, Building2, Clock, CheckCircle, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Clock, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCPF, formatPhone, isValidCPF, formatCNPJ, isValidCNPJ } from "@/lib/format-utils";
+import { AddressAutocomplete } from "@/components/AddressAutocomplete";
 import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
@@ -52,6 +53,11 @@ const ProducerAuth = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [pendingProducerData, setPendingProducerData] = useState<any>(null);
   const [isEditingPendingData, setIsEditingPendingData] = useState(false);
+  
+  // Address fields for signup
+  const [address, setAddress] = useState("");
+  const [addressNumber, setAddressNumber] = useState("");
+  const [addressComplement, setAddressComplement] = useState("");
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -204,7 +210,7 @@ const ProducerAuth = () => {
       }
 
       if (newUser?.user) {
-        // Update profile with additional data
+        // Update profile with additional data including address
         const { error: profileError } = await supabase
           .from("profiles")
           .update({
@@ -212,6 +218,9 @@ const ProducerAuth = () => {
             phone: data.phone,
             document: data.document,
             cnpj: data.cnpj || null,
+            address: address || null,
+            address_number: addressNumber || null,
+            address_complement: addressComplement || null,
           })
           .eq("user_id", newUser.user.id);
 
@@ -254,8 +263,14 @@ const ProducerAuth = () => {
           phone: data.phone,
           document: data.document,
           cnpj: data.cnpj || null,
+          address: address || null,
+          address_number: addressNumber || null,
+          address_complement: addressComplement || null,
         });
         signUpForm.reset();
+        setAddress("");
+        setAddressNumber("");
+        setAddressComplement("");
       }
     } catch (error) {
       console.error(error);
@@ -295,6 +310,9 @@ const ProducerAuth = () => {
             phone: pendingProducerData.phone,
             document: pendingProducerData.document,
             cnpj: pendingProducerData.cnpj,
+            address: pendingProducerData.address,
+            address_number: pendingProducerData.address_number,
+            address_complement: pendingProducerData.address_complement,
           })
           .eq("user_id", authData.user.id);
 
@@ -370,6 +388,14 @@ const ProducerAuth = () => {
                       onChange={(e) => setPendingProducerData({ ...pendingProducerData, cnpj: formatCNPJ(e.target.value) })}
                     />
                   </div>
+                  <AddressAutocomplete
+                    address={pendingProducerData.address || ""}
+                    number={pendingProducerData.address_number || ""}
+                    complement={pendingProducerData.address_complement || ""}
+                    onAddressChange={(val) => setPendingProducerData({ ...pendingProducerData, address: val })}
+                    onNumberChange={(val) => setPendingProducerData({ ...pendingProducerData, address_number: val })}
+                    onComplementChange={(val) => setPendingProducerData({ ...pendingProducerData, address_complement: val })}
+                  />
                   <div className="flex gap-2">
                     <Button onClick={handleUpdatePendingData} disabled={isLoading} className="flex-1">
                       {isLoading ? "Salvando..." : "Salvar Alterações"}
@@ -401,6 +427,16 @@ const ProducerAuth = () => {
                     <div className="flex justify-between py-2 border-b">
                       <span className="text-muted-foreground">CNPJ:</span>
                       <span className="font-medium">{pendingProducerData.cnpj}</span>
+                    </div>
+                  )}
+                  {pendingProducerData.address && (
+                    <div className="flex justify-between py-2 border-b">
+                      <span className="text-muted-foreground">Endereço:</span>
+                      <span className="font-medium text-right max-w-[200px]">
+                        {pendingProducerData.address}
+                        {pendingProducerData.address_number && `, ${pendingProducerData.address_number}`}
+                        {pendingProducerData.address_complement && ` - ${pendingProducerData.address_complement}`}
+                      </span>
                     </div>
                   )}
                   <Button 
@@ -579,6 +615,16 @@ const ProducerAuth = () => {
                     </p>
                   )}
                 </div>
+
+                <AddressAutocomplete
+                  address={address}
+                  number={addressNumber}
+                  complement={addressComplement}
+                  onAddressChange={setAddress}
+                  onNumberChange={setAddressNumber}
+                  onComplementChange={setAddressComplement}
+                />
+
                 <div className="space-y-2">
                   <Label htmlFor="signup-password">Senha *</Label>
                   <div className="relative">

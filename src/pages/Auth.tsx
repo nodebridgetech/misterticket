@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255, "E-mail muito longo"),
@@ -113,11 +114,11 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-            Mister Ticket
-          </CardTitle>
-          <CardDescription>Entre para comprar ingressos e acessar seus eventos</CardDescription>
+        <CardHeader className="text-center pt-8">
+          <div className="flex justify-center mb-6">
+            <img src={logo} alt="Mister Ticket" className="h-16" />
+          </div>
+          <CardDescription className="text-base">Entre para comprar ingressos e acessar seus eventos</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login" className="w-full">

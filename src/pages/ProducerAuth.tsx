@@ -13,6 +13,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { formatCPF, formatPhone, isValidCPF, formatCNPJ, isValidCNPJ } from "@/lib/format-utils";
+import logo from "@/assets/logo.png";
 
 const loginSchema = z.object({
   email: z.string().trim().email("E-mail inválido").max(255, "E-mail muito longo"),
@@ -434,9 +435,9 @@ const ProducerAuth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
       <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-            <Building2 className="h-6 w-6 text-primary" />
+        <CardHeader className="text-center pt-8">
+          <div className="flex justify-center mb-6">
+            <img src={logo} alt="Mister Ticket" className="h-16" />
           </div>
           <CardTitle className="text-2xl font-bold">Área do Produtor</CardTitle>
           <CardDescription>Gerencie seus eventos e vendas de ingressos</CardDescription>

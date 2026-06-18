@@ -46,7 +46,7 @@
 | Acesso ao Supabase atual | Apenas via Lovable → usar `migrate-helper` |
 | Onde hospedar | **Mesma VPS** (RAM confirmada suficiente) |
 | Escopo do stack | Supabase **completo, porém enxuto** (sem Studio/analytics/vector em produção) |
-| Estratégia de migração | **Híbrida**: estrutura via migrations do repo; dados/usuários/storage via export |
+| Estratégia de migração | **Clone completo via exporter dreamlit** (`export run`) para um target **em branco**: traz schema + dados + `auth.users` + storage de uma vez. As migrations do repo permanecem como fonte da verdade para mudanças futuras, mas **não** são rodadas antes do clone (o target precisa estar vazio). |
 
 ---
 
@@ -74,17 +74,18 @@ Stack Supabase self-hospedado (template do Easypanel, ou Docker Compose custom s
 
 ---
 
-## 4. Sequência de migração de dados (estratégia híbrida)
+## 4. Sequência de migração de dados (clone completo via exporter)
 
-1. **Subir o Supabase novo vazio** na VPS; gerar JWT secret → novas chaves.
-2. **Estrutura via migrations do repo** (fonte da verdade): rodar as migrations → tabelas + RLS + funções + triggers + grants. (Schemas `auth` e `storage` são criados pelo gotrue/storage-api automaticamente.)
-3. **Configurar GoTrue:** `SITE_URL=https://misterticket.com.br` e lista de redirects permitidos (o app usa `emailRedirectTo`/`redirectTo` em cadastro, confirmação e reset de senha — `AuthContext.tsx`, `Auth.tsx`, `ProducerAuth.tsx`, função `send-password-reset`). Sem isso, links de e-mail de auth quebram.
-4. **Export do Lovable via `migrate-helper`**: tabelas (dados) + `auth.users` (com `encrypted_password`/hash bcrypt) + arquivos do storage + metadados `storage.objects`/`storage.buckets`.
-5. **Importar no novo Supabase (toda a carga rodando como `postgres`/`service_role`, RLS desativado/ignorado durante o import):**
-   1. **Usuários primeiro:** inserir `auth.users` preservando `id` + `encrypted_password` → **login sem reset de senha**. (Ordem importa: as FKs do `public` referenciam `auth.users` 9x.)
-   2. **Dados das tabelas `public`:** triggers desativados durante a carga e reativados depois; inserir respeitando ordem de FKs; acertar sequences/identity.
-   3. **Storage:** o bucket `event-images` (público) e suas 4 policies de `storage.objects` **já são criados pela migration** `20251110041625_...sql` (rodada no passo 2) — **não recriar** (geraria erro de chave duplicada). Aqui só: (a) subir os arquivos (via `service_role`, ignorando a policy "Producers can upload") e (b) restaurar as linhas de `storage.objects` correspondentes (senão `getPublicUrl` retorna links mortos).
-6. **Verificação:** comparar contagem de linhas por tabela (novo vs antigo), conferir nº de objetos no storage, e — **antes da virada de DNS** — testar **login de um usuário real** (para que uma eventual incompatibilidade de hash bcrypt apareça dentro da janela de manutenção) + abrir uma imagem via `getPublicUrl`.
+A ferramenta `lovable-cloud-to-supabase-exporter` (dreamlit) faz o trabalho pesado: o comando `export run` chama o `migrate-helper` (que roda dentro do Lovable com `SERVICE_ROLE` injetada), **clona o banco** (schema `public` + dados + `auth.users` com `encrypted_password`) e **copia o storage** para o Supabase de destino. Requisitos da ferramenta: target **em branco** (`--confirm-target-blank`), Docker local, e os 3 valores do target (DB URL, project URL, admin/`service_role` key). Ela **pula** tabelas de bookkeeping (`auth.schema_migrations`, `storage.migrations`, sessões/tokens efêmeros). **Edge Functions NÃO são migradas pela ferramenta** (são código, ver Seção 5).
+
+1. **Subir o Supabase novo vazio** na VPS; gerar JWT secret → novas chaves. O `public` deve estar **em branco** (NÃO rodar as migrations antes — o clone traz o schema, RLS, funções e triggers).
+2. **Configurar GoTrue:** `SITE_URL=https://misterticket.com.br` e lista de redirects permitidos (o app usa `emailRedirectTo`/`redirectTo` em cadastro, confirmação e reset de senha — `AuthContext.tsx`, `Auth.tsx`, `ProducerAuth.tsx`, função `send-password-reset`). Configurar SMTP do GoTrue (via Resend) para os e-mails nativos de auth (confirmação/recuperação). Sem isso, links de auth quebram.
+3. **Implantar o `migrate-helper`** no Lovable (gerado por `pnpm exporter -- setup edge-function`, que também imprime a access key de uso único).
+4. **Rodar `export run`** apontando source (URL do `migrate-helper` + access key) e target (DB URL, project URL, `service_role` do novo Supabase) com `--confirm-target-blank`. A ferramenta clona schema+dados+`auth.users` e copia o storage.
+5. **Verificação:** comparar contagem de linhas por tabela (novo vs antigo), `count(auth.users)`, nº de objetos em `storage.objects`, e — **antes da virada de DNS** — testar **login de um usuário real** (para que uma eventual incompatibilidade de hash bcrypt apareça dentro da janela) + abrir uma imagem via `getPublicUrl`.
+
+> **Paridade de PG:** o clone entre majors diferentes pode falhar → o stack novo deve usar a mesma major version do Postgres do Lovable (confirmar antes).
+> **Rehearsal:** ensaiar o `export run` num target descartável fora da janela (validar processo e medir tempo); depois **zerar o target** (`--confirm-target-blank` exige branco) e rodar de verdade na janela.
 
 ---
 
@@ -109,7 +110,7 @@ As 10 funções Deno no `edge-runtime`: `create-checkout`, `verify-payment`, `pr
 App com vendas ativas → **janela de manutenção curta**:
 
 1. **Modo manutenção:** publicar um build do frontend com flag de manutenção (página estática "em manutenção") OU pausar vendas pela UI de admin, durante a janela. Aceita-se uma pequena janela de inconsistência se o modo manutenção total não for viável.
-2. Export final via `migrate-helper` → import → conferir contagens.
+2. Garantir target **em branco** (zerar se houve rehearsal) → rodar `export run` (clone completo) → conferir contagens. Sem deltas: é um clone único na janela.
 3. **Flipar todas as referências ao backend antigo no frontend** → push (rebuild automático):
    - `.env`: `VITE_SUPABASE_URL=https://api.misterticket.com.br`, `VITE_SUPABASE_PUBLISHABLE_KEY=<nova anon key>` (o nome da var é `PUBLISHABLE_KEY`, não `ANON_KEY`), `VITE_SUPABASE_PROJECT_ID=<novo ref>`.
    - `index.html`: trocar o `<link rel="preconnect" href="https://txkwnrrhaahhhpmjjbyl.supabase.co">` pro novo domínio.

@@ -15,6 +15,14 @@
 - Segredos (tokens, keys) **nunca** são commitados. Ficam em variáveis de ambiente locais / nos secrets do Easypanel.
 - "Verificar" = rodar o comando e conferir a saída esperada antes de marcar o passo.
 
+**Setup do ambiente local (rodar antes de qualquer task):**
+```bash
+export BASE="https://easypanel.nodebridge.com.br"
+export EP_TOKEN="<token da API Easypanel>"   # P4
+```
+
+**Estratégia central:** o backend é migrado por **clone completo** via a CLI `lovable-cloud-to-supabase-exporter` (dreamlit), que **exige o target em branco**. Portanto **NÃO** rodamos as migrations do repo no destino — o clone traz schema + dados + `auth.users` + storage. As migrations seguem como fonte da verdade só para mudanças futuras. Edge Functions são deployadas à parte.
+
 ---
 
 ## Pré-requisitos (bloqueiam o início — providenciar antes da Fase 1)
@@ -110,113 +118,113 @@ Expected: `200`.
 
 ---
 
-## Chunk 2: Estrutura (schema) e configuração do GoTrue
+## Chunk 2: Configuração do GoTrue (target permanece em branco)
 
-### Task 4: Aplicar as migrations do repo no Postgres novo
+> Importante: **NÃO** rodar as migrations do repo no destino. O target deve ficar **em branco** para o `export run` (o clone traz o schema). Obter a connection string do Postgres novo (host interno + `POSTGRES_PASSWORD`) e exportar como `PG_NEW` local — usada só para verificações.
 
-**Files:**
-- Reference: `supabase/migrations/*.sql` (30+ arquivos), `supabase/config.toml`
-
-- [ ] **Step 1:** Obter a connection string do Postgres novo (do Easypanel: host interno + `POSTGRES_PASSWORD`). Exportar como `PG_NEW` local.
-- [ ] **Step 2: Aplicar migrations em ordem cronológica**
-
-Run (via `psql` ou Supabase CLI `db push` apontando para o destino):
-```bash
-for f in $(ls supabase/migrations/*.sql | sort); do echo ">> $f"; psql "$PG_NEW" -v ON_ERROR_STOP=1 -f "$f" || break; done
-```
-Expected: todos aplicam sem erro. Schemas `auth` e `storage` já existem (criados por gotrue/storage-api).
-
-- [ ] **Step 3: Verificar tabelas e bucket criados**
-
-Run:
-```bash
-psql "$PG_NEW" -c "select count(*) from information_schema.tables where table_schema='public';"
-psql "$PG_NEW" -c "select id,public from storage.buckets where id='event-images';"
-```
-Expected: 19 tabelas em `public`; bucket `event-images` com `public=true` (vem da migration `20251110041625`).
-
-- [ ] **Step 4: Verificar policies RLS presentes**
-
-Run: `psql "$PG_NEW" -c "select schemaname,tablename,policyname from pg_policies where schemaname in ('public','storage') limit 5;"`
-Expected: policies listadas (RLS aplicado).
-
-### Task 5: Configurar GoTrue (auth)
+### Task 4: Configurar GoTrue (auth)
 
 **Files:** nenhum (envs do serviço gotrue no Easypanel)
 
 - [ ] **Step 1:** Setar `GOTRUE_SITE_URL=https://misterticket.com.br`.
 - [ ] **Step 2:** Setar `GOTRUE_URI_ALLOW_LIST` com os redirects usados pelo app (rotas de `Auth.tsx`, `ProducerAuth.tsx`, confirmação/reset). Ex.: `https://misterticket.com.br/**`.
-- [ ] **Step 3:** Configurar SMTP do GoTrue OU confirmar que e-mails de auth saem via funções Resend (o app usa `send-password-reset`); manter consistente com produção atual.
+- [ ] **Step 3:** Configurar **SMTP do GoTrue via Resend** (host `smtp.resend.com`, user `resend`, pass `RESEND_API_KEY`, porta 465/587, `GOTRUE_SMTP_ADMIN_EMAIL`/`SENDER_NAME`) para os e-mails nativos de auth (confirmação/recuperação). As funções `send-*` do app continuam para os e-mails transacionais próprios.
 - [ ] **Step 4: Redeploy do gotrue e verificar health**
 
 Run: `curl -s -o /dev/null -w "%{http_code}\n" https://api.misterticket.com.br/auth/v1/health`
 Expected: `200`.
 
+- [ ] **Step 5: Verificar fluxo real de e-mail de auth**
+
+Disparar um "esqueci a senha" de teste pela API (`POST /auth/v1/recover`) e confirmar recebimento do e-mail.
+Expected: e-mail chega (valida `SITE_URL`/allow-list/SMTP, que o `/health` não exercita).
+
 ---
 
-## Chunk 3: Migração de dados, usuários e storage
+## Chunk 3: Clone de dados, usuários e storage (exporter dreamlit)
 
-### Task 6: Implantar o migrate-helper no Lovable e exportar
+> Referência de comandos: `docs/run-exporter-locally.md` do repo dreamlit. Requer **Docker** local e **pnpm**. O comando `export run` clona schema+dados+`auth.users` e copia o storage para o target em branco.
 
-**Files:** nenhum (no projeto Lovable)
+### Task 5: Preparar o exporter e o migrate-helper
 
-- [ ] **Step 1:** No Lovable Cloud → Edge Functions → implantar `migrate-helper` (conforme [dreamlit](https://github.com/dreamlit-ai/lovable-cloud-to-supabase-exporter)). Definir a **chave de acesso de uso único**.
-- [ ] **Step 2:** Copiar a URL do endpoint do `migrate-helper`.
-- [ ] **Step 3:** Confirmar a **major version do Postgres** do Lovable (o helper/CLI reporta) e conferir que bate com a do stack novo (Task 2a Step 3). Se divergir, ajustar a versão do stack novo antes de prosseguir.
-- [ ] **Step 4: Exportar (snapshot inicial, fora da janela — para validar o processo)**
+**Files:** nenhum (clone do repo dreamlit + projeto Lovable)
 
-Run (CLI da dreamlit ou UI web, apontando destino = `api.misterticket.com.br` + `SERVICE_ROLE_KEY` novo):
+- [ ] **Step 1:** Clonar o exporter e instalar deps.
+
+Run:
 ```bash
-# exemplo conceitual; comando exato conforme a ferramenta
-lovable-export --source-url <migrate-helper-url> --access-key <key> \
-  --target-url https://api.misterticket.com.br --target-service-role <SERVICE_ROLE_NEW> \
-  --include tables,auth,storage --schema-mode skip   # schema já veio das migrations
+git clone https://github.com/dreamlit-ai/lovable-cloud-to-supabase-exporter /tmp/lc-exporter
+cd /tmp/lc-exporter && pnpm install
 ```
-Expected: relatório com nº de tabelas, usuários e arquivos exportados.
+Expected: instala sem erro; Docker disponível (`docker info`).
 
-### Task 7: Importar usuários (auth.users) primeiro
+- [ ] **Step 2:** Gerar a fonte do helper + access key de uso único.
 
-**Files:** nenhum (psql/ferramenta)
+Run: `pnpm exporter -- setup edge-function`
+Expected: imprime a fonte do `migrate-helper` e um `Generated access key` (anotar com segurança).
 
-- [ ] **Step 1:** Importar linhas de `auth.users` preservando `id` e `encrypted_password` (hash bcrypt). Rodar como `service_role`/`postgres` (RLS ignorado).
-- [ ] **Step 2: Verificar contagem de usuários**
+- [ ] **Step 3:** No Lovable: criar edge function vazia `migrate-helper`, colar a fonte do Step 2, mandar o Lovable deployar. Copiar a URL em Cloud → Edge Functions → migrate-helper → Copy URL.
+- [ ] **Step 4: Confirmar paridade de major version do Postgres**
+
+Confirmar a versão do PG do Lovable (via dashboard/CLI do helper) e conferir que bate com a do stack novo (Task 2a Step 3). Se divergir, ajustar a versão do stack novo antes do clone.
+Expected: majors iguais (ex.: ambas PG 15).
+
+### Task 6: Rehearsal do clone num target descartável (fora da janela)
+
+**Files:** nenhum
+
+- [ ] **Step 1:** Subir um Supabase descartável (ou usar um target de teste) e rodar o clone, validando processo e medindo tempo.
+
+Run (substituir todos os placeholders pelos valores reais):
+```bash
+cd /tmp/lc-exporter
+pnpm exporter -- export run \
+  --source-edge-function-url <migrate-helper-url> \
+  --source-edge-function-access-key <access-key> \
+  --target-db-url <PG_TARGET_TESTE> \
+  --target-project-url https://api-teste... \
+  --target-admin-key <SERVICE_ROLE_TESTE> \
+  --confirm-target-blank
+```
+Expected: job conclui; relatório com nº de tabelas/usuários/arquivos. Anotar a duração (define a janela de manutenção).
+
+- [ ] **Step 2: Verificar o rehearsal**
+
+Run (contra o target de teste): `psql "$PG_TESTE" -c "select count(*) from auth.users;"` e contagens de algumas tabelas.
+Expected: batem com a origem.
+
+- [ ] **Step 3:** Descartar/zerar o target de teste.
+
+> O clone real (target = Supabase de produção da VPS, em branco) acontece na **janela de manutenção** (Task 13).
+
+### Task 7: Verificações pós-clone (aplicáveis após o clone real da Task 11)
+
+**Files:** nenhum
+
+- [ ] **Step 1: Contagem de usuários**
 
 Run: `psql "$PG_NEW" -c "select count(*) from auth.users;"`
-Expected: igual ao reportado no export.
+Expected: igual à origem (do relatório do export).
 
-### Task 8: Importar dados das tabelas public
+- [ ] **Step 2: Contagens por tabela (novo vs antigo)**
 
-**Files:** nenhum
-
-- [ ] **Step 1:** Desativar triggers durante a carga: `SET session_replication_role = replica;` (ou desabilitar por tabela).
-- [ ] **Step 2:** Inserir dados respeitando ordem de FKs (usuários já estão; tabelas `public` referenciam `auth.users`).
-- [ ] **Step 3:** Reativar triggers: `SET session_replication_role = origin;`
-- [ ] **Step 4:** Acertar sequences/identity: rodar `setval` para cada coluna serial conforme max(id).
-- [ ] **Step 5: Verificar contagens por tabela (novo vs antigo)**
-
-Run: comparar `select count(*)` de cada uma das 19 tabelas com os números do export.
+Run: comparar `select count(*)` das 19 tabelas de `public` com os números da origem.
 Expected: batem 100%.
 
-### Task 9: Importar storage (arquivos + metadados)
-
-**Files:** nenhum
-
-- [ ] **Step 1:** **Não recriar** o bucket `event-images` (já existe da migration). Subir os arquivos para o storage novo via `service_role` (ignora policy de upload), preservando os caminhos.
-- [ ] **Step 2:** Restaurar as linhas de `storage.objects` correspondentes aos arquivos.
-- [ ] **Step 3: Verificar objetos e acesso público**
+- [ ] **Step 3: Storage — objetos e acesso público**
 
 Run:
 ```bash
 psql "$PG_NEW" -c "select count(*) from storage.objects where bucket_id='event-images';"
-curl -s -o /dev/null -w "%{http_code}\n" "https://api.misterticket.com.br/storage/v1/object/public/event-images/<arquivo-conhecido>"
+curl -s -o /dev/null -w "%{http_code}\n" "https://api.misterticket.com.br/storage/v1/object/public/event-images/mister-ticket-logo.png"
 ```
-Expected: contagem == export; HTTP `200` no arquivo.
+Expected: contagem == origem; HTTP `200` no logo (arquivo sabidamente existente).
 
 ---
 
 ## Chunk 4: Edge Functions
 
-### Task 10: Ajustar URLs hardcoded nas funções
+### Task 8: Ajustar URLs hardcoded nas funções
 
 **Files:**
 - Modify: `supabase/functions/send-welcome-email/index.ts` (URL do logo)
@@ -235,25 +243,33 @@ git add supabase/functions/send-welcome-email/index.ts supabase/functions/send-p
 git commit -m "fix: aponta logo das functions para o novo backend Supabase"
 ```
 
-### Task 11: Deploy das 10 functions com secrets
+### Task 9: Deploy das 10 functions com secrets
 
-**Files:** nenhum (deploy via Supabase CLI/edge-runtime + secrets no Easypanel)
+**Files:** nenhum (edge-runtime do Supabase self-hospedado + secrets)
 
-- [ ] **Step 1:** Configurar secrets no edge-runtime: `STRIPE_SECRET_KEY` (P1), `RESEND_API_KEY` (P2), `SUPABASE_URL=https://api.misterticket.com.br`, `SUPABASE_SERVICE_ROLE_KEY` (novo), `SUPABASE_ANON_KEY` (novo).
-- [ ] **Step 2:** Deploy das 10 funções, replicando `config.toml` **literalmente** (`verify_jwt=false` só em `process-withdrawal` e `send-withdrawal-notification`; as outras 8 padrão `true`).
-- [ ] **Step 3: Verificar funções respondem**
+> Mecanismo: no Supabase self-hospedado, o serviço `edge-runtime` serve as funções a partir de um **volume de arquivos** (ex.: `/home/deno/functions/<nome>/index.ts`), não via `supabase functions deploy` (que é para o cloud gerenciado). Vamos montar o código das funções nesse volume.
 
-Run (exemplo, função simples):
+- [ ] **Step 1:** Copiar os 10 diretórios de `supabase/functions/*` para o volume de funções do `edge-runtime` (via mount no Easypanel apontando para um caminho versionado, ou copiando para o volume). Garantir que `config.toml` é respeitado: setar `verify_jwt=false` apenas para `process-withdrawal` e `send-withdrawal-notification` (variável de ambiente por função do edge-runtime, ex.: `FUNCTIONS_VERIFY_JWT` por path / config do runtime); as outras 8 ficam no padrão `true`.
+- [ ] **Step 2:** Configurar secrets/envs do `edge-runtime`: `STRIPE_SECRET_KEY` (P1), `RESEND_API_KEY` (P2), `SUPABASE_URL=https://api.misterticket.com.br`, `SUPABASE_SERVICE_ROLE_KEY` (novo), `SUPABASE_ANON_KEY` (novo).
+- [ ] **Step 3:** Redeploy/restart do `edge-runtime`.
+- [ ] **Step 4: Verificar funções respondem**
+
+Run:
 ```bash
 curl -s -o /dev/null -w "%{http_code}\n" -X OPTIONS "https://api.misterticket.com.br/functions/v1/create-checkout"
 ```
 Expected: `200`/`204` (CORS preflight ok).
 
+- [ ] **Step 5: Verificar uma função autenticada e uma de e-mail**
+
+Invocar `verify-payment` com um JWT de usuário (espera resposta de validação, não 5xx) e disparar um e-mail de teste via `send-welcome-email` (espera entrega via Resend).
+Expected: sem erros 5xx; e-mail recebido.
+
 ---
 
 ## Chunk 5: Cutover, backups e rollback
 
-### Task 12: Configurar backups (antes do cutover)
+### Task 10: Configurar backups (antes do cutover)
 
 **Files:** nenhum (Easypanel backups / cron)
 
@@ -262,14 +278,16 @@ Expected: `200`/`204` (CORS preflight ok).
 - [ ] **Step 3: Validar 1 restore** (restaurar dump num banco temporário e conferir contagens).
 Expected: restore íntegro — critério de sucesso da spec.
 
-### Task 13: Cutover (na janela de manutenção P5)
+### Task 11: Cutover (na janela de manutenção P5)
 
 **Files:**
 - Modify: `.env` (vars do frontend)
 - Modify: `index.html:6` (preconnect)
 
+> DNS de `api.misterticket.com.br` já foi criado uma única vez na Chunk 1 (Task 3) para emissão do SSL — **não há mudança de DNS no cutover**.
+
 - [ ] **Step 1:** Ativar modo manutenção (build com flag de manutenção OU pausar vendas pela UI admin).
-- [ ] **Step 2:** Rodar **export final** via `migrate-helper` (delta desde o snapshot inicial) e importar (repetir Tasks 7-9 para novos registros).
+- [ ] **Step 2:** Garantir o target (Postgres novo) **em branco** (se o rehearsal da Task 6 foi feito contra ele, zerar antes). Rodar o **clone real** (único, sem delta) com `export run` — mesmo comando da Task 6 Step 1, agora com o target de **produção** (`PG_NEW`, `https://api.misterticket.com.br`, `service_role` novo) e `--confirm-target-blank`. Em seguida rodar as verificações da **Task 7** (contagens + storage + login real).
 - [ ] **Step 3:** Atualizar frontend e dar push:
   - `.env`: `VITE_SUPABASE_URL=https://api.misterticket.com.br`, `VITE_SUPABASE_PUBLISHABLE_KEY=<nova anon>`, `VITE_SUPABASE_PROJECT_ID=<novo ref>`.
   - `index.html`: trocar preconnect `txkwnrrhaahhhpmjjbyl.supabase.co` → `api.misterticket.com.br`.
@@ -287,7 +305,7 @@ git push origin main
 ```
 
 - [ ] **Step 6:** Aguardar deploy do frontend `done` (via `actions.listActions`).
-- [ ] **Step 7: Testes ponta-a-ponta (ANTES de desligar manutenção / antes do DNS final se aplicável)**
+- [ ] **Step 7: Testes ponta-a-ponta (ANTES de desligar manutenção)**
   - Login de **usuário real pré-existente** (valida hash bcrypt).
   - Listar eventos (PostgREST + RLS).
   - Checkout em modo teste (Stripe) → `create-checkout` + `verify-payment`.
@@ -299,7 +317,7 @@ Expected: todos passam.
 
 - [ ] **Step 8:** Desligar modo manutenção.
 
-### Task 14: Encerramento
+### Task 12: Encerramento
 
 - [ ] **Step 1:** Monitorar erros/recursos por 24-48h (CPU/RAM da VPS, logs das functions).
 - [ ] **Step 2:** Após validação, manter o Lovable/Supabase antigo congelado por alguns dias como rollback; depois descomissionar.

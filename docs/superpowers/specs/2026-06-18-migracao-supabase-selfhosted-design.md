@@ -12,6 +12,15 @@
 - **Backend atual:** Supabase gerenciado pelo Lovable Cloud (projeto `txkwnrrhaahhhpmjjbyl.supabase.co`).
 - **Acesso ao backend atual:** apenas via Lovable. O `.env` do repo só contém a chave pública `anon` (role `anon`) — não dá acesso de export. Não temos `service_role` key nem connection string do Postgres em mãos.
 
+### O que é o `migrate-helper` (peça central da migração)
+
+`migrate-helper` é uma **Edge Function que se implanta no próprio projeto Lovable Cloud** (Cloud → Edge Functions). Ela resolve a falta de `service_role` local porque **executa dentro do Lovable**, onde o Supabase injeta automaticamente a `SUPABASE_SERVICE_ROLE_KEY` do projeto no ambiente da função. A função expõe um **endpoint temporário e seguro**, protegido por uma **chave de acesso de uso único** que o usuário define.
+
+- **Interface:** o exportador (CLI ou UI web da dreamlit) chama o endpoint passando a chave de acesso.
+- **Saída:** (a) schema + dados das tabelas (`public`), (b) linhas de `auth.users` **incluindo `encrypted_password`** (hash bcrypt), (c) arquivos do Storage + as linhas de metadados de `storage.objects`/`storage.buckets`.
+- **Ciclo de vida:** implantada só para a migração e **removida ao final**.
+- **Fonte:** [Lovable Docs – Connect to Supabase](https://docs.lovable.dev/integrations/supabase), [dreamlit lovable-cloud-to-supabase-exporter](https://github.com/dreamlit-ai/lovable-cloud-to-supabase-exporter).
+
 ### Footprint do app (o que ele usa do Supabase)
 - **Postgres:** 19 tabelas (migrations em `supabase/migrations/`, 30+ arquivos).
 - **Auth (GoTrue):** uso intenso — `signIn/signUp/signOut/getUser/getSession/onAuthStateChange`. RLS usa `auth.uid()` 59x e referencia `auth.users` 9x.
@@ -51,7 +60,8 @@ Stack Supabase self-hospedado (template do Easypanel, ou Docker Compose custom s
 | `gotrue` | Auth | obrigatório |
 | `postgrest` | API REST | obrigatório |
 | `realtime` | Canais `postgres_changes` | obrigatório |
-| `storage-api` (+ `imgproxy`) | Bucket `event-images` | obrigatório (imgproxy só se houver transformação de imagem) |
+| `storage-api` | Bucket `event-images` (backend de arquivos = filesystem em volume na VPS) | obrigatório |
+| `imgproxy` | Transformação de imagem | **não necessário** (app não usa `getPublicUrl` com transform) |
 | `kong` | Gateway da API | obrigatório → único exposto publicamente |
 | `edge-runtime` | 10 Edge Functions | obrigatório |
 | `meta` | Admin interno | obrigatório |
@@ -67,27 +77,28 @@ Stack Supabase self-hospedado (template do Easypanel, ou Docker Compose custom s
 
 1. **Subir o Supabase novo vazio** na VPS; gerar JWT secret → novas chaves.
 2. **Estrutura via migrations do repo** (fonte da verdade): rodar as migrations → tabelas + RLS + funções + triggers + grants. (Schemas `auth` e `storage` são criados pelo gotrue/storage-api automaticamente.)
-3. **Export do Lovable via `migrate-helper`**: tabelas (dados) + `auth.users` (com `encrypted_password`/hash bcrypt) + arquivos do storage.
-4. **Importar no novo Supabase:**
-   - Dados: inserir respeitando ordem de FKs, triggers desativados durante a carga e reativados depois; acertar sequences/identity.
-   - Usuários: preservar `id` + `encrypted_password` → **login sem reset de senha**.
-   - Storage: recriar bucket `event-images` (público) e subir arquivos com os mesmos caminhos.
-5. **Verificação:** comparar contagem de linhas por tabela (novo vs antigo) e testar login de um usuário real.
+3. **Configurar GoTrue:** `SITE_URL=https://misterticket.com.br` e lista de redirects permitidos (o app usa `emailRedirectTo`/`redirectTo` em cadastro, confirmação e reset de senha — `AuthContext.tsx`, `Auth.tsx`, `ProducerAuth.tsx`, função `send-password-reset`). Sem isso, links de e-mail de auth quebram.
+4. **Export do Lovable via `migrate-helper`**: tabelas (dados) + `auth.users` (com `encrypted_password`/hash bcrypt) + arquivos do storage + metadados `storage.objects`/`storage.buckets`.
+5. **Importar no novo Supabase (toda a carga rodando como `postgres`/`service_role`, RLS desativado/ignorado durante o import):**
+   1. **Usuários primeiro:** inserir `auth.users` preservando `id` + `encrypted_password` → **login sem reset de senha**. (Ordem importa: as FKs do `public` referenciam `auth.users` 9x.)
+   2. **Dados das tabelas `public`:** triggers desativados durante a carga e reativados depois; inserir respeitando ordem de FKs; acertar sequences/identity.
+   3. **Storage:** recriar bucket `event-images` (público); subir arquivos com os mesmos caminhos **e** restaurar as linhas de `storage.objects` correspondentes (senão `getPublicUrl` retorna links mortos).
+6. **Verificação:** comparar contagem de linhas por tabela (novo vs antigo), conferir nº de objetos no storage e testar **login de um usuário real** + abrir uma imagem via `getPublicUrl`.
 
 ---
 
 ## 5. Edge Functions + secrets
 
-10 funções Deno no `edge-runtime`.
+As 10 funções Deno no `edge-runtime`: `create-checkout`, `verify-payment`, `process-withdrawal`, `send-email`, `send-password-reset`, `send-producer-approval`, `send-purchase-confirmation`, `send-transfer-notification`, `send-welcome-email`, `send-withdrawal-notification`.
 
 | Function(s) | Depende de | Secret |
 |---|---|---|
-| `create-checkout`, `verify-payment` | Stripe | `STRIPE_SECRET_KEY` (+ provável `STRIPE_WEBHOOK_SECRET`) |
+| `create-checkout`, `verify-payment` | Stripe (API) | `STRIPE_SECRET_KEY` |
 | `send-*` (7 e-mails) | Resend | `RESEND_API_KEY` |
 | todas | Supabase interno | `SUPABASE_URL` (novo Kong), `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` (novos) |
 
-- Replicar `verify_jwt = false` em `process-withdrawal` e `send-withdrawal-notification` (do `config.toml`).
-- `verify-payment` é provável webhook do Stripe → **reconfigurar URL do webhook no Stripe** pro novo domínio no cutover.
+- **`verify-payment` NÃO é webhook do Stripe** (verificado no código: sem `constructEvent`/assinatura; é chamada pelo frontend com JWT do usuário para conferir a sessão de checkout). Logo: **não há `STRIPE_WEBHOOK_SECRET` nem webhook do Stripe para reconfigurar**.
+- **`verify_jwt`**: replicar o `config.toml` **literalmente** — `verify_jwt = false` apenas em `process-withdrawal` e `send-withdrawal-notification`; as outras 8 ficam no padrão `true` (mantém o comportamento atual de produção).
 - Trocar a URL hardcoded do logo no storage (`txkwnrrhaahhhpmjjbyl.supabase.co/.../mister-ticket-logo.png`) pro novo domínio.
 
 ---
@@ -96,15 +107,17 @@ Stack Supabase self-hospedado (template do Easypanel, ou Docker Compose custom s
 
 App com vendas ativas → **janela de manutenção curta**:
 
-1. App em manutenção/somente-leitura por alguns minutos.
+1. **Modo manutenção:** publicar um build do frontend com flag de manutenção (página estática "em manutenção") OU pausar vendas pela UI de admin, durante a janela. Aceita-se uma pequena janela de inconsistência se o modo manutenção total não for viável.
 2. Export final via `migrate-helper` → import → conferir contagens.
 3. `.env` do front → `VITE_SUPABASE_URL=https://api.misterticket.com.br` + nova `anon key` → push (rebuild automático).
-4. Reconfigurar **webhook do Stripe** pro novo domínio.
-5. DNS: `api.misterticket.com.br` → A `72.61.25.199` (Hostinger).
-6. Testes ponta-a-ponta: login real, eventos, checkout (teste), e-mail, realtime, upload.
+4. DNS: `api.misterticket.com.br` → A `72.61.25.199` (Hostinger).
+5. Testes ponta-a-ponta: login real, eventos, checkout (teste), e-mail, realtime, upload.
+6. Desligar modo manutenção.
 7. Manter Lovable/Supabase antigo intacto por alguns dias (rollback).
 
-**Backups (agora obrigatório):** backup automático do Postgres (recurso do Easypanel ou cron `pg_dump`) + backup do storage.
+> Nota: não há webhook do Stripe a reconfigurar (ver Seção 5). `create-checkout` usa `success_url`/`cancel_url` derivados de `req.headers.origin`, sem domínio hardcoded.
+
+**Backups (agora obrigatório):** backup automático do Postgres (recurso do Easypanel ou cron `pg_dump`) + backup do storage. **Validar pelo menos 1 restore** antes de declarar a migração concluída (critério da Seção 9).
 
 **Rollback:** reverter `.env` do front pro Supabase antigo e redeployar; manter projeto antigo até validação completa.
 
@@ -112,7 +125,7 @@ App com vendas ativas → **janela de manutenção curta**:
 
 ## 7. Pré-requisitos do usuário
 
-1. `STRIPE_SECRET_KEY` (e `STRIPE_WEBHOOK_SECRET` se usado) — do painel Stripe ou dos secrets do Lovable.
+1. `STRIPE_SECRET_KEY` — do painel Stripe ou dos secrets do Lovable. (Não há webhook secret — ver Seção 5.)
 2. `RESEND_API_KEY` — idem.
 3. Rodar/autorizar o `migrate-helper` no Lovable Cloud para o export.
 4. Confirmar controle do DNS `api.misterticket.com.br` (Hostinger — já confirmado para o domínio raiz).
@@ -121,7 +134,6 @@ App com vendas ativas → **janela de manutenção curta**:
 
 ## 8. Riscos
 
-- **Webhook do Stripe** mal reconfigurado → pagamentos quebram (checklist no cutover).
 - **2 cores** sob carga → stack enxuto + monitoramento; redimensionar VPS se necessário.
 - **Compatibilidade de hash de senha** no GoTrue → validar 1 login real pós-migração.
 - **Backups/segurança/upgrades** passam a ser responsabilidade própria.

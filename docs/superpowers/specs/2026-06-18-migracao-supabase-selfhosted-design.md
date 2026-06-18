@@ -69,6 +69,7 @@ Stack Supabase self-hospedado (template do Easypanel, ou Docker Compose custom s
 | `vector`/analytics | Logs | desligado |
 
 - **Exposição pública:** apenas o Kong, em `api.misterticket.com.br` (SSL Let's Encrypt, `certificateResolver` vazio — padrão desta VPS). Demais serviços na rede interna do projeto.
+- **Versão do Postgres:** usar a **mesma major version** do Postgres do Lovable no stack self-hospedado — restaurar `auth.users` e colunas de identidade entre majors diferentes pode dar problema.
 - **Chaves:** o stack gera JWT secret próprio → novas `anon` e `service_role`. Todas as chaves mudam em relação ao Lovable.
 
 ---
@@ -82,8 +83,8 @@ Stack Supabase self-hospedado (template do Easypanel, ou Docker Compose custom s
 5. **Importar no novo Supabase (toda a carga rodando como `postgres`/`service_role`, RLS desativado/ignorado durante o import):**
    1. **Usuários primeiro:** inserir `auth.users` preservando `id` + `encrypted_password` → **login sem reset de senha**. (Ordem importa: as FKs do `public` referenciam `auth.users` 9x.)
    2. **Dados das tabelas `public`:** triggers desativados durante a carga e reativados depois; inserir respeitando ordem de FKs; acertar sequences/identity.
-   3. **Storage:** recriar bucket `event-images` (público); subir arquivos com os mesmos caminhos **e** restaurar as linhas de `storage.objects` correspondentes (senão `getPublicUrl` retorna links mortos).
-6. **Verificação:** comparar contagem de linhas por tabela (novo vs antigo), conferir nº de objetos no storage e testar **login de um usuário real** + abrir uma imagem via `getPublicUrl`.
+   3. **Storage:** o bucket `event-images` (público) e suas 4 policies de `storage.objects` **já são criados pela migration** `20251110041625_...sql` (rodada no passo 2) — **não recriar** (geraria erro de chave duplicada). Aqui só: (a) subir os arquivos (via `service_role`, ignorando a policy "Producers can upload") e (b) restaurar as linhas de `storage.objects` correspondentes (senão `getPublicUrl` retorna links mortos).
+6. **Verificação:** comparar contagem de linhas por tabela (novo vs antigo), conferir nº de objetos no storage, e — **antes da virada de DNS** — testar **login de um usuário real** (para que uma eventual incompatibilidade de hash bcrypt apareça dentro da janela de manutenção) + abrir uma imagem via `getPublicUrl`.
 
 ---
 
@@ -99,7 +100,7 @@ As 10 funções Deno no `edge-runtime`: `create-checkout`, `verify-payment`, `pr
 
 - **`verify-payment` NÃO é webhook do Stripe** (verificado no código: sem `constructEvent`/assinatura; é chamada pelo frontend com JWT do usuário para conferir a sessão de checkout). Logo: **não há `STRIPE_WEBHOOK_SECRET` nem webhook do Stripe para reconfigurar**.
 - **`verify_jwt`**: replicar o `config.toml` **literalmente** — `verify_jwt = false` apenas em `process-withdrawal` e `send-withdrawal-notification`; as outras 8 ficam no padrão `true` (mantém o comportamento atual de produção).
-- Trocar a URL hardcoded do logo no storage (`txkwnrrhaahhhpmjjbyl.supabase.co/.../mister-ticket-logo.png`) pro novo domínio.
+- Trocar a URL hardcoded do logo no storage (`txkwnrrhaahhhpmjjbyl.supabase.co/.../mister-ticket-logo.png`) pro novo domínio — aparece em **duas** funções: `send-welcome-email/index.ts` e `send-password-reset/index.ts`.
 
 ---
 
@@ -109,7 +110,9 @@ App com vendas ativas → **janela de manutenção curta**:
 
 1. **Modo manutenção:** publicar um build do frontend com flag de manutenção (página estática "em manutenção") OU pausar vendas pela UI de admin, durante a janela. Aceita-se uma pequena janela de inconsistência se o modo manutenção total não for viável.
 2. Export final via `migrate-helper` → import → conferir contagens.
-3. `.env` do front → `VITE_SUPABASE_URL=https://api.misterticket.com.br` + nova `anon key` → push (rebuild automático).
+3. **Flipar todas as referências ao backend antigo no frontend** → push (rebuild automático):
+   - `.env`: `VITE_SUPABASE_URL=https://api.misterticket.com.br`, `VITE_SUPABASE_PUBLISHABLE_KEY=<nova anon key>` (o nome da var é `PUBLISHABLE_KEY`, não `ANON_KEY`), `VITE_SUPABASE_PROJECT_ID=<novo ref>`.
+   - `index.html`: trocar o `<link rel="preconnect" href="https://txkwnrrhaahhhpmjjbyl.supabase.co">` pro novo domínio.
 4. DNS: `api.misterticket.com.br` → A `72.61.25.199` (Hostinger).
 5. Testes ponta-a-ponta: login real, eventos, checkout (teste), e-mail, realtime, upload.
 6. Desligar modo manutenção.

@@ -2,9 +2,11 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install dependencies (incl. devDependencies — vite/plugins live there)
+# Install dependencies (incl. devDependencies — vite/plugins live there).
+# --legacy-peer-deps: barcode-scanner declares a Capacitor 5 peer while the
+# project runs Capacitor 7; bun tolerates this locally, npm ci needs the flag.
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Build the Vite app (VITE_* vars are read from the committed .env)
 COPY . .

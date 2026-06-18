@@ -4,9 +4,9 @@
 
 **Goal:** Migrar todo o backend do Mister Ticket do Lovable Cloud (Supabase gerenciado) para um Supabase self-hospedado na VPS própria (Easypanel), preservando todos os dados de produção.
 
-**Architecture:** Stack Supabase self-hospedado (enxuto, sem Studio/analytics/imgproxy) no projeto `outros` do Easypanel, exposto via Kong em `api.misterticket.com.br`. Estrutura criada pelas migrations do repo; dados/usuários/storage migrados via `migrate-helper` do Lovable. Frontend re-apontado e cutover com janela de manutenção.
+**Architecture:** Stack Supabase self-hospedado (enxuto, sem Studio/analytics/imgproxy) no projeto `outros` do Easypanel, exposto via Kong em `api.misterticket.com.br`. Backend migrado por **clone completo** (schema + dados + `auth.users` + storage) via a CLI dreamlit (`export run`) para um target **em branco** — as migrations do repo NÃO são rodadas antes do clone. Edge Functions deployadas à parte. Frontend re-apontado e cutover com janela de manutenção.
 
-**Tech Stack:** Supabase (Postgres, GoTrue, PostgREST, Realtime, Storage, Kong, edge-runtime), Easypanel (tRPC API + Docker Compose), Deno (edge functions), Stripe, Resend, Vite/React (frontend).
+**Tech Stack:** Supabase (Postgres, GoTrue, PostgREST, Realtime, Storage, Kong, edge-runtime), Easypanel (tRPC API + Docker Compose), exporter `lovable-cloud-to-supabase-exporter` (dreamlit) + `migrate-helper`, Deno (edge functions), Stripe, Resend, Vite/React (frontend).
 
 **Spec de referência:** [docs/superpowers/specs/2026-06-18-migracao-supabase-selfhosted-design.md](../specs/2026-06-18-migracao-supabase-selfhosted-design.md)
 
@@ -195,7 +195,7 @@ Expected: batem com a origem.
 
 - [ ] **Step 3:** Descartar/zerar o target de teste.
 
-> O clone real (target = Supabase de produção da VPS, em branco) acontece na **janela de manutenção** (Task 13).
+> O clone real (target = Supabase de produção da VPS, em branco) acontece na **janela de manutenção** (Task 11).
 
 ### Task 7: Verificações pós-clone (aplicáveis após o clone real da Task 11)
 

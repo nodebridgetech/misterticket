@@ -114,10 +114,10 @@ App com vendas ativas → **janela de manutenção curta**:
 3. **Flipar todas as referências ao backend antigo no frontend** → push (rebuild automático):
    - `.env`: `VITE_SUPABASE_URL=https://api.misterticket.com.br`, `VITE_SUPABASE_PUBLISHABLE_KEY=<nova anon key>` (o nome da var é `PUBLISHABLE_KEY`, não `ANON_KEY`), `VITE_SUPABASE_PROJECT_ID=<novo ref>`.
    - `index.html`: trocar o `<link rel="preconnect" href="https://txkwnrrhaahhhpmjjbyl.supabase.co">` pro novo domínio.
-4. DNS: `api.misterticket.com.br` → A `72.61.25.199` (Hostinger).
-5. Testes ponta-a-ponta: login real, eventos, checkout (teste), e-mail, realtime, upload.
-6. Desligar modo manutenção.
-7. Manter Lovable/Supabase antigo intacto por alguns dias (rollback).
+   - (O DNS de `api.misterticket.com.br` → A `72.61.25.199` já foi criado no provisionamento, para emissão do SSL — **não há mudança de DNS no cutover**.)
+4. Testes ponta-a-ponta: login real, eventos, checkout (teste), e-mail, realtime, upload.
+5. Desligar modo manutenção.
+6. Manter Lovable/Supabase antigo intacto por alguns dias (rollback).
 
 > Nota: não há webhook do Stripe a reconfigurar (ver Seção 5). `create-checkout` usa `success_url`/`cancel_url` derivados de `req.headers.origin`, sem domínio hardcoded.
 
